@@ -25,6 +25,7 @@ import tech.pegasys.teku.phase1.simulation.util.getGenesisState
 import tech.pegasys.teku.phase1.simulation.util.getGenesisStore
 import tech.pegasys.teku.phase1.simulation.util.getShardGenesisStores
 import tech.pegasys.teku.phase1.simulation.util.runsOutOfSlots
+import tech.pegasys.teku.phase1.simulation.util.setConstants
 import tech.pegasys.teku.phase1.util.log
 import tech.pegasys.teku.phase1.util.logDebug
 import tech.pegasys.teku.phase1.util.logSetDebugMode
@@ -37,11 +38,7 @@ class Phase1Simulation(
   private val terminator = object : Eth2Actor(eventBus) {
     override suspend fun dispatchImpl(event: Eth2Event, scope: CoroutineScope) {
       // stop simulation when the last slot has been processed
-      if (event is SlotTerminal && runsOutOfSlots(
-          event.slot,
-          config.slotsToRun.toULong()
-        )
-      ) {
+      if (event is SlotTerminal && runsOutOfSlots(event.slot, config.slotsToRun)) {
         stop()
       }
     }
@@ -50,6 +47,9 @@ class Phase1Simulation(
   private val actors: List<Eth2Actor>
 
   init {
+    require(config.eth1ShardNumber < config.activeShards) { "Eth1 Shard number exceeds limit" }
+
+    setConstants("minimal", config)
     logSetDebugMode(config.debug)
 
     val bls = when (config.bls) {
@@ -109,13 +109,18 @@ class Phase1Simulation(
   }
 
   data class Config(
-    var slotsToRun: ULong = 2uL * SLOTS_PER_EPOCH,
+    var epochsToRun: ULong = 2uL,
     var validatorRegistrySize: Int = 16,
     var proposerEth1Engine: Eth1EngineClient = Eth1EngineClientStub(SimulationRandomness),
     var processorEth1Engine: Eth1EngineClient = Eth1EngineClientStub(SimulationRandomness),
     var debug: Boolean = false,
-    var bls: BLSConfig = BLSConfig.BLS12381
-  )
+    var bls: BLSConfig = BLSConfig.BLS12381,
+    var activeShards: ULong = 2uL,
+    var eth1ShardNumber: ULong = 0uL
+  ) {
+    val slotsToRun: ULong
+      get() = epochsToRun * SLOTS_PER_EPOCH
+  }
 
   enum class BLSConfig {
     BLS12381,

@@ -7,6 +7,7 @@ import tech.pegasys.teku.datastructures.util.MockStartDepositGenerator
 import tech.pegasys.teku.phase1.integration.datastructures.BeaconState
 import tech.pegasys.teku.phase1.integration.toUnsignedLong
 import tech.pegasys.teku.phase1.onotole.phase1.INITIAL_ACTIVE_SHARDS
+import tech.pegasys.teku.phase1.onotole.phase1.MIN_GENESIS_TIME
 import tech.pegasys.teku.phase1.onotole.phase1.Phase1Spec
 
 fun getGenesisState(blsKeyPairs: List<BLSKeyPair>, spec: Phase1Spec): BeaconState {
@@ -14,7 +15,7 @@ fun getGenesisState(blsKeyPairs: List<BLSKeyPair>, spec: Phase1Spec): BeaconStat
   val deposits = MockStartDepositGenerator().createDeposits(blsKeyPairs)
   val state = spec.upgrade_to_phase1(
     MockStartBeaconStateGenerator().createInitialBeaconState(
-      0uL.toUnsignedLong(),
+      MIN_GENESIS_TIME.toUnsignedLong(),
       deposits
     )
   )

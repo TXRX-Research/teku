@@ -8,7 +8,7 @@ import tech.pegasys.teku.phase1.integration.datastructures.Store
 import tech.pegasys.teku.phase1.onotole.phase1.Phase1Spec
 import tech.pegasys.teku.phase1.onotole.phase1.Shard
 
-val ETH1_SHARD_NUMBER = Shard(0uL)
+var ETH1_SHARD_NUMBER = Shard(0uL)
 
 class Eth1ShardSpec(private val spec: Phase1Spec) {
   fun on_eth1_shard_block(store: Store, shard_store: ShardStore, signed_shard_block: SignedShardBlock, eth1_engine: Eth1EngineClient): Unit {
