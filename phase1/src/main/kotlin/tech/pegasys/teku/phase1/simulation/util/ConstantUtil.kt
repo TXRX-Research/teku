@@ -25,7 +25,7 @@ fun setConstants(constantSetName: String, config: Phase1Simulation.Config) {
   // configurable
   INITIAL_ACTIVE_SHARDS = config.activeShards
   ETH1_SHARD_NUMBER = config.eth1ShardNumber
-  MIN_GENESIS_ACTIVE_VALIDATOR_COUNT = config.validatorRegistrySize.toULong()
+  MIN_GENESIS_ACTIVE_VALIDATOR_COUNT = config.registrySize
 
   // hardcoded set
   SHARD_COMMITTEE_PERIOD = 16uL

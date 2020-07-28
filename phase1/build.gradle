@@ -34,6 +34,7 @@ dependencies {
         testLogging.showStandardStreams = true
     }
 }
+
 compileKotlin {
     kotlinOptions {
         freeCompilerArgs = ["-XXLanguage:+InlineClasses"]

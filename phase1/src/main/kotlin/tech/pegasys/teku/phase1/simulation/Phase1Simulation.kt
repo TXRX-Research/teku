@@ -6,6 +6,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import tech.pegasys.teku.datastructures.util.MockStartValidatorKeyPairFactory
 import tech.pegasys.teku.phase1.eth1client.Eth1EngineClient
+import tech.pegasys.teku.phase1.eth1client.Web3jEth1EngineClient
 import tech.pegasys.teku.phase1.eth1client.stub.Eth1EngineClientStub
 import tech.pegasys.teku.phase1.eth1client.withLogger
 import tech.pegasys.teku.phase1.onotole.deps.BLS12381
@@ -29,6 +30,7 @@ import tech.pegasys.teku.phase1.simulation.util.setConstants
 import tech.pegasys.teku.phase1.util.log
 import tech.pegasys.teku.phase1.util.logDebug
 import tech.pegasys.teku.phase1.util.logSetDebugMode
+import kotlin.coroutines.CoroutineContext
 
 class Phase1Simulation(
   private val scope: CoroutineScope,
@@ -47,7 +49,10 @@ class Phase1Simulation(
   private val actors: List<Eth2Actor>
 
   init {
-    require(config.eth1ShardNumber < config.activeShards) { "Eth1 Shard number exceeds limit" }
+    require(config.activeShards > 0uL) { "Active shard number equals 0" }
+    require(config.eth1ShardNumber < config.activeShards) {
+      "Eth1 Shard number exceeds active shards limit = ${config.activeShards}"
+    }
 
     setConstants("minimal", config)
     logSetDebugMode(config.debug)
@@ -60,17 +65,24 @@ class Phase1Simulation(
 
     val spec = Phase1Spec(bls)
 
-    log("Initializing ${config.validatorRegistrySize} BLS Key Pairs...")
+    log("Initializing ${config.registrySize} BLS Key Pairs...")
     val blsKeyPairs =
-      MockStartValidatorKeyPairFactory().generateKeyPairs(0, config.validatorRegistrySize)
+      MockStartValidatorKeyPairFactory().generateKeyPairs(0, config.registrySize.toInt())
 
     log("Initializing genesis state and store...")
     val genesisState = getGenesisState(blsKeyPairs, spec)
     val store = getGenesisStore(genesisState, spec)
     val shardStores = getShardGenesisStores(genesisState, spec)
     val secretKeys = SecretKeyRegistry(blsKeyPairs)
-    val proposerEth1Engine = config.proposerEth1Engine.withLogger("ProposerEth1Engine")
-    val processorEth1Engine = config.processorEth1Engine.withLogger("ProcessorEth1Engine")
+    val proposerEth1Engine = instantiateEth1Engine(
+      config.proposerEth1Engine,
+      scope.coroutineContext
+    ).withLogger("ProposerEth1Engine")
+
+    val processorEth1Engine = instantiateEth1Engine(
+      config.processorEth1Engine,
+      scope.coroutineContext
+    ).withLogger("ProcessorEth1Engine")
 
     actors = listOf(
       SlotTicker(eventBus, config.slotsToRun),
@@ -110,9 +122,9 @@ class Phase1Simulation(
 
   data class Config(
     var epochsToRun: ULong = 2uL,
-    var validatorRegistrySize: Int = 16,
-    var proposerEth1Engine: Eth1EngineClient = Eth1EngineClientStub(SimulationRandomness),
-    var processorEth1Engine: Eth1EngineClient = Eth1EngineClientStub(SimulationRandomness),
+    var registrySize: ULong = 16uL,
+    var proposerEth1Engine: String = "stub",
+    var processorEth1Engine: String = "stub",
     var debug: Boolean = false,
     var bls: BLSConfig = BLSConfig.BLS12381,
     var activeShards: ULong = 2uL,
@@ -126,6 +138,18 @@ class Phase1Simulation(
     BLS12381,
     Pseudo,
     NoOp
+  }
+
+  internal fun printConfig() {
+    println(config)
+  }
+}
+
+private fun instantiateEth1Engine(engine: String, ctx: CoroutineContext): Eth1EngineClient {
+  return if (engine == "stub") {
+    Eth1EngineClientStub(SimulationRandomness)
+  } else {
+    Web3jEth1EngineClient(engine, ctx)
   }
 }
 

@@ -108,4 +108,8 @@ class Eth1EngineClientStub(private val rnd: Random) :
   }
 
   private fun exist(blockHash: Bytes32): Boolean = blocks.containsKey(blockHash)
+
+  override fun toString(): String {
+    return "Eth1EngineClientStub()"
+  }
 }

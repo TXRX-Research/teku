@@ -15,14 +15,10 @@ import tech.pegasys.teku.phase1.onotole.ssz.Bytes
 import tech.pegasys.teku.phase1.onotole.ssz.Bytes32
 import kotlin.coroutines.CoroutineContext
 
-class Web3jEth1EngineClient(rpcUrl: String, private val context: CoroutineContext) :
+class Web3jEth1EngineClient(private val rpcUrl: String, private val context: CoroutineContext) :
   Eth1EngineClient {
 
-  private val web3j: CustomJsonRpc2_0Web3j
-
-  init {
-    web3j = CustomJsonRpc2_0Web3j(HttpService(rpcUrl))
-  }
+  private val web3j: CustomJsonRpc2_0Web3j = CustomJsonRpc2_0Web3j(HttpService(rpcUrl))
 
   override fun eth_getHeadBlockHash() = runBlocking(context) {
     val response = web3j.ethBlockNumber().flowable().asFlow()
@@ -52,6 +48,10 @@ class Web3jEth1EngineClient(rpcUrl: String, private val context: CoroutineContex
   override fun eth2_setHead(blockHash: Bytes32) = runBlocking {
     val response = web3j.eth2SetHead(blockHash.toHexString()).flowable().asFlow().first()
     getResponseOnActionResultOrThrowError(response)
+  }
+
+  override fun toString(): String {
+    return "Web3jEth1EngineClient(url=${rpcUrl})"
   }
 }
 
