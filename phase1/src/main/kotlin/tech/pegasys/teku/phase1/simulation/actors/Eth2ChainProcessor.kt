@@ -31,14 +31,16 @@ import tech.pegasys.teku.phase1.simulation.NewSlot
 import tech.pegasys.teku.phase1.simulation.NotCrosslinkedBlocksPublished
 import tech.pegasys.teku.phase1.simulation.PrevSlotAttestationsPublished
 import tech.pegasys.teku.phase1.simulation.ShardBlockProcessor
+import tech.pegasys.teku.phase1.simulation.util.revampShardStoreFromFinalizedCheckpoint
+import tech.pegasys.teku.phase1.simulation.util.revampStoreFromFinalizedCheckpoint
 import tech.pegasys.teku.phase1.util.Color
 import tech.pegasys.teku.phase1.util.log
 import tech.pegasys.teku.phase1.util.printRoot
 
 class Eth2ChainProcessor(
   eventBus: SendChannel<Eth2Event>,
-  private val store: Store,
-  private val shardStores: Map<Shard, ShardStore>,
+  private var store: Store,
+  private var shardStores: Map<Shard, ShardStore>,
   private val eth1Engine: Eth1EngineClient,
   private val spec: Phase1Spec
 ) : Eth2Actor(eventBus) {
@@ -53,10 +55,19 @@ class Eth2ChainProcessor(
   }
 
   private suspend fun onNewBeaconBlock(block: SignedBeaconBlock) {
+    val previousFinalizedCheckpoint = store.finalized_checkpoint
     spec.on_block(store, block)
     publishBeaconHead(::HeadAfterNewBeaconBlock)
 
     log("Eth2ChainProcessor: beacon block processed (root=${printRoot(block.message.hashTreeRoot())})")
+
+    // remove store data beyond finalized checkpoint
+    if (previousFinalizedCheckpoint != store.finalized_checkpoint) {
+      store = revampStoreFromFinalizedCheckpoint(store)
+      shardStores =
+        shardStores.mapValues { revampShardStoreFromFinalizedCheckpoint(store, it.value) }
+      log("Eth2ChainProcessor: prune states and blocks beyond finalized checkpoint", Color.GREEN)
+    }
   }
 
   private suspend fun onNewSlot(slot: Slot) {
