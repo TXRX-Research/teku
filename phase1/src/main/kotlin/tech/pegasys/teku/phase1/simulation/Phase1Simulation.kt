@@ -132,16 +132,25 @@ class Phase1Simulation(
   ) {
     val slotsToRun: ULong
       get() = epochsToRun * SLOTS_PER_EPOCH
+
+    fun toStringPretty(): String {
+      return "Config(\n" +
+          "    epochsToRun=$epochsToRun\n" +
+          "    registrySize=$registrySize\n" +
+          "    proposerEth1Engine=$proposerEth1Engine\n" +
+          "    processorEth1Engine=$processorEth1Engine\n" +
+          "    debug=$debug\n" +
+          "    bls=$bls\n" +
+          "    activeShards=$activeShards\n" +
+          "    eth1ShardNumber=$eth1ShardNumber\n" +
+          ")"
+    }
   }
 
   enum class BLSConfig {
     BLS12381,
     Pseudo,
     NoOp
-  }
-
-  internal fun printConfig() {
-    println(config)
   }
 }
 

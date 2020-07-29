@@ -77,7 +77,7 @@ class ShardProposer(
     val newShardBlocks = (0uL until INITIAL_ACTIVE_SHARDS)
       .map { it to ShardBlockProducer(it, secretKeys, eth1Engine, spec) }
       .map {
-        val (shardHeadRoot, shardHead) = recentShardHeads[it.first.toInt()]!!
+        val (shardHeadRoot, shardHead) = recentShardHeads[it.first.toInt()]
         async { it.second.produce(recentSlot, head, shardHeadRoot, shardHead.message) }
       }.awaitAll()
 

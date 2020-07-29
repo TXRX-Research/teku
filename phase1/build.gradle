@@ -2,6 +2,16 @@ plugins {
     id "org.jetbrains.kotlin.jvm" version "1.3.72"
 }
 
+apply plugin: 'application'
+
+application {
+    applicationName = "eth2-client"
+    mainClassName = "tech.pegasys.teku.phase1.Eth1ShardSimulatorKt"
+    applicationDefaultJvmArgs = [
+            "-Xmx2g"
+    ]
+}
+
 dependencies {
     implementation project(':bls')
     implementation project(':ethereum:datastructures')
@@ -37,6 +47,10 @@ dependencies {
 
 compileKotlin {
     kotlinOptions {
-        freeCompilerArgs = ["-XXLanguage:+InlineClasses"]
+        freeCompilerArgs = [
+                "-XXLanguage:+InlineClasses",
+                "-Xopt-in=kotlin.ExperimentalUnsignedTypes",
+                "-Xopt-in=kotlinx.coroutines.ExperimentalCoroutinesApi"
+        ]
     }
 }

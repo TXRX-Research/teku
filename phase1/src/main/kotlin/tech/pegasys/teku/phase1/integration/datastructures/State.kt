@@ -650,6 +650,7 @@ class BeaconState : AbstractMutableContainer {
       set(25, value)
     }
   val exposed_derived_secrets: SSZMutableVector<SSZList<ValidatorIndex>>
+    @Suppress("UNCHECKED_CAST")
     get() = SSZMutableVectorImpl<SSZList<ValidatorIndex>, ListViewRead<UInt64View>>(
       getAnyByRef(26),
       { v -> SSZListImpl(v) { getBasicValue<ValidatorIndex>(it) } },

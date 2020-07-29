@@ -5,14 +5,14 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import picocli.CommandLine
 import tech.pegasys.teku.phase1.simulation.Phase1Simulation
+import tech.pegasys.teku.phase1.util.Color
+import tech.pegasys.teku.phase1.util.log
 import java.io.PrintWriter
-import java.net.MalformedURLException
-import java.net.URL
 import java.util.concurrent.Callable
 import kotlin.text.Charsets.UTF_8
 
 @CommandLine.Command(
-  name = "simulator",
+  name = "eth2-client",
   showDefaultValues = true,
   abbreviateSynopsis = true,
   description = ["Run Eth1 Shard Simulator"],
@@ -22,46 +22,46 @@ import kotlin.text.Charsets.UTF_8
   descriptionHeading = "%nDescription:%n%n",
   optionListHeading = "%nOptions:%n",
   footerHeading = "%n",
-  footer = ["Eth1 Shard Simulator is licensed under the Apache License 2.0"],
+  footer = ["Eth2 Client is licensed under the Apache License 2.0"],
   sortOptions = false
 )
-class Phase1SimulationCommand : Callable<Int> {
+class Eth2ClientCommand : Callable<Int> {
 
   @CommandLine.Option(
-    names = ["-e", "--epochs-to-run"],
+    names = ["--epochs-to-run"],
     paramLabel = "<NUMBER>",
     description = ["Number of epochs to run a simulation for."]
   )
   private var epochsToRun = 128uL
 
   @CommandLine.Option(
-    names = ["-r", "--registry-size"],
+    names = ["--registry-size"],
     paramLabel = "<NUMBER>",
     description = ["Size of validator registry."]
   )
   private var registrySize = 2048uL
 
   @CommandLine.Option(
-    names = ["-s", "--active-shards"],
+    names = ["--active-shards"],
     paramLabel = "<NUMBER>",
     description = ["Number of active shards during simulation."]
   )
   private var activeShards = 2uL
 
   @CommandLine.Option(
-    names = ["--proposer-eth1-engine"],
-    paramLabel = "<URL>",
-    description = ["Eth1-engine endpoint used by proposers."]
+    names = ["--eth1-engine"],
+    paramLabel = "<URL | \"stub\">",
+    description = ["Eth1-engine endpoint."]
   )
   private var proposerEth1Engine = "stub"
 
   @CommandLine.Option(
     names = ["--processor-eth1-engine"],
     paramLabel = "<URL>",
-    description = ["Eth1-engine endpoint used by processors. ",
-      "Do not set to re-use proposer's engine."]
+    description = ["Use this option if you want Eth1 blocks",
+      "executed by separate eth1-engine instance."]
   )
-  private var processorEth1Engine = "stub"
+  private var processorEth1Engine: String? = null
 
   @CommandLine.Option(
     names = ["--eth1-shard"],
@@ -71,39 +71,38 @@ class Phase1SimulationCommand : Callable<Int> {
   private var eth1ShardNumber = 0uL
 
   @CommandLine.Option(
-    names = ["-d", "--debug"],
-    description = ["Debug mode with additional output."]
-  )
-  private var debug = false
-
-  @CommandLine.Option(
     names = ["--bls"],
     paramLabel = "<MODE>",
     description = ["BLS mode: \"BLS12381\", \"Pseudo\", \"NoOp\"."]
   )
   private var bls = Phase1Simulation.BLSConfig.BLS12381
 
+  @CommandLine.Option(
+    names = ["-d", "--debug"],
+    description = ["Debug mode with additional output."]
+  )
+  private var debug = false
+
   override fun call() = runBlocking<Int> {
     val scope = CoroutineScope(coroutineContext + Dispatchers.Default)
-    val simulation = Phase1Simulation(scope) {
-      it.epochsToRun = epochsToRun
-      it.registrySize = registrySize
-      it.activeShards = activeShards
-      it.eth1ShardNumber = eth1ShardNumber
-      it.debug = debug
-      it.bls = bls
-      val proposerEngineOption = checkEth1EngineOption(proposerEth1Engine)
-      val processorEngineOption = checkEth1EngineOption(processorEth1Engine)
-
-      it.proposerEth1Engine = proposerEngineOption
-      it.processorEth1Engine =
-        if (proposerEngineOption != "stub" && processorEngineOption == "stub") {
-          proposerEth1Engine
-        } else {
-          processorEth1Engine
-        }
-    }
-    simulation.start()
+    checkEth1EngineOptions(proposerEth1Engine, processorEth1Engine)
+    val config = Phase1Simulation.Config(
+      epochsToRun = epochsToRun,
+      registrySize = registrySize,
+      activeShards = activeShards,
+      eth1ShardNumber = eth1ShardNumber,
+      debug = debug,
+      bls = bls,
+      proposerEth1Engine = proposerEth1Engine,
+      processorEth1Engine =
+      if (processorEth1Engine != null) {
+        processorEth1Engine!!
+      } else {
+        proposerEth1Engine
+      }
+    )
+    log("Starting with ${config.toStringPretty()}\n", Color.GREEN)
+    Phase1Simulation(scope, config).start()
 
     return@runBlocking 0
   }
@@ -116,13 +115,15 @@ class Phase1SimulationCommand : Callable<Int> {
   }
 }
 
-private fun checkEth1EngineOption(option: String): String {
-  if (option != "stub") {
-    try {
-      URL(option)
-    } catch (e: MalformedURLException) {
-      throw IllegalArgumentException("Invalid URL '$option': ${e.message}")
+private fun checkEth1EngineOptions(proposerOption: String, processorOption: String?) {
+  if (proposerOption != "stub") {
+    checkURL(proposerOption)
+    require(processorOption != "stub") {
+      "Can't stub processor eth1-engine while proposers are set to use a real instance"
     }
   }
-  return option
+
+  if (processorOption != null && processorOption != "stub") {
+    checkURL(processorOption)
+  }
 }

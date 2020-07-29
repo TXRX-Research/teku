@@ -170,6 +170,7 @@ fun SSZBitvector(bitvector: Bitvector): SSZBitvector {
   return SSZBitvectorImpl((0 until bitvector.size).map { bitvector.getBit(it) }.toList())
 }
 
+@Suppress("UNCHECKED_CAST")
 fun <U : Any, V : ViewRead> getWrapper(view: ViewRead): (U) -> V {
   return when (view) {
     is ContainerViewRead -> { e -> e as V }
@@ -183,6 +184,7 @@ fun <U : Any, V : ViewRead> getWrapper(view: ViewRead): (U) -> V {
   }
 }
 
+@Suppress("UNCHECKED_CAST")
 fun <U : Any, V : ViewRead> getUnwrapper(view: ViewRead): (V) -> U {
   return when (view) {
     is ContainerViewRead -> { v -> v as U }

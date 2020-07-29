@@ -2050,6 +2050,7 @@ class Phase1Spec(internal val bls: BLS) {
   fun tech.pegasys.teku.datastructures.blocks.Eth1Data.toPhase1() = Eth1Data(deposit_root = this.deposit_root, deposit_count = this.deposit_count.toUInt64(), block_hash = this.block_hash)
   fun tech.pegasys.teku.datastructures.state.Checkpoint.toPhase1() = Checkpoint(epoch = this.epoch.toUInt64(), root = this.root)
 
+  @Suppress("UNCHECKED_CAST")
   fun upgrade_to_phase1(pre: tech.pegasys.teku.datastructures.state.BeaconState): BeaconState {
     var epoch = compute_epoch_at_slot(pre.slot.toUInt64())
     var post = BeaconState(

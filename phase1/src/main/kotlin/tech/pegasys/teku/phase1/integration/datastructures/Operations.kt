@@ -888,7 +888,7 @@ class CustodyChunkResponse : AbstractImmutableContainer {
   val chunk_index: uint64
     get() = (get(1) as UInt64View).get().toUInt64()
   val chunk: SSZByteVector
-    get() = SSZByteVectorImpl(get(2) as VectorViewRead<ByteView>)
+    get() = SSZByteVectorImpl(getAny<VectorViewRead<ByteView>>(2))
   val branch: SSZVector<Root>
     get() = SSZVectorImpl(getAny(3), Bytes32View::get)
 
