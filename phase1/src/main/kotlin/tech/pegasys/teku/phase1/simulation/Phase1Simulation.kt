@@ -12,6 +12,7 @@ import tech.pegasys.teku.phase1.eth1engine.withLogger
 import tech.pegasys.teku.phase1.onotole.deps.BLS12381
 import tech.pegasys.teku.phase1.onotole.deps.NoOpBLS
 import tech.pegasys.teku.phase1.onotole.deps.PseudoBLS
+import tech.pegasys.teku.phase1.onotole.phase1.MAX_SHARDS
 import tech.pegasys.teku.phase1.onotole.phase1.Phase1Spec
 import tech.pegasys.teku.phase1.onotole.phase1.SLOTS_PER_EPOCH
 import tech.pegasys.teku.phase1.simulation.actors.BeaconAttester
@@ -49,7 +50,15 @@ class Phase1Simulation(
   private val actors: List<Eth2Actor>
 
   init {
-    require(config.activeShards > 0uL) { "Active shard number equals 0" }
+    require(config.activeShards > 0uL) { "Active shard number can't be 0" }
+    require(config.activeShards <= MAX_SHARDS) {
+      "Active shard number(${config.activeShards}) exceeds MAX_SHARDS($MAX_SHARDS)"
+    }
+    if (config.eth1ShardNumber.toLong() != -1L) {
+      require(config.eth1ShardNumber < config.activeShards) {
+        "Eth1 Shard number exceeds active shards limit = ${config.activeShards}"
+      }
+    }
 
     setConstants("minimal", config)
     logSetDebugMode(config.debug)
@@ -139,7 +148,7 @@ class Phase1Simulation(
           "    debug=$debug\n" +
           "    bls=$bls\n" +
           "    activeShards=$activeShards\n" +
-          "    eth1ShardNumber=$eth1ShardNumber\n" +
+          "    eth1ShardNumber=${eth1ShardNumber.toLong()}\n" +
           ")"
     }
   }

@@ -66,7 +66,7 @@ class Eth2ClientCommand : Callable<Int> {
   @CommandLine.Option(
     names = ["--eth1-shard"],
     paramLabel = "<NUMBER>",
-    description = ["Identifier of Eth1 Shard."]
+    description = ["Identifier of Eth1 Shard,", "use -1 to disable Eth1 Shard."]
   )
   private var eth1ShardNumber = 0uL
 
@@ -101,7 +101,7 @@ class Eth2ClientCommand : Callable<Int> {
         proposerEth1Engine
       }
     )
-    log("Starting with ${config.toStringPretty()}\n", Color.GREEN)
+    log("Launching with ${config.toStringPretty()}\n", Color.GREEN)
     Phase1Simulation(scope, config).start()
 
     return@runBlocking 0
