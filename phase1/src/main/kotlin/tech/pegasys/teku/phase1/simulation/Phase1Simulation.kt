@@ -5,10 +5,10 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import tech.pegasys.teku.datastructures.util.MockStartValidatorKeyPairFactory
-import tech.pegasys.teku.phase1.eth1client.Eth1EngineClient
-import tech.pegasys.teku.phase1.eth1client.Web3jEth1EngineClient
-import tech.pegasys.teku.phase1.eth1client.stub.Eth1EngineClientStub
-import tech.pegasys.teku.phase1.eth1client.withLogger
+import tech.pegasys.teku.phase1.eth1engine.Eth1EngineClient
+import tech.pegasys.teku.phase1.eth1engine.Web3jEth1EngineClient
+import tech.pegasys.teku.phase1.eth1engine.stub.Eth1EngineClientStub
+import tech.pegasys.teku.phase1.eth1engine.withLogger
 import tech.pegasys.teku.phase1.onotole.deps.BLS12381
 import tech.pegasys.teku.phase1.onotole.deps.NoOpBLS
 import tech.pegasys.teku.phase1.onotole.deps.PseudoBLS

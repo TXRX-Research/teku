@@ -1,7 +1,7 @@
 package tech.pegasys.teku.phase1.simulation
 
-import tech.pegasys.teku.phase1.eth1client.Eth1BlockData
-import tech.pegasys.teku.phase1.eth1client.Eth1EngineClient
+import tech.pegasys.teku.phase1.eth1engine.Eth1BlockData
+import tech.pegasys.teku.phase1.eth1engine.Eth1EngineClient
 import tech.pegasys.teku.phase1.eth1shard.ETH1_SHARD_NUMBER
 import tech.pegasys.teku.phase1.eth1shard.Eth1ShardSpec
 import tech.pegasys.teku.phase1.integration.datastructures.ShardStore

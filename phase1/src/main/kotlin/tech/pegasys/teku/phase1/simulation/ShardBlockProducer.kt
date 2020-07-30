@@ -1,8 +1,8 @@
 package tech.pegasys.teku.phase1.simulation
 
 import org.apache.tuweni.bytes.Bytes32
-import tech.pegasys.teku.phase1.eth1client.Eth1BlockData
-import tech.pegasys.teku.phase1.eth1client.Eth1EngineClient
+import tech.pegasys.teku.phase1.eth1engine.Eth1BlockData
+import tech.pegasys.teku.phase1.eth1engine.Eth1EngineClient
 import tech.pegasys.teku.phase1.eth1shard.ETH1_SHARD_NUMBER
 import tech.pegasys.teku.phase1.integration.datastructures.ShardBlock
 import tech.pegasys.teku.phase1.integration.datastructures.SignedShardBlock

@@ -1,4 +1,4 @@
-package tech.pegasys.teku.phase1.eth1client
+package tech.pegasys.teku.phase1.eth1engine
 
 import tech.pegasys.teku.phase1.onotole.ssz.Bytes
 import tech.pegasys.teku.phase1.onotole.ssz.Bytes32

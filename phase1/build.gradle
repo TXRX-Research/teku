@@ -6,7 +6,7 @@ apply plugin: 'application'
 
 application {
     applicationName = "eth2-client"
-    mainClassName = "tech.pegasys.teku.phase1.Eth1ShardSimulatorKt"
+    mainClassName = "tech.pegasys.teku.phase1.Eth2ClientKt"
     applicationDefaultJvmArgs = [
             "-Xmx2g"
     ]

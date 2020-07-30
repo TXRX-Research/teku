@@ -1,4 +1,4 @@
-package tech.pegasys.teku.phase1.eth1client.stub
+package tech.pegasys.teku.phase1.eth1engine.stub
 
 import org.apache.tuweni.rlp.RLP
 import tech.pegasys.teku.phase1.onotole.ssz.Bytes

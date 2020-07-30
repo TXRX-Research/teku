@@ -1,4 +1,4 @@
-package tech.pegasys.teku.phase1.eth1client
+package tech.pegasys.teku.phase1.eth1engine
 
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flattenConcat

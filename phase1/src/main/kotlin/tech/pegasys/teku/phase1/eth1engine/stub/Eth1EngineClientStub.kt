@@ -1,8 +1,8 @@
-package tech.pegasys.teku.phase1.eth1client.stub
+package tech.pegasys.teku.phase1.eth1engine.stub
 
-import tech.pegasys.teku.phase1.eth1client.Eth1BlockData
-import tech.pegasys.teku.phase1.eth1client.Eth1EngineClient
-import tech.pegasys.teku.phase1.eth1client.computeEth1BlockHash
+import tech.pegasys.teku.phase1.eth1engine.Eth1BlockData
+import tech.pegasys.teku.phase1.eth1engine.Eth1EngineClient
+import tech.pegasys.teku.phase1.eth1engine.computeEth1BlockHash
 import tech.pegasys.teku.phase1.onotole.deps.hash_tree_root
 import tech.pegasys.teku.phase1.onotole.ssz.Bytes
 import tech.pegasys.teku.phase1.onotole.ssz.Bytes32

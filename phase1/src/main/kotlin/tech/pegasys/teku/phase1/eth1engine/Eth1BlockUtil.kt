@@ -1,4 +1,4 @@
-package tech.pegasys.teku.phase1.eth1client
+package tech.pegasys.teku.phase1.eth1engine
 
 import org.apache.tuweni.crypto.Hash
 import org.apache.tuweni.rlp.RLP
