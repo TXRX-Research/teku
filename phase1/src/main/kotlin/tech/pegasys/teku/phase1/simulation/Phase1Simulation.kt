@@ -50,9 +50,6 @@ class Phase1Simulation(
 
   init {
     require(config.activeShards > 0uL) { "Active shard number equals 0" }
-    require(config.eth1ShardNumber < config.activeShards) {
-      "Eth1 Shard number exceeds active shards limit = ${config.activeShards}"
-    }
 
     setConstants("minimal", config)
     logSetDebugMode(config.debug)

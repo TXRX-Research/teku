@@ -54,7 +54,9 @@ class ShardProposer(
     this.recentShardHeads = heads
 
     // Update eth1-engine with new Eth1 heads
-    updateEth1ShardHead(heads[ETH1_SHARD_NUMBER.toInt()].second.message)
+    if (ETH1_SHARD_NUMBER < heads.size.toULong()) {
+      updateEth1ShardHead(heads[ETH1_SHARD_NUMBER.toInt()].second.message)
+    }
 
     log("ShardProposer: shard heads updated to [${heads.joinToString { printRoot(it.first) }}]")
   }
