@@ -11,8 +11,17 @@ import tech.pegasys.teku.phase1.onotole.phase1.Shard
 var ETH1_SHARD_NUMBER = Shard(0uL)
 
 class Eth1ShardSpec(private val spec: Phase1Spec) {
-  fun on_eth1_shard_block(store: Store, shard_store: ShardStore, signed_shard_block: SignedShardBlock, eth1_engine: Eth1EngineClient): Unit {
+  fun on_eth1_shard_block(
+    store: Store,
+    shard_store: ShardStore,
+    signed_shard_block: SignedShardBlock,
+    eth1_engine: Eth1EngineClient
+  ) {
     val eth1BlockData = Eth1BlockData(signed_shard_block.message.body.toBytes())
+    val validationRet = eth1_engine.eth2_validateBlock(eth1BlockData.blockRLP)
+    if (validationRet.result != true) {
+      throw IllegalStateException("Failed to eth2_validateBlock($eth1BlockData), reason: ${validationRet.reason}")
+    }
     val ret = eth1_engine.eth2_insertBlock(eth1BlockData.blockRLP)
     if (ret.result != true) {
       throw IllegalStateException("Failed to eth2_insertBlock($eth1BlockData), reason: ${ret.reason}")
