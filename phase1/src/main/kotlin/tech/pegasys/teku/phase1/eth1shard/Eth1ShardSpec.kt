@@ -2,6 +2,7 @@ package tech.pegasys.teku.phase1.eth1shard
 
 import tech.pegasys.teku.phase1.eth1engine.Eth1BlockData
 import tech.pegasys.teku.phase1.eth1engine.Eth1EngineClient
+import tech.pegasys.teku.phase1.eth1engine.EthereumJsonRPCError
 import tech.pegasys.teku.phase1.integration.datastructures.ShardStore
 import tech.pegasys.teku.phase1.integration.datastructures.SignedShardBlock
 import tech.pegasys.teku.phase1.integration.datastructures.Store
