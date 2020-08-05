@@ -33,6 +33,7 @@ import tech.pegasys.teku.phase1.onotole.phase1.ValidatorIndex
 import tech.pegasys.teku.phase1.onotole.pylib.pyint
 import tech.pegasys.teku.phase1.onotole.ssz.Sequence
 import tech.pegasys.teku.phase1.onotole.ssz.uint64
+import tech.pegasys.teku.phase1.util.NoOpCaches
 import java.math.BigInteger
 import java.util.*
 import tech.pegasys.teku.datastructures.blocks.BeaconBlock as Phase0Block
@@ -40,7 +41,7 @@ import tech.pegasys.teku.datastructures.blocks.BeaconBlock as Phase0Block
 private val SLOTS = 128uL * SLOTS_PER_EPOCH
 private val blsKeyPairs = MockStartValidatorKeyPairFactory().generateKeyPairs(0, 16)
 private val rnd = Random(1)
-private val spec = Phase1Spec(BLS12381)
+private val spec = Phase1Spec(BLS12381, NoOpCaches())
 
 fun main() {
   var state = getGenesisState()

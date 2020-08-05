@@ -15,54 +15,55 @@ import tech.pegasys.teku.phase1.simulation.util.getRandomShardBlockBody
 import tech.pegasys.teku.phase1.simulation.util.produceShardBlock
 import tech.pegasys.teku.phase1.util.Color
 import tech.pegasys.teku.phase1.util.log
+import tech.pegasys.teku.phase1.util.logDebug
 import tech.pegasys.teku.phase1.util.printRoot
 
 interface ShardBlockProducer {
   fun produce(
-    slot: Slot,
-    beaconHead: BeaconHead,
-    parentRoot: Root,
-    parent: ShardBlock
+      slot: Slot,
+      beaconHead: BeaconHead,
+      parentRoot: Root,
+      parent: ShardBlock
   ): SignedShardBlock
 }
 
 class RandomShardBlockProducer(
-  private val shard: Shard,
-  private val secretKeys: SecretKeyRegistry,
-  private val spec: Phase1Spec
+    private val shard: Shard,
+    private val secretKeys: SecretKeyRegistry,
+    private val spec: Phase1Spec
 ) : ShardBlockProducer {
   override fun produce(
-    slot: Slot,
-    beaconHead: BeaconHead,
-    parentRoot: Root,
-    parent: ShardBlock
+      slot: Slot,
+      beaconHead: BeaconHead,
+      parentRoot: Root,
+      parent: ShardBlock
   ): SignedShardBlock {
     val body = getRandomShardBlockBody()
     return produceShardBlock(
-      slot,
-      shard,
-      parentRoot,
-      beaconHead.root,
-      beaconHead.state,
-      body,
-      secretKeys,
-      spec
+        slot,
+        shard,
+        parentRoot,
+        beaconHead.root,
+        beaconHead.state,
+        body,
+        secretKeys,
+        spec
     )
   }
 }
 
 class Eth1ShardBlockProducer(
-  private val shard: Shard,
-  private val secretKeys: SecretKeyRegistry,
-  private val eth1Engine: Eth1EngineClient,
-  private val spec: Phase1Spec
+    private val shard: Shard,
+    private val secretKeys: SecretKeyRegistry,
+    private val eth1Engine: Eth1EngineClient,
+    private val spec: Phase1Spec
 ) : ShardBlockProducer {
 
   override fun produce(
-    slot: Slot,
-    beaconHead: BeaconHead,
-    parentRoot: Root,
-    parent: ShardBlock
+      slot: Slot,
+      beaconHead: BeaconHead,
+      parentRoot: Root,
+      parent: ShardBlock
   ): SignedShardBlock {
     val eth1ParentHash = getEth1BlockHash(parent, eth1Engine)
 
@@ -70,18 +71,21 @@ class Eth1ShardBlockProducer(
     val produceResponse = eth1Engine.eth2_produceBlock(eth1ParentHash)
     if (produceResponse.result == null) {
       throw IllegalStateException(
-        "Failed to eth2_produceBlock(parent_hash=${printRoot(eth1ParentHash)}) for slot=$slot, " +
-            "reason ${produceResponse.reason}"
+          "Failed to eth2_produceBlock(parent_hash=${printRoot(eth1ParentHash)}) for slot=$slot, " +
+              "reason ${produceResponse.reason}"
       )
     }
     val eth1BlockData = produceResponse.result
+    logDebug("Eth1ShardBlockProducer: " +
+        "eth2_produceBlock(parent_hash=${printRoot(eth1ParentHash)}) " +
+        "~> (blockRLP=${eth1BlockData.blockRLP.toHexString()})")
 
     // Check if created Eth1 block is imported successfully
     val importResponse = eth1Engine.eth2_insertBlock(eth1BlockData.blockRLP)
     if (importResponse.result != true) {
       throw IllegalStateException(
-        "Failed to import $eth1BlockData, " +
-            "reason ${produceResponse.reason}"
+          "Failed to import $eth1BlockData, " +
+              "reason ${produceResponse.reason}"
       )
     }
 
@@ -89,14 +93,14 @@ class Eth1ShardBlockProducer(
 
     val body = eth1BlockData.encodeWithPseudoSOS()
     return produceShardBlock(
-      slot,
-      shard,
-      parentRoot,
-      beaconHead.root,
-      beaconHead.state,
-      body,
-      secretKeys,
-      spec
+        slot,
+        shard,
+        parentRoot,
+        beaconHead.root,
+        beaconHead.state,
+        body,
+        secretKeys,
+        spec
     )
   }
 }
@@ -115,10 +119,10 @@ private fun getEth1BlockHash(block: ShardBlock, eth1Engine: Eth1EngineClient): B
 
 @Suppress("FunctionName")
 fun ShardBlockProducer(
-  shard: Shard,
-  secretKeys: SecretKeyRegistry,
-  eth1Engine: Eth1EngineClient,
-  spec: Phase1Spec
+    shard: Shard,
+    secretKeys: SecretKeyRegistry,
+    eth1Engine: Eth1EngineClient,
+    spec: Phase1Spec
 ): ShardBlockProducer {
   return if (shard == ETH1_SHARD_NUMBER) {
     Eth1ShardBlockProducer(shard, secretKeys, eth1Engine, spec)

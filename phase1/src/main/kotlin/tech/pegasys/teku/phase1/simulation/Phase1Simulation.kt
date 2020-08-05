@@ -28,6 +28,8 @@ import tech.pegasys.teku.phase1.simulation.util.getGenesisStore
 import tech.pegasys.teku.phase1.simulation.util.getShardGenesisStores
 import tech.pegasys.teku.phase1.simulation.util.runsOutOfSlots
 import tech.pegasys.teku.phase1.simulation.util.setConstants
+import tech.pegasys.teku.phase1.util.LRUCaches
+import tech.pegasys.teku.phase1.util.NoOpCaches
 import tech.pegasys.teku.phase1.util.log
 import tech.pegasys.teku.phase1.util.logDebug
 import tech.pegasys.teku.phase1.util.logSetDebugMode
@@ -69,7 +71,12 @@ class Phase1Simulation(
       BLSConfig.NoOp -> NoOpBLS
     }
 
-    val spec = Phase1Spec(bls)
+    val cache = when (config.cache) {
+      CacheConfig.LRU -> LRUCaches()
+      CacheConfig.NoOp -> NoOpCaches()
+    }
+
+    val spec = Phase1Spec(bls, cache)
 
     log("Initializing ${config.registrySize} BLS Key Pairs...")
     val blsKeyPairs =
@@ -133,6 +140,7 @@ class Phase1Simulation(
     var processorEth1Engine: String = "stub",
     var debug: Boolean = false,
     var bls: BLSConfig = BLSConfig.BLS12381,
+    var cache: CacheConfig = CacheConfig.NoOp,
     var activeShards: ULong = 2uL,
     var eth1ShardNumber: ULong = 0uL
   ) {
@@ -156,6 +164,11 @@ class Phase1Simulation(
   enum class BLSConfig {
     BLS12381,
     Pseudo,
+    NoOp
+  }
+
+  enum class CacheConfig {
+    LRU,
     NoOp
   }
 }

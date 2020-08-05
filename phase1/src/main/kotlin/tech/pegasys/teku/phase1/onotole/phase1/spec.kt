@@ -57,7 +57,6 @@ import tech.pegasys.teku.phase1.onotole.pylib.all
 import tech.pegasys.teku.phase1.onotole.pylib.any
 import tech.pegasys.teku.phase1.onotole.pylib.append
 import tech.pegasys.teku.phase1.onotole.pylib.bit_length
-import tech.pegasys.teku.phase1.onotole.pylib.pybool
 import tech.pegasys.teku.phase1.onotole.pylib.contains
 import tech.pegasys.teku.phase1.onotole.pylib.count
 import tech.pegasys.teku.phase1.onotole.pylib.enumerate
@@ -76,6 +75,7 @@ import tech.pegasys.teku.phase1.onotole.pylib.max
 import tech.pegasys.teku.phase1.onotole.pylib.min
 import tech.pegasys.teku.phase1.onotole.pylib.plus
 import tech.pegasys.teku.phase1.onotole.pylib.pow
+import tech.pegasys.teku.phase1.onotole.pylib.pybool
 import tech.pegasys.teku.phase1.onotole.pylib.pybytes
 import tech.pegasys.teku.phase1.onotole.pylib.pyint
 import tech.pegasys.teku.phase1.onotole.pylib.range
@@ -100,14 +100,15 @@ import tech.pegasys.teku.phase1.onotole.ssz.SSZByteList
 import tech.pegasys.teku.phase1.onotole.ssz.SSZDict
 import tech.pegasys.teku.phase1.onotole.ssz.SSZList
 import tech.pegasys.teku.phase1.onotole.ssz.SSZMutableList
-import tech.pegasys.teku.phase1.onotole.ssz.SSZVector
 import tech.pegasys.teku.phase1.onotole.ssz.SSZObject
+import tech.pegasys.teku.phase1.onotole.ssz.SSZVector
 import tech.pegasys.teku.phase1.onotole.ssz.Sequence
 import tech.pegasys.teku.phase1.onotole.ssz.bit
 import tech.pegasys.teku.phase1.onotole.ssz.boolean
 import tech.pegasys.teku.phase1.onotole.ssz.get_backing
 import tech.pegasys.teku.phase1.onotole.ssz.toPyBytes
 import tech.pegasys.teku.phase1.onotole.ssz.uint64
+import tech.pegasys.teku.phase1.util.Caches
 import tech.pegasys.teku.ssz.backing.ListViewRead
 import tech.pegasys.teku.ssz.backing.type.BasicViewTypes
 import tech.pegasys.teku.ssz.backing.type.ListViewType
@@ -118,7 +119,7 @@ fun ceillog2(x: uint64): pyint {
   return (x - 1uL).bit_length()
 }
 
-class Phase1Spec(internal val bls: BLS) {
+class Phase1Spec(internal val bls: BLS, internal val caches: Caches) {
 
   /*
       Return the largest integer ``x`` such that ``x**2 <= n``.
@@ -260,7 +261,7 @@ class Phase1Spec(internal val bls: BLS) {
   fun compute_committee(indices: Sequence<ValidatorIndex>, seed: Bytes32, index: uint64, count: uint64): Sequence<ValidatorIndex> {
     val start = ((len(indices) * index) / count)
     val end = ((len(indices) * (index + 1uL)) / count)
-    return range(start, end).map { i -> indices[compute_shuffled_index(i, len(indices), seed)] }.toPyList()
+    return compute_committee_shuffle(indices, seed, start, end)
   }
 
   /*
@@ -358,8 +359,8 @@ class Phase1Spec(internal val bls: BLS) {
   /*
       Return the sequence of active validator indices at ``epoch``.
       */
-  fun get_active_validator_indices(state: BeaconState, epoch: Epoch): Sequence<ValidatorIndex> {
-    return enumerate(state.validators).filter { (_, v) -> is_active_validator(v, epoch) }.map { (i, _) -> ValidatorIndex(i) }.toPyList()
+  fun get_active_validator_indices(state: BeaconState, epoch: Epoch): Sequence<ValidatorIndex> = caches.activeValidators.get(epoch) {
+    enumerate(state.validators).filter { (_, v) -> is_active_validator(v, epoch) }.map { (i, _) -> ValidatorIndex(i) }.toPyList()
   }
 
   /*
@@ -388,20 +389,20 @@ class Phase1Spec(internal val bls: BLS) {
   /*
       Return the beacon committee at ``slot`` for ``index``.
       */
-  fun get_beacon_committee(state: BeaconState, slot: Slot, index: CommitteeIndex): Sequence<ValidatorIndex> {
+  fun get_beacon_committee(state: BeaconState, slot: Slot, index: CommitteeIndex): Sequence<ValidatorIndex> = caches.beaconCommittee.get(slot to index) {
     val epoch = compute_epoch_at_slot(slot)
     val committees_per_slot = get_committee_count_per_slot(state, epoch)
-    return compute_committee(indices = get_active_validator_indices(state, epoch), seed = get_seed(state, epoch, DOMAIN_BEACON_ATTESTER), index = (((slot % SLOTS_PER_EPOCH) * committees_per_slot) + index), count = (committees_per_slot * SLOTS_PER_EPOCH))
+    compute_committee(indices = get_active_validator_indices(state, epoch), seed = get_seed(state, epoch, DOMAIN_BEACON_ATTESTER), index = (((slot % SLOTS_PER_EPOCH) * committees_per_slot) + index), count = (committees_per_slot * SLOTS_PER_EPOCH))
   }
 
   /*
       Return the beacon proposer index at the current slot.
       */
-  fun get_beacon_proposer_index(state: BeaconState): ValidatorIndex {
+  fun get_beacon_proposer_index(state: BeaconState): ValidatorIndex = caches.beaconProposerIndex.get(state.slot) {
     val epoch = get_current_epoch(state)
     val seed = hash((get_seed(state, epoch, DOMAIN_BEACON_PROPOSER) + int_to_bytes(state.slot, length = 8uL)))
     val indices = get_active_validator_indices(state, epoch)
-    return compute_proposer_index(state, indices, seed)
+    compute_proposer_index(state, indices, seed)
   }
 
   /*
@@ -417,8 +418,8 @@ class Phase1Spec(internal val bls: BLS) {
       Return the combined effective balance of the active validators.
       Note: ``get_total_balance`` returns ``EFFECTIVE_BALANCE_INCREMENT`` Gwei minimum to avoid divisions by zero.
       */
-  fun get_total_active_balance(state: BeaconState): Gwei {
-    return get_total_balance(state, set(get_active_validator_indices(state, get_current_epoch(state))))
+  fun get_total_active_balance(state: BeaconState): Gwei  {
+    return get_total_active_balance_with_root(state).first
   }
 
   /*
@@ -663,9 +664,9 @@ class Phase1Spec(internal val bls: BLS) {
   }
 
   fun get_base_reward(state: BeaconState, index: ValidatorIndex): Gwei {
-    val total_balance = get_total_active_balance(state)
+    val total_balance_squareroot = get_total_active_balance_with_root(state).second
     val effective_balance = state.validators[index].effective_balance
-    return Gwei((((effective_balance * BASE_REWARD_FACTOR) / integer_squareroot(total_balance)) / BASE_REWARDS_PER_EPOCH))
+    return Gwei((((effective_balance * BASE_REWARD_FACTOR) / total_balance_squareroot) / BASE_REWARDS_PER_EPOCH))
   }
 
   fun get_proposer_reward(state: BeaconState, attesting_index: ValidatorIndex): Gwei {
