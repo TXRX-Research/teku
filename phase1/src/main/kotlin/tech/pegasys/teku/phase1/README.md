@@ -22,7 +22,7 @@ which has an option for Eth1 Shard.
 To create a ready to run distribution:
 
 ```shell script
-git clone -b phase1 https://github.com/PegaSysEng/teku.git
+git clone -b phase1 https://github.com/txrx-research/teku.git
 cd teku && ./gradlew :phase1:distTar :phase1:installDist
 ```
 
