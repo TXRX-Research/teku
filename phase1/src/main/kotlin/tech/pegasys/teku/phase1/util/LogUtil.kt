@@ -20,9 +20,9 @@ fun logSetDebugMode(debug: Boolean) {
   isDebugEnabled = debug
 }
 
-fun logDebug(msg: String) {
+fun logDebug(lazyMsg: () -> String) {
   if (isDebugEnabled) {
-    log("[${Thread.currentThread().name}]: $msg", Color.WHITE)
+    log("[${Thread.currentThread().name}]: ${lazyMsg()}", Color.WHITE)
   }
 }
 

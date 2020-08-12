@@ -63,7 +63,7 @@ class BeaconProposer(
 
   private suspend fun proposeIfReady() {
     if (isReadyToPropose()) {
-      logDebug("Proposing a block atop of head(root=${printRoot(recentHead!!.root)})...")
+      logDebug { "Proposing a block atop of head(root=${printRoot(recentHead!!.root)})..." }
       proposeBlock(recentHead!!.root, recentHead!!.state, recentAttestations!!)
     }
   }
@@ -88,7 +88,7 @@ class BeaconProposer(
         secretKeys,
         spec
       )
-    logDebug("Publishing ${NewBeaconBlock(newBlock)}...")
+    logDebug { "Publishing ${NewBeaconBlock(newBlock)}..." }
     publish(NewBeaconBlock(newBlock))
 
     log("BeaconProposer: New block proposed\n${newBlock.message.toStringFull()}\n")

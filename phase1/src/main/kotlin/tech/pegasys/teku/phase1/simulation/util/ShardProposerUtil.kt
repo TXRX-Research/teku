@@ -8,6 +8,7 @@ import tech.pegasys.teku.phase1.onotole.phase1.Phase1Spec
 import tech.pegasys.teku.phase1.onotole.phase1.Root
 import tech.pegasys.teku.phase1.onotole.phase1.Shard
 import tech.pegasys.teku.phase1.onotole.phase1.Slot
+import tech.pegasys.teku.phase1.integration.spec.get_shard_block_signature
 
 private const val SHARD_BLOCK_SIZE = 1024
 

@@ -26,7 +26,7 @@ fun produceBeaconBlock(
   val stateWithAdvancedSlot = state.copy()
   spec.process_slots(stateWithAdvancedSlot, slot)
 
-  logDebug("ProposerUtil: state slot is advanced to ${stateWithAdvancedSlot.slot}")
+  logDebug { "ProposerUtil: state slot is advanced to ${stateWithAdvancedSlot.slot}" }
 
   val proposerIndex = spec.get_beacon_proposer_index(stateWithAdvancedSlot)
   val proposerSecretKey = secretKeys[proposerIndex]
@@ -62,7 +62,7 @@ fun produceBeaconBlock(
       shardTransitionVector
     )
   )
-  logDebug("ProposerUtil: new block created $block")
+  logDebug { "ProposerUtil: new block created ${block.toStringFull()}" }
 
   val endState = spec.state_transition(state.copy(), SignedBeaconBlock(block), false)
   val blockWithStateRoot = block.copy(state_root = endState.applyChanges().hashTreeRoot())

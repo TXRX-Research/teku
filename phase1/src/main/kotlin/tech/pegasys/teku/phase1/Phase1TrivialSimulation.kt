@@ -30,10 +30,10 @@ import tech.pegasys.teku.phase1.onotole.phase1.SLOTS_PER_EPOCH
 import tech.pegasys.teku.phase1.onotole.phase1.Shard
 import tech.pegasys.teku.phase1.onotole.phase1.Slot
 import tech.pegasys.teku.phase1.onotole.phase1.ValidatorIndex
+import tech.pegasys.teku.phase1.integration.spec.get_shard_block_signature
 import tech.pegasys.teku.phase1.onotole.pylib.pyint
 import tech.pegasys.teku.phase1.onotole.ssz.Sequence
 import tech.pegasys.teku.phase1.onotole.ssz.uint64
-import tech.pegasys.teku.phase1.util.NoOpCaches
 import java.math.BigInteger
 import java.util.*
 import tech.pegasys.teku.datastructures.blocks.BeaconBlock as Phase0Block
@@ -41,20 +41,13 @@ import tech.pegasys.teku.datastructures.blocks.BeaconBlock as Phase0Block
 private val SLOTS = 128uL * SLOTS_PER_EPOCH
 private val blsKeyPairs = MockStartValidatorKeyPairFactory().generateKeyPairs(0, 16)
 private val rnd = Random(1)
-private val spec = Phase1Spec(BLS12381, NoOpCaches())
+private val spec = Phase1Spec(BLS12381)
 
 fun main() {
   var state = getGenesisState()
   val genesis = Phase0Block(state.hashTreeRoot())
   var parentRoot = genesis.hash_tree_root()
   val store = spec.get_forkchoice_store(state)
-  val shardStores =
-    (0 until state.shard_states.size).map {
-      it.toULong() to spec.get_forkchoice_shard_store(
-        state,
-        it.toULong()
-      )
-    }.toMap()
   for (slot in 1uL..SLOTS) {
     // compute attestations as if they were computed in the previous slot
     val (attestations, shardTransitions, shardBlocks) = computeAttestations(parentRoot, state)
@@ -63,11 +56,10 @@ fun main() {
     if (state.slot > GENESIS_SLOT) {
       shardBlocks.forEach {
         val shard = it.message.shard
-        val shardStore = shardStores[shard]!!
-        spec.on_shard_block(store, shardStore, it)
+        spec.on_shard_block(store, it)
 
-        val pendingShardBlocks = spec.get_pending_shard_blocks(store, shardStore)
-        assert(shardBlocksDict[shard]!!.message.hashTreeRoot() == spec.get_shard_head(store, shardStore))
+        val pendingShardBlocks = spec.get_pending_shard_blocks(store, shard)
+        assert(shardBlocksDict[shard]!!.message.hashTreeRoot() == spec.get_shard_head(store, shard))
         assert(pendingShardBlocks.size == 1)
         assert(pendingShardBlocks[0] == shardBlocksDict[shard]!!)
       }
@@ -100,7 +92,8 @@ fun computeAttestations(
 ): Triple<List<Attestation>, List<ShardTransition>, List<SignedShardBlock>> {
   val attestationsWithTransitionAndBlock = (0 until state.validators.size)
     .mapNotNull {
-      val assignment = spec.get_committee_assignment(state, spec.get_current_epoch(state), it.toULong())
+      val assignment =
+        spec.get_committee_assignment(state, spec.get_current_epoch(state), it.toULong())
       if (assignment != null && state.slot == assignment.third) Pair(
         assignment,
         ValidatorIndex(it.toULong())

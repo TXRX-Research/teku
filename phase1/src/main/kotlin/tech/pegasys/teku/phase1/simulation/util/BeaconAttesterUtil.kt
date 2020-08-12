@@ -3,6 +3,7 @@ package tech.pegasys.teku.phase1.simulation.util
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import tech.pegasys.teku.phase1.integration.datastructures.AttestationData
 import tech.pegasys.teku.phase1.integration.datastructures.BeaconState
 import tech.pegasys.teku.phase1.integration.datastructures.Checkpoint
 import tech.pegasys.teku.phase1.integration.datastructures.FullAttestation
@@ -40,7 +41,7 @@ suspend fun computeAggregateAttestationByCommittee(
   val res: Pair<SSZBitlist, List<BLSSignature>>
   coroutineScope {
     res = committee.map {
-      async { it to spec.get_attestation_signature(headState, attestationData, secretKeys[it]) }
+      async { it to spec.get_attestation_signature(headState, AttestationData(attestationData), secretKeys[it]) }
     }.awaitAll()
       .fold<Pair<ValidatorIndex, BLSSignature>, Pair<SSZBitlist, MutableList<BLSSignature>>>(
         SSZBitlistImpl(MAX_VALIDATORS_PER_COMMITTEE) to mutableListOf<BLSSignature>()

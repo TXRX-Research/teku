@@ -1,10 +1,12 @@
 package tech.pegasys.teku.phase1.onotole.pylib
 
 import org.apache.tuweni.bytes.Bytes
+import tech.pegasys.teku.phase1.integration.datastructures.BeaconState
 import tech.pegasys.teku.phase1.onotole.ssz.Bytes32
 import tech.pegasys.teku.phase1.onotole.ssz.Bytes4
 import tech.pegasys.teku.phase1.onotole.ssz.SSZMutableBitvector
 import tech.pegasys.teku.phase1.onotole.ssz.uint64
+import tech.pegasys.teku.phase1.onotole.ssz.uint8
 import java.lang.Long
 import java.math.BigInteger
 import java.nio.ByteOrder
@@ -50,6 +52,7 @@ data class Tuple2<A : Comparable<A>, B : Comparable<B>>(val a: A, val b: B) : Co
 fun <T> len(c: Collection<T>) = c.size.toULong()
 fun len(c: BitSet) = c.size().toLong()
 //fun len(c: Bitlist) = c.size
+fun len(c: pybytes) = c.size().toULong()
 
 fun <T> any(c: Collection<T>) = c.any()
 fun all(c: Collection<Boolean>) = c.all { it }
@@ -121,6 +124,7 @@ infix fun Byte.shl(a: uint64): uint64 = this.toULong().and(0xFFuL).shl(a.toInt()
 infix fun pybool.shl(a: uint64): uint64 = if (this) 1uL.shl(a) else 0uL
 
 infix fun uint64.shr(a: uint64): uint64 = this.shr(a.toInt())
+infix fun uint8.shr(a: uint64):uint8 = uint8(a.toByte().shr(a))
 infix fun Byte.shr(a: uint64): uint64 = this.toULong().and(0xFFuL).shr(a.toInt())
 infix fun pybool.shr(a: uint64): uint64 = if (this) 1uL.shr(a) else 0uL
 
@@ -165,10 +169,10 @@ fun uint64.bit_length(): pyint {
   return pyint((64 - Long.numberOfLeadingZeros(this.toLong())).toBigInteger())
 }
 
-fun uint64.to_bytes(length: uint64, endiannes: String): pybytes {
+fun uint64.to_bytes(length: pyint, endiannes: String): pybytes {
   return Bytes.ofUnsignedLong(
-    this.toLong(), if (endiannes == "little") ByteOrder.LITTLE_ENDIAN else ByteOrder.BIG_ENDIAN
-  ).slice(0, length.toInt())
+      this.toLong(), if (endiannes == "little") ByteOrder.LITTLE_ENDIAN else ByteOrder.BIG_ENDIAN
+  ).slice(0, uint64(length).toInt())
 }
 
 fun from_bytes(data: pybytes, endiannes: String): uint64 {
@@ -190,3 +194,5 @@ fun <T,U> Pair<T,T>.map(f: (T) -> U): List<U> = listOf(f(first), f(second))
 
 fun pybytes(s: String): pybytes = Bytes.fromHexString("0x" + s)
 fun pybytes.join(c: Iterable<pybytes>): pybytes = Bytes.concatenate(*StreamSupport.stream(c.spliterator(), false).toList().toTypedArray())
+
+fun copy(state: BeaconState): BeaconState = state.copy()

@@ -16,13 +16,15 @@ data class Store(
   var blocks: SSZDict<Root, BeaconBlockHeader> = SSZDict(),
   var block_states: SSZDict<Root, BeaconState> = SSZDict(),
   var checkpoint_states: SSZDict<Checkpoint, BeaconState> = SSZDict(),
-  var latest_messages: SSZDict<ValidatorIndex, LatestMessage> = SSZDict()
+  var latest_messages: SSZDict<ValidatorIndex, LatestMessage> = SSZDict(),
+  var shard_stores: SSZDict<Shard, ShardStore> = SSZDict()
 )
 
 data class ShardStore(
   var shard: Shard = Shard(),
   var signed_blocks: SSZDict<Root, SignedShardBlock> = SSZDict(),
-  var block_states: SSZDict<Root, ShardState> = SSZDict()
+  var block_states: SSZDict<Root, ShardState> = SSZDict(),
+  var latest_messages: SSZDict<ValidatorIndex, ShardLatestMessage> = SSZDict()
 )
 
 data class LatestMessage(
@@ -30,4 +32,9 @@ data class LatestMessage(
   var root: Root = Root(),
   var shard: Shard = Shard(),
   var shard_root: Root = Root()
+)
+
+data class ShardLatestMessage(
+    var epoch: Epoch = Epoch(),
+    var root: Root = Root()
 )

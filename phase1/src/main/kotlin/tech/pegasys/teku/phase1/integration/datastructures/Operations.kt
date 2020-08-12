@@ -216,6 +216,17 @@ class FullAttestationData : AbstractImmutableContainer {
         "target=$target)"
   }
 
+  fun toStringFull(): String {
+    return "(" +
+        "slot=$slot, " +
+        "shard=$shard, " +
+        "beacon_block_root=${printRoot(beacon_block_root)}, " +
+        "shard_head_root=${printRoot(shard_head_root)}, " +
+        "shard_transition=${shard_transition}, " +
+        "source=$source, " +
+        "target=$target)"
+  }
+
   fun toStringShort(): String {
     return "(slot=$slot, shard=$shard, beacon_block_root=${printRoot(beacon_block_root)}"
   }
@@ -450,6 +461,10 @@ class FullAttestation : AbstractImmutableContainer {
 
   override fun toString(): String {
     return "FullAttestation(signed_vals=${aggregation_bits.bitsSet().size}, data=$data)"
+  }
+
+  fun toStringFull(): String {
+    return "FullAttestation(signed_vals=${aggregation_bits.bitsSet().size}, data=${data.toStringFull()})"
   }
 
   fun toStringShort(): String {

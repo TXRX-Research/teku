@@ -13,7 +13,7 @@ import tech.pegasys.teku.phase1.onotole.deps.BLS12381
 import tech.pegasys.teku.phase1.onotole.deps.NoOpBLS
 import tech.pegasys.teku.phase1.onotole.deps.PseudoBLS
 import tech.pegasys.teku.phase1.onotole.phase1.MAX_SHARDS
-import tech.pegasys.teku.phase1.onotole.phase1.Phase1Spec
+import tech.pegasys.teku.phase1.integration.spec.OptimizedPhase1Spec
 import tech.pegasys.teku.phase1.onotole.phase1.SLOTS_PER_EPOCH
 import tech.pegasys.teku.phase1.simulation.actors.BeaconAttester
 import tech.pegasys.teku.phase1.simulation.actors.BeaconProposer
@@ -25,7 +25,6 @@ import tech.pegasys.teku.phase1.simulation.util.SecretKeyRegistry
 import tech.pegasys.teku.phase1.simulation.util.SimulationRandomness
 import tech.pegasys.teku.phase1.simulation.util.getGenesisState
 import tech.pegasys.teku.phase1.simulation.util.getGenesisStore
-import tech.pegasys.teku.phase1.simulation.util.getShardGenesisStores
 import tech.pegasys.teku.phase1.simulation.util.runsOutOfSlots
 import tech.pegasys.teku.phase1.simulation.util.setConstants
 import tech.pegasys.teku.phase1.util.LRUCaches
@@ -39,6 +38,7 @@ class Phase1Simulation(
   private val scope: CoroutineScope,
   private val config: Config
 ) {
+
   private val eventBus: Channel<Eth2Event> = Channel(Channel.UNLIMITED)
   private val terminator = object : Eth2Actor(eventBus) {
     override suspend fun dispatchImpl(event: Eth2Event, scope: CoroutineScope) {
@@ -76,7 +76,8 @@ class Phase1Simulation(
       CacheConfig.NoOp -> NoOpCaches()
     }
 
-    val spec = Phase1Spec(bls, cache)
+    val spec =
+      OptimizedPhase1Spec(cache, bls)
 
     log("Initializing ${config.registrySize} BLS Key Pairs...")
     val blsKeyPairs =
@@ -85,7 +86,6 @@ class Phase1Simulation(
     log("Initializing genesis state and store...")
     val genesisState = getGenesisState(blsKeyPairs, spec)
     val store = getGenesisStore(genesisState, spec)
-    val shardStores = getShardGenesisStores(genesisState, spec)
     val secretKeys = SecretKeyRegistry(blsKeyPairs)
     val proposerEth1Engine = instantiateEth1Engine(
       config.proposerEth1Engine,
@@ -99,7 +99,7 @@ class Phase1Simulation(
 
     actors = listOf(
       SlotTicker(eventBus, config.slotsToRun),
-      Eth2ChainProcessor(eventBus, store, shardStores, processorEth1Engine, spec),
+      Eth2ChainProcessor(eventBus, store, processorEth1Engine, spec),
       BeaconProposer(eventBus, secretKeys, spec),
       ShardProposer(eventBus, secretKeys, proposerEth1Engine, spec),
       BeaconAttester(eventBus, secretKeys, spec),
@@ -124,7 +124,7 @@ class Phase1Simulation(
    */
   private fun eventLoop(actors: List<Eth2Actor>, scope: CoroutineScope) = scope.launch {
     for (event in eventBus) {
-      logDebug("Dispatch $event")
+      logDebug { "Dispatch $event" }
       coroutineScope {
         actors.forEach {
           launch { it.dispatchImpl(event, scope) }
@@ -144,6 +144,7 @@ class Phase1Simulation(
     var activeShards: ULong = 2uL,
     var eth1ShardNumber: ULong = 0uL
   ) {
+
     val slotsToRun: ULong
       get() = epochsToRun * SLOTS_PER_EPOCH
 

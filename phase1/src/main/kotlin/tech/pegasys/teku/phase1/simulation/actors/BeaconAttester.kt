@@ -25,6 +25,7 @@ import tech.pegasys.teku.phase1.simulation.SlotTerminal
 import tech.pegasys.teku.phase1.simulation.util.SecretKeyRegistry
 import tech.pegasys.teku.phase1.simulation.util.computeAggregateAttestationByCommittee
 import tech.pegasys.teku.phase1.util.log
+import tech.pegasys.teku.phase1.util.logDebug
 
 class BeaconAttester(
   eventBus: SendChannel<Eth2Event>,
@@ -70,6 +71,11 @@ class BeaconAttester(
     if (readyToAttest()) {
       val attestations = computeAttestations()
       publish(NewAttestations(attestations))
+
+      logDebug {
+        "BeaconAttester: New attestations produced:" +
+            "\n${attestations.joinToString("\n") { it.toStringFull() }}\n"
+      }
 
       log(
         "BeaconAttester: New attestations produced:" +

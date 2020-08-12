@@ -10,7 +10,13 @@ fun revampStoreFromFinalizedCheckpoint(store: Store): Store {
     blocks = store.blocks.filter { it.value.slot >= finalizedSlot }.toMutableMap(),
     block_states = store.block_states.filter { it.value.slot >= finalizedSlot }.toMutableMap(),
     checkpoint_states = store.checkpoint_states.filter { it.key.epoch >= finalizedEpoch }
-      .toMutableMap()
+      .toMutableMap(),
+    shard_stores = store.shard_stores.mapValues {
+      revampShardStoreFromFinalizedCheckpoint(
+        store,
+        it.value
+      )
+    }.toMutableMap()
   )
 }
 

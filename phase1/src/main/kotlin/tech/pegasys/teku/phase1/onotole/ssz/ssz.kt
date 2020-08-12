@@ -7,9 +7,11 @@ import tech.pegasys.teku.phase1.integration.ssz.SSZByteListImpl
 import tech.pegasys.teku.phase1.integration.ssz.SSZListImpl
 import tech.pegasys.teku.phase1.integration.ssz.SSZVectorImpl
 import tech.pegasys.teku.phase1.integration.toUnsignedLong
+import tech.pegasys.teku.phase1.onotole.phase1.ENDIANNESS
 import tech.pegasys.teku.phase1.onotole.phase1.Root
 import tech.pegasys.teku.phase1.onotole.pylib.pybytes
 import tech.pegasys.teku.phase1.onotole.pylib.pyint
+import tech.pegasys.teku.phase1.onotole.pylib.to_bytes
 import tech.pegasys.teku.ssz.SSZTypes.Bitvector
 import tech.pegasys.teku.ssz.backing.ContainerViewRead
 import tech.pegasys.teku.ssz.backing.ViewRead
@@ -27,6 +29,7 @@ typealias SSZObject = Any
 typealias bit = Boolean
 typealias boolean = Boolean
 typealias uint8 = UByte
+typealias uint32 = UInt
 typealias uint64 = ULong
 
 typealias Bytes = TuweniBytes
@@ -56,7 +59,12 @@ typealias SSZDict<K, V> = MutableMap<K, V>
 
 typealias Sequence<T> = List<T>
 
+fun uint8(v: pyint): uint8 = v.value.toByte().toUByte()
+fun uint8(v: uint64): uint8 = v.toUByte()
+fun uint32(v: pyint): uint32 = v.value.toInt().toUInt()
+fun uint32(v: uint64): uint32 = v.toUInt()
 fun uint64(v: pyint): uint64 = v.value.toLong().toULong()
+fun uint64(v: ULong): uint64 = v
 fun Bytes4(): Bytes4 = Bytes4.fromHexString("0x00000000")
 fun Bytes32(): Bytes32 = Bytes32.ZERO
 fun Bytes32(x: List<Byte>): Bytes32 = Bytes32.wrap(x.toByteArray())
@@ -107,6 +115,13 @@ interface SSZBitvector : SSZVector<Boolean>
 interface SSZMutableBitvector : SSZMutableVector<Boolean>
 
 fun SSZByteList.toPyBytes(): pybytes = Bytes.wrap(this.toByteArray())
+
+fun uint_to_bytes(b: uint8): pybytes = int_to_bytes(b.toULong(), pyint(1uL))
+fun uint_to_bytes(b: uint32): pybytes = int_to_bytes(b.toULong(), pyint(4uL))
+fun uint_to_bytes(b: uint64): pybytes = int_to_bytes(b, pyint(8uL))
+fun int_to_bytes(n: uint64, length: pyint): pybytes {
+  return n.to_bytes(length, ENDIANNESS)
+}
 
 interface TreeNode {
   fun get_left(): TreeNode

@@ -9,7 +9,6 @@ import kotlinx.coroutines.launch
 import tech.pegasys.teku.phase1.eth1engine.Eth1EngineClient
 import tech.pegasys.teku.phase1.integration.datastructures.Attestation
 import tech.pegasys.teku.phase1.integration.datastructures.FullAttestation
-import tech.pegasys.teku.phase1.integration.datastructures.ShardStore
 import tech.pegasys.teku.phase1.integration.datastructures.SignedBeaconBlock
 import tech.pegasys.teku.phase1.integration.datastructures.SignedShardBlock
 import tech.pegasys.teku.phase1.integration.datastructures.Store
@@ -17,7 +16,6 @@ import tech.pegasys.teku.phase1.onotole.phase1.GENESIS_SLOT
 import tech.pegasys.teku.phase1.onotole.phase1.INITIAL_ACTIVE_SHARDS
 import tech.pegasys.teku.phase1.onotole.phase1.Phase1Spec
 import tech.pegasys.teku.phase1.onotole.phase1.SECONDS_PER_SLOT
-import tech.pegasys.teku.phase1.onotole.phase1.Shard
 import tech.pegasys.teku.phase1.onotole.phase1.Slot
 import tech.pegasys.teku.phase1.simulation.BeaconHead
 import tech.pegasys.teku.phase1.simulation.Eth2Actor
@@ -31,7 +29,6 @@ import tech.pegasys.teku.phase1.simulation.NewSlot
 import tech.pegasys.teku.phase1.simulation.NotCrosslinkedBlocksPublished
 import tech.pegasys.teku.phase1.simulation.PrevSlotAttestationsPublished
 import tech.pegasys.teku.phase1.simulation.ShardBlockProcessor
-import tech.pegasys.teku.phase1.simulation.util.revampShardStoreFromFinalizedCheckpoint
 import tech.pegasys.teku.phase1.simulation.util.revampStoreFromFinalizedCheckpoint
 import tech.pegasys.teku.phase1.util.Color
 import tech.pegasys.teku.phase1.util.log
@@ -40,7 +37,6 @@ import tech.pegasys.teku.phase1.util.printRoot
 class Eth2ChainProcessor(
   eventBus: SendChannel<Eth2Event>,
   private var store: Store,
-  private var shardStores: Map<Shard, ShardStore>,
   private val eth1Engine: Eth1EngineClient,
   private val spec: Phase1Spec
 ) : Eth2Actor(eventBus) {
@@ -62,11 +58,13 @@ class Eth2ChainProcessor(
     log("Eth2ChainProcessor: beacon block processed (root=${printRoot(block.message.hashTreeRoot())})")
 
     // remove store data beyond finalized checkpoint
-    if (previousFinalizedCheckpoint != store.finalized_checkpoint) {
+    if (store.finalized_checkpoint.epoch > previousFinalizedCheckpoint.epoch) {
+      log(
+        "Eth2ChainProcessor: prune states and blocks beyond finalized checkpoint" +
+            "${store.finalized_checkpoint}",
+        Color.GREEN
+      )
       store = revampStoreFromFinalizedCheckpoint(store)
-      shardStores =
-        shardStores.mapValues { revampShardStoreFromFinalizedCheckpoint(store, it.value) }
-      log("Eth2ChainProcessor: prune states and blocks beyond finalized checkpoint", Color.GREEN)
     }
   }
 
@@ -113,7 +111,7 @@ class Eth2ChainProcessor(
   private suspend fun processNewShardBlocks(blocks: List<SignedShardBlock>) = coroutineScope {
     blocks.groupBy { it.message.shard }.entries.forEach {
       launch {
-        val processor = ShardBlockProcessor(it.key, store, shardStores[it.key]!!, eth1Engine, spec)
+        val processor = ShardBlockProcessor(it.key, store, eth1Engine, spec)
         it.value.sortedBy { it.message.slot }.forEach { processor.process(it) }
       }
     }
@@ -125,8 +123,8 @@ class Eth2ChainProcessor(
   private suspend fun collectAndPublishShardHeads() = coroutineScope {
     val res = (0uL until INITIAL_ACTIVE_SHARDS).map {
       async {
-        val root = spec.get_shard_head(store, shardStores[it]!!)
-        root to shardStores[it]!!.signed_blocks[root]!!
+        val root = spec.get_shard_head(store, it)
+        root to store.shard_stores[it]!!.signed_blocks[root]!!
       }
     }.awaitAll()
 
@@ -138,7 +136,7 @@ class Eth2ChainProcessor(
    */
   private suspend fun collectAndPublishNotCrosslinkedBlocks() = coroutineScope {
     val res = (0uL until INITIAL_ACTIVE_SHARDS).map {
-      async { spec.get_pending_shard_blocks(store, shardStores[it]!!) }
+      async { spec.get_pending_shard_blocks(store, it) }
     }.awaitAll().flatten()
 
     publish(NotCrosslinkedBlocksPublished(res))

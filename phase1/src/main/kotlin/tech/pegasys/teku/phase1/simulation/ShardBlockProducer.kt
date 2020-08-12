@@ -15,7 +15,6 @@ import tech.pegasys.teku.phase1.simulation.util.getRandomShardBlockBody
 import tech.pegasys.teku.phase1.simulation.util.produceShardBlock
 import tech.pegasys.teku.phase1.util.Color
 import tech.pegasys.teku.phase1.util.log
-import tech.pegasys.teku.phase1.util.logDebug
 import tech.pegasys.teku.phase1.util.printRoot
 
 interface ShardBlockProducer {
@@ -76,9 +75,6 @@ class Eth1ShardBlockProducer(
       )
     }
     val eth1BlockData = produceResponse.result
-    logDebug("Eth1ShardBlockProducer: " +
-        "eth2_produceBlock(parent_hash=${printRoot(eth1ParentHash)}) " +
-        "~> (blockRLP=${eth1BlockData.blockRLP.toHexString()})")
 
     // Check if created Eth1 block is imported successfully
     val importResponse = eth1Engine.eth2_insertBlock(eth1BlockData.blockRLP)

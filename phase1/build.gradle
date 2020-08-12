@@ -8,7 +8,8 @@ application {
     applicationName = "eth2-client"
     mainClassName = "tech.pegasys.teku.phase1.Eth2ClientKt"
     applicationDefaultJvmArgs = [
-            "-Xmx2g"
+            "-Xmx2g",
+            "-ea"
     ]
 }
 
