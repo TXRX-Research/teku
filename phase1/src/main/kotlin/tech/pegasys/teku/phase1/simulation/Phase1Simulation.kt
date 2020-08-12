@@ -9,11 +9,10 @@ import tech.pegasys.teku.phase1.eth1engine.Eth1EngineClient
 import tech.pegasys.teku.phase1.eth1engine.Web3jEth1EngineClient
 import tech.pegasys.teku.phase1.eth1engine.stub.Eth1EngineClientStub
 import tech.pegasys.teku.phase1.eth1engine.withLogger
+import tech.pegasys.teku.phase1.integration.spec.OptimizedPhase1Spec
 import tech.pegasys.teku.phase1.onotole.deps.BLS12381
 import tech.pegasys.teku.phase1.onotole.deps.NoOpBLS
-import tech.pegasys.teku.phase1.onotole.deps.PseudoBLS
 import tech.pegasys.teku.phase1.onotole.phase1.MAX_SHARDS
-import tech.pegasys.teku.phase1.integration.spec.OptimizedPhase1Spec
 import tech.pegasys.teku.phase1.onotole.phase1.SLOTS_PER_EPOCH
 import tech.pegasys.teku.phase1.simulation.actors.BeaconAttester
 import tech.pegasys.teku.phase1.simulation.actors.BeaconProposer
@@ -67,7 +66,6 @@ class Phase1Simulation(
 
     val bls = when (config.bls) {
       BLSConfig.BLS12381 -> BLS12381
-      BLSConfig.Pseudo -> PseudoBLS
       BLSConfig.NoOp -> NoOpBLS
     }
 
@@ -164,7 +162,6 @@ class Phase1Simulation(
 
   enum class BLSConfig {
     BLS12381,
-    Pseudo,
     NoOp
   }
 

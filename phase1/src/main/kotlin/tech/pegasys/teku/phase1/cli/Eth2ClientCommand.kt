@@ -73,7 +73,7 @@ class Eth2ClientCommand : Callable<Int> {
   @CommandLine.Option(
       names = ["--bls"],
       paramLabel = "<MODE>",
-      description = ["BLS mode: \"BLS12381\", \"Pseudo\", \"NoOp\"."]
+      description = ["BLS mode: \"BLS12381\", \"NoOp\"."]
   )
   private var bls = Phase1Simulation.BLSConfig.BLS12381
 
