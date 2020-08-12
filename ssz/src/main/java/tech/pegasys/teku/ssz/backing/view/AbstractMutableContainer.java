@@ -27,12 +27,12 @@ import tech.pegasys.teku.ssz.backing.type.ContainerViewType;
 /** Handy base class for mutable containers */
 public abstract class AbstractMutableContainer extends ContainerViewWriteImpl {
 
-  public AbstractMutableContainer(
+  protected AbstractMutableContainer(
       ContainerViewType<? extends ContainerViewRead> type, TreeNode backingNode) {
     super(new ContainerViewReadImpl(type, backingNode));
   }
 
-  public AbstractMutableContainer(
+  protected AbstractMutableContainer(
       ContainerViewType<? extends ContainerViewRead> type, ViewRead... memberValues) {
     super(new ContainerViewReadImpl(type, createBackingTree(type, memberValues)));
     checkArgument(
@@ -49,7 +49,7 @@ public abstract class AbstractMutableContainer extends ContainerViewWriteImpl {
     }
   }
 
-  public AbstractMutableContainer(ContainerViewType<? extends AbstractMutableContainer> type) {
+  protected AbstractMutableContainer(ContainerViewType<? extends AbstractMutableContainer> type) {
     this(type, type.getDefaultTree());
   }
 

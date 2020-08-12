@@ -27,13 +27,14 @@ import org.apache.tuweni.bytes.Bytes;
 import tech.pegasys.teku.bls.BLSPublicKey;
 import tech.pegasys.teku.bls.BLSSignature;
 import tech.pegasys.teku.core.signatures.MessageSignerService;
-import tech.pegasys.teku.util.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 public class ExternalMessageSignerService implements MessageSignerService {
   private static final ObjectMapper MAPPER = new ObjectMapper();
   private final URL signingServiceUrl;
   private final BLSPublicKey blsPublicKey;
   private final Duration timeout;
+  private final HttpClient httpClient = HttpClient.newHttpClient();
 
   public ExternalMessageSignerService(
       final URL signingServiceUrl, final BLSPublicKey blsPublicKey, final Duration timeout) {
@@ -72,8 +73,13 @@ public class ExternalMessageSignerService implements MessageSignerService {
     return sign(signingRoot);
   }
 
+  @Override
+  public boolean isLocal() {
+    return false;
+  }
+
   private SafeFuture<BLSSignature> sign(final Bytes signingRoot) {
-    final String publicKey = blsPublicKey.getPublicKey().toString();
+    final String publicKey = blsPublicKey.toBytesCompressed().toString();
     return SafeFuture.ofComposed(
         () -> {
           final String requestBody = createSigningRequestBody(signingRoot);
@@ -82,9 +88,10 @@ public class ExternalMessageSignerService implements MessageSignerService {
               HttpRequest.newBuilder()
                   .uri(uri)
                   .timeout(timeout)
+                  .header("Content-Type", "application/json")
                   .POST(BodyPublishers.ofString(requestBody))
                   .build();
-          return HttpClient.newHttpClient()
+          return httpClient
               .sendAsync(request, BodyHandlers.ofString())
               .handleAsync(this::getBlsSignature);
         });
@@ -114,7 +121,7 @@ public class ExternalMessageSignerService implements MessageSignerService {
 
     try {
       final Bytes signature = Bytes.fromHexString(response.body());
-      return BLSSignature.fromBytes(signature);
+      return BLSSignature.fromBytesCompressed(signature);
     } catch (final IllegalArgumentException e) {
       throw new ExternalSignerException(
           "External signer returned an invalid signature: " + e.getMessage(), e);

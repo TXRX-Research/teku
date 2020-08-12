@@ -15,11 +15,14 @@ package tech.pegasys.teku.networking.eth2.rpc.core;
 
 import static tech.pegasys.teku.networking.eth2.rpc.core.RpcResponseStatus.SUCCESS_RESPONSE_CODE;
 import static tech.pegasys.teku.util.bytes.ByteUtil.toByteExactUnsigned;
+import static tech.pegasys.teku.util.bytes.ByteUtil.toUnsignedInt;
 
 import io.netty.buffer.ByteBuf;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import tech.pegasys.teku.networking.eth2.rpc.core.RpcException.PayloadTruncatedException;
+import tech.pegasys.teku.networking.eth2.rpc.core.RpcException.RpcErrorMessage;
 import tech.pegasys.teku.networking.eth2.rpc.core.encodings.RpcByteBufDecoder;
 import tech.pegasys.teku.networking.eth2.rpc.core.encodings.RpcEncoding;
 
@@ -31,7 +34,7 @@ import tech.pegasys.teku.networking.eth2.rpc.core.encodings.RpcEncoding;
 public class RpcResponseDecoder<T> {
   private Optional<Integer> respCodeMaybe = Optional.empty();
   private Optional<RpcByteBufDecoder<T>> payloadDecoder = Optional.empty();
-  private Optional<RpcByteBufDecoder<String>> errorDecoder = Optional.empty();
+  private Optional<RpcByteBufDecoder<RpcErrorMessage>> errorDecoder = Optional.empty();
   private final Class<T> responseType;
   private final RpcEncoding encoding;
 
@@ -60,7 +63,7 @@ public class RpcResponseDecoder<T> {
     }
 
     if (respCodeMaybe.isEmpty()) {
-      respCodeMaybe = Optional.of((int) data.readByte());
+      respCodeMaybe = Optional.of(toUnsignedInt(data.readByte()));
     }
     int respCode = respCodeMaybe.get();
 
@@ -76,7 +79,7 @@ public class RpcResponseDecoder<T> {
       return ret;
     } else {
       if (errorDecoder.isEmpty()) {
-        errorDecoder = Optional.of(encoding.createDecoder(String.class));
+        errorDecoder = Optional.of(encoding.createDecoder(RpcErrorMessage.class));
       }
       Optional<RpcException> rpcException =
           errorDecoder
@@ -101,7 +104,7 @@ public class RpcResponseDecoder<T> {
       errorDecoder.get().complete();
     }
     if (respCodeMaybe.isPresent()) {
-      throw RpcException.PAYLOAD_TRUNCATED;
+      throw new PayloadTruncatedException();
     }
   }
 

@@ -25,8 +25,6 @@ import static tech.pegasys.teku.beaconrestapi.RestApiConstants.EPOCH;
 import static tech.pegasys.teku.beaconrestapi.RestApiConstants.ROOT;
 import static tech.pegasys.teku.beaconrestapi.RestApiConstants.SLOT;
 
-import com.google.common.eventbus.EventBus;
-import com.google.common.primitives.UnsignedLong;
 import io.javalin.http.Context;
 import java.util.Collections;
 import java.util.List;
@@ -34,37 +32,41 @@ import java.util.Map;
 import java.util.Optional;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import tech.pegasys.teku.api.ChainDataProvider;
 import tech.pegasys.teku.api.schema.BeaconState;
-import tech.pegasys.teku.datastructures.util.DataStructureUtil;
+import tech.pegasys.teku.datastructures.blocks.SignedBlockAndState;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.provider.JsonProvider;
-import tech.pegasys.teku.storage.client.MemoryOnlyRecentChainData;
-import tech.pegasys.teku.storage.client.RecentChainData;
-import tech.pegasys.teku.util.async.SafeFuture;
+import tech.pegasys.teku.storage.storageSystem.InMemoryStorageSystem;
+import tech.pegasys.teku.storage.storageSystem.StorageSystem;
+import tech.pegasys.teku.util.config.StateStorageMode;
 
 public class GetStateTest {
-  private static final DataStructureUtil dataStructureUtil = new DataStructureUtil();
-  private static tech.pegasys.teku.datastructures.state.BeaconState beaconStateInternal;
-  private static BeaconState beaconState;
-  private static Bytes32 blockRoot;
-  private static UnsignedLong slot;
+  private final StorageSystem storageSystem =
+      InMemoryStorageSystem.createEmptyLatestStorageSystem(StateStorageMode.ARCHIVE);
+  private tech.pegasys.teku.datastructures.state.BeaconState beaconStateInternal;
+  private BeaconState beaconState;
+  private Bytes32 blockRoot;
+  private UInt64 slot;
 
   private final JsonProvider jsonProvider = new JsonProvider();
   private final Context context = mock(Context.class);
   private final String missingRoot = Bytes32.leftPad(Bytes.fromHexString("0xff")).toHexString();
   private final ChainDataProvider dataProvider = mock(ChainDataProvider.class);
 
-  @BeforeAll
-  public static void setup() {
-    final EventBus localEventBus = new EventBus();
-    final RecentChainData storageClient = MemoryOnlyRecentChainData.create(localEventBus);
-    beaconStateInternal = dataStructureUtil.randomBeaconState();
-    storageClient.initializeFromGenesis(beaconStateInternal);
-    blockRoot = storageClient.getBestBlockRoot().orElseThrow();
-    slot = beaconStateInternal.getSlot();
+  @BeforeEach
+  public void setup() {
+    slot = UInt64.valueOf(10);
+    storageSystem.chainUpdater().initializeGenesis();
+    SignedBlockAndState bestBlock = storageSystem.chainUpdater().advanceChain(slot);
+    storageSystem.chainUpdater().updateBestBlock(bestBlock);
+
+    beaconStateInternal = bestBlock.getState();
+    blockRoot = bestBlock.getRoot();
     beaconState = new BeaconState(beaconStateInternal);
   }
 
@@ -192,7 +194,7 @@ public class GetStateTest {
   @Test
   public void shouldHandleMissingStateAtFinalizedSlot() throws Exception {
     final GetState handler = new GetState(dataProvider, jsonProvider);
-    final UnsignedLong slot = UnsignedLong.valueOf(11223344L);
+    final UInt64 slot = UInt64.valueOf(11223344L);
 
     when(dataProvider.isStoreAvailable()).thenReturn(true);
     when(context.queryParamMap()).thenReturn(Map.of(SLOT, List.of(slot.toString())));
@@ -208,7 +210,7 @@ public class GetStateTest {
   @Test
   public void shouldHandleMissingStateAtNonFinalSlot() throws Exception {
     final GetState handler = new GetState(dataProvider, jsonProvider);
-    final UnsignedLong slot = UnsignedLong.valueOf(11223344L);
+    final UInt64 slot = UInt64.valueOf(11223344L);
 
     when(dataProvider.isStoreAvailable()).thenReturn(true);
     when(context.queryParamMap()).thenReturn(Map.of(SLOT, List.of(slot.toString())));

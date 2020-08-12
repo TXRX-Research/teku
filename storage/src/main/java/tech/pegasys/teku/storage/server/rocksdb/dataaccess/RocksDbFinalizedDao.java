@@ -13,11 +13,14 @@
 
 package tech.pegasys.teku.storage.server.rocksdb.dataaccess;
 
-import com.google.common.primitives.UnsignedLong;
+import com.google.errorprone.annotations.MustBeClosed;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.datastructures.blocks.SignedBeaconBlock;
+import tech.pegasys.teku.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.datastructures.state.BeaconState;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 
 /**
  * Provides an abstract "data access object" interface for working with finalized data from the
@@ -25,21 +28,32 @@ import tech.pegasys.teku.datastructures.state.BeaconState;
  */
 public interface RocksDbFinalizedDao extends AutoCloseable {
 
-  Optional<Bytes32> getFinalizedRootAtSlot(final UnsignedLong slot);
-
-  Optional<Bytes32> getLatestFinalizedRootAtSlot(final UnsignedLong slot);
-
   Optional<SignedBeaconBlock> getFinalizedBlock(final Bytes32 root);
 
-  Optional<BeaconState> getFinalizedState(final Bytes32 root);
-
   FinalizedUpdater finalizedUpdater();
+
+  Optional<SignedBeaconBlock> getFinalizedBlockAtSlot(UInt64 slot);
+
+  Optional<SignedBeaconBlock> getLatestFinalizedBlockAtSlot(UInt64 slot);
+
+  Optional<BeaconState> getLatestAvailableFinalizedState(UInt64 maxSlot);
+
+  @MustBeClosed
+  Stream<SignedBeaconBlock> streamFinalizedBlocks(UInt64 startSlot, UInt64 endSlot);
+
+  Optional<UInt64> getSlotForFinalizedBlockRoot(Bytes32 blockRoot);
+
+  Optional<UInt64> getSlotForFinalizedStateRoot(Bytes32 stateRoot);
+
+  Optional<SlotAndBlockRoot> getSlotAndBlockRootForFinalizedStateRoot(Bytes32 stateRoot);
 
   interface FinalizedUpdater extends AutoCloseable {
 
     void addFinalizedBlock(final SignedBeaconBlock block);
 
     void addFinalizedState(final Bytes32 blockRoot, final BeaconState state);
+
+    void addFinalizedStateRoot(final Bytes32 stateRoot, final UInt64 slot);
 
     void commit();
 

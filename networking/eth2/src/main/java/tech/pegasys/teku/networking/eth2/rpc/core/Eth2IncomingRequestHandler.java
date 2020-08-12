@@ -22,13 +22,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.datastructures.networking.libp2p.rpc.RpcRequest;
+import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.networking.eth2.peers.Eth2Peer;
 import tech.pegasys.teku.networking.eth2.peers.PeerLookup;
 import tech.pegasys.teku.networking.p2p.peer.NodeId;
 import tech.pegasys.teku.networking.p2p.rpc.RpcRequestHandler;
 import tech.pegasys.teku.networking.p2p.rpc.RpcStream;
 import tech.pegasys.teku.networking.p2p.rpc.StreamClosedException;
-import tech.pegasys.teku.util.async.AsyncRunner;
 
 public class Eth2IncomingRequestHandler<TRequest extends RpcRequest, TResponse>
     implements RpcRequestHandler {
@@ -81,7 +81,13 @@ public class Eth2IncomingRequestHandler<TRequest extends RpcRequest, TResponse>
   @Override
   public void complete(NodeId nodeId, RpcStream rpcStream) {
     try {
-      requestDecoder.complete();
+      Optional<Eth2Peer> peer = peerLookup.getConnectedPeer(nodeId);
+      requestDecoder
+          .complete()
+          .ifPresent(
+              request ->
+                  handleRequest(peer, request, new RpcResponseCallback<>(rpcStream, rpcEncoder)));
+      ;
     } catch (RpcException e) {
       new RpcResponseCallback<>(rpcStream, rpcEncoder).completeWithErrorResponse(e);
       LOG.debug("RPC Request stream closed prematurely", e);

@@ -17,14 +17,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.google.common.primitives.UnsignedLong;
 import java.math.BigInteger;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.web3j.protocol.core.methods.response.EthBlock;
 import org.web3j.protocol.core.methods.response.EthBlock.Block;
-import tech.pegasys.teku.util.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.util.config.Constants;
 
 public class MinimumGenesisTimeBlockFinderTest {
@@ -37,7 +37,7 @@ public class MinimumGenesisTimeBlockFinderTest {
   @BeforeAll
   static void setUp() {
     // Setup so genesis time for a block will be blockTime + 2
-    Constants.MIN_GENESIS_DELAY = 1;
+    Constants.GENESIS_DELAY = UInt64.valueOf(2);
   }
 
   @AfterAll
@@ -80,9 +80,10 @@ public class MinimumGenesisTimeBlockFinderTest {
 
   private void assertMinGenesisBlock(
       final Block[] blocks, final long minGenesisTime, final Block expectedMinGenesisTimeBlock) {
-    Constants.MIN_GENESIS_TIME = UnsignedLong.valueOf(minGenesisTime);
+    Constants.MIN_GENESIS_TIME = UInt64.valueOf(minGenesisTime);
     final SafeFuture<Block> result =
-        minimumGenesisTimeBlockFinder.findMinGenesisTimeBlockInHistory(blocks[blocks.length - 1]);
+        minimumGenesisTimeBlockFinder.findMinGenesisTimeBlockInHistory(
+            blocks[blocks.length - 1].getNumber());
     assertThat(result).isCompletedWithValue(expectedMinGenesisTimeBlock);
   }
 
@@ -99,7 +100,7 @@ public class MinimumGenesisTimeBlockFinderTest {
     when(block.getTimestamp()).thenReturn(BigInteger.valueOf(timestamp));
     when(block.getNumber()).thenReturn(BigInteger.valueOf(blockNumber));
     when(block.toString()).thenReturn("Block " + blockNumber + " at timestamp " + timestamp);
-    when(eth1Provider.getEth1Block(UnsignedLong.valueOf(blockNumber)))
+    when(eth1Provider.getEth1Block(UInt64.valueOf(blockNumber)))
         .thenReturn(SafeFuture.completedFuture(block));
     return block;
   }

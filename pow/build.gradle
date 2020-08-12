@@ -1,5 +1,6 @@
 dependencies {
   implementation project(':bls')
+  implementation project(':infrastructure:async')
   implementation project(':ssz')
   implementation project(':util')
   implementation project(':events')
@@ -8,10 +9,12 @@ dependencies {
 
   api 'org.web3j:core'
   
-  implementation 'com.googlecode.json-simple:json-simple'
   implementation 'com.google.code.gson:gson'
   implementation 'org.apache.tuweni:tuweni-crypto'
   implementation 'org.apache.tuweni:tuweni-units'
 
   testImplementation testFixtures(project(':util'))
+  testImplementation testFixtures(project(':infrastructure:async'))
+
+  testFixturesImplementation project(':util')
 }

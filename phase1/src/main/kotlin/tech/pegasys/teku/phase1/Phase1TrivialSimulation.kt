@@ -16,8 +16,9 @@ import tech.pegasys.teku.phase1.integration.datastructures.ShardBlock
 import tech.pegasys.teku.phase1.integration.datastructures.ShardTransition
 import tech.pegasys.teku.phase1.integration.datastructures.SignedBeaconBlock
 import tech.pegasys.teku.phase1.integration.datastructures.SignedShardBlock
+import tech.pegasys.teku.phase1.integration.spec.get_shard_block_signature
 import tech.pegasys.teku.phase1.integration.ssz.SSZBitlistImpl
-import tech.pegasys.teku.phase1.integration.toUnsignedLong
+import tech.pegasys.teku.phase1.integration.toUInt64
 import tech.pegasys.teku.phase1.onotole.deps.BLS12381
 import tech.pegasys.teku.phase1.onotole.phase1.CommitteeIndex
 import tech.pegasys.teku.phase1.onotole.phase1.GENESIS_SLOT
@@ -30,7 +31,6 @@ import tech.pegasys.teku.phase1.onotole.phase1.SLOTS_PER_EPOCH
 import tech.pegasys.teku.phase1.onotole.phase1.Shard
 import tech.pegasys.teku.phase1.onotole.phase1.Slot
 import tech.pegasys.teku.phase1.onotole.phase1.ValidatorIndex
-import tech.pegasys.teku.phase1.integration.spec.get_shard_block_signature
 import tech.pegasys.teku.phase1.onotole.pylib.pyint
 import tech.pegasys.teku.phase1.onotole.ssz.Sequence
 import tech.pegasys.teku.phase1.onotole.ssz.uint64
@@ -258,11 +258,11 @@ fun getGenesisState(): BeaconState {
   val deposits = MockStartDepositGenerator().createDeposits(blsKeyPairs)
   val state = spec.upgrade_to_phase1(
     MockStartBeaconStateGenerator().createInitialBeaconState(
-      0uL.toUnsignedLong(),
+      0uL.toUInt64(),
       deposits
     )
   )
   return state.applyChanges()
 }
 
-private fun BLSSecretKey.toPyint() = pyint(BigInteger(1, this.secretKey.toBytes().toArray()))
+private fun BLSSecretKey.toPyint() = pyint(BigInteger(1, this.toBytes().toArray()))

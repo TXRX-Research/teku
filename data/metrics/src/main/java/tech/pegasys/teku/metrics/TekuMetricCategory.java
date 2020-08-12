@@ -23,6 +23,9 @@ public enum TekuMetricCategory implements MetricCategory {
   LIBP2P("libp2p"),
   NETWORK("network"),
   STORAGE("storage"),
+  STORAGE_HOT_DB("storage_hot"),
+  STORAGE_FINALIZED_DB("storage_finalized"),
+  REMOTE_VALIDATOR("remote_validator"),
   VALIDATOR("validator");
 
   private final String name;

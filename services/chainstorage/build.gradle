@@ -1,4 +1,6 @@
 dependencies {
+  implementation project(':ethereum:core')
+  implementation project(':infrastructure:async')
   implementation project(':logging')
   implementation project(':services:serviceutils')
   implementation project(':storage')
@@ -6,6 +8,7 @@ dependencies {
   implementation project(':util')
   implementation project(':pow')
   implementation project(':events')
+  implementation project(':protoarray')
 
   implementation 'org.apache.tuweni:tuweni-config'
   implementation 'org.hyperledger.besu:plugin-api'

@@ -52,28 +52,35 @@ import tech.pegasys.teku.beaconrestapi.handlers.network.GetListenPort;
 import tech.pegasys.teku.beaconrestapi.handlers.network.GetPeerCount;
 import tech.pegasys.teku.beaconrestapi.handlers.network.GetPeerId;
 import tech.pegasys.teku.beaconrestapi.handlers.network.GetPeers;
+import tech.pegasys.teku.beaconrestapi.handlers.node.GetAttestationsInPoolCount;
 import tech.pegasys.teku.beaconrestapi.handlers.node.GetFork;
 import tech.pegasys.teku.beaconrestapi.handlers.node.GetGenesisTime;
 import tech.pegasys.teku.beaconrestapi.handlers.node.GetSyncing;
 import tech.pegasys.teku.beaconrestapi.handlers.node.GetVersion;
 import tech.pegasys.teku.beaconrestapi.handlers.v1.node.GetIdentity;
+import tech.pegasys.teku.beaconrestapi.handlers.validator.GetAggregate;
 import tech.pegasys.teku.beaconrestapi.handlers.validator.GetAttestation;
 import tech.pegasys.teku.beaconrestapi.handlers.validator.GetNewBlock;
+import tech.pegasys.teku.beaconrestapi.handlers.validator.PostAggregateAndProof;
 import tech.pegasys.teku.beaconrestapi.handlers.validator.PostAttestation;
 import tech.pegasys.teku.beaconrestapi.handlers.validator.PostBlock;
 import tech.pegasys.teku.beaconrestapi.handlers.validator.PostDuties;
+import tech.pegasys.teku.beaconrestapi.handlers.validator.PostSubscribeToBeaconCommittee;
+import tech.pegasys.teku.beaconrestapi.handlers.validator.PostSubscribeToPersistentSubnets;
 import tech.pegasys.teku.provider.JsonProvider;
 import tech.pegasys.teku.storage.client.ChainDataUnavailableException;
 import tech.pegasys.teku.util.cli.VersionProvider;
 import tech.pegasys.teku.util.config.TekuConfiguration;
 
 public class BeaconRestApi {
+
   private final Javalin app;
   private final JsonProvider jsonProvider = new JsonProvider();
   private static final Logger LOG = LogManager.getLogger();
   public static final String FILE_NOT_FOUND_HTML = "404.html";
 
   private void initialize(final DataProvider dataProvider, final TekuConfiguration configuration) {
+    app.server().setServerHost(configuration.getRestApiInterface());
     app.server().setServerPort(configuration.getRestApiPort());
 
     addHostAllowlistHandler(configuration);
@@ -201,6 +208,9 @@ public class BeaconRestApi {
         GetGenesisTime.ROUTE, new GetGenesisTime(provider.getChainDataProvider(), jsonProvider));
     app.get(GetSyncing.ROUTE, new GetSyncing(provider.getSyncDataProvider(), jsonProvider));
     app.get(GetVersion.ROUTE, new GetVersion(jsonProvider));
+    app.get(
+        GetAttestationsInPoolCount.ROUTE,
+        new GetAttestationsInPoolCount(provider.getNodeDataProvider(), jsonProvider));
   }
 
   private void addBeaconHandlers(final DataProvider dataProvider) {
@@ -221,12 +231,22 @@ public class BeaconRestApi {
     app.get(GetAttestation.ROUTE, new GetAttestation(validatorDataProvider, jsonProvider));
     app.get(GetValidators.ROUTE, new GetValidators(provider, jsonProvider));
     app.get(GetNewBlock.ROUTE, new GetNewBlock(dataProvider, jsonProvider));
+    app.get(GetAggregate.ROUTE, new GetAggregate(validatorDataProvider, jsonProvider));
 
     app.post(PostAttestation.ROUTE, new PostAttestation(dataProvider, jsonProvider));
     app.post(
         PostBlock.ROUTE,
         new PostBlock(validatorDataProvider, dataProvider.getSyncDataProvider(), jsonProvider));
     app.post(PostDuties.ROUTE, new PostDuties(validatorDataProvider, jsonProvider));
+    app.post(
+        PostAggregateAndProof.ROUTE,
+        new PostAggregateAndProof(validatorDataProvider, jsonProvider));
+    app.post(
+        PostSubscribeToBeaconCommittee.ROUTE,
+        new PostSubscribeToBeaconCommittee(validatorDataProvider, jsonProvider));
+    app.post(
+        PostSubscribeToPersistentSubnets.ROUTE,
+        new PostSubscribeToPersistentSubnets(validatorDataProvider, jsonProvider));
   }
 
   private void addNetworkHandlers(NetworkDataProvider networkDataProvider) {

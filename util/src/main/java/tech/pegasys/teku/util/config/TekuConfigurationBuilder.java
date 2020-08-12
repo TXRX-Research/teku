@@ -20,10 +20,13 @@ import java.util.function.Supplier;
 import org.apache.tuweni.bytes.Bytes32;
 
 public class TekuConfigurationBuilder {
-  private static final boolean DEFAULT_P2P_SNAPPY_ENABLED = false;
+
+  private static final boolean DEFAULT_P2P_SNAPPY_ENABLED = true;
   private String constants;
   private Integer startupTargetPeerCount;
   private Integer startupTimeoutSeconds;
+  private Integer peerRateLimit;
+  private Integer peerRequestLimit;
   private boolean p2pEnabled;
   private String p2pInterface;
   private int p2pPort;
@@ -34,6 +37,7 @@ public class TekuConfigurationBuilder {
   private String p2pPrivateKeyFile;
   private int p2pPeerLowerBound;
   private int p2pPeerUpperBound;
+  private int targetSubnetSubscriberCount;
   private List<String> p2pStaticPeers;
   private Boolean p2pSnappyEnabled;
   private Integer interopGenesisTime;
@@ -77,6 +81,10 @@ public class TekuConfigurationBuilder {
   private String restApiInterface;
   private List<String> restApiHostAllowlist;
   private NetworkDefinition network;
+  private String remoteValidatorApiInterface;
+  private int remoteValidatorApiPort;
+  private int remoteValidatorApiMaxSubscribers;
+  private boolean remoteValidatorApiEnabled;
   private Bytes32 graffiti;
 
   public TekuConfigurationBuilder setConstants(final String constants) {
@@ -91,6 +99,16 @@ public class TekuConfigurationBuilder {
 
   public TekuConfigurationBuilder setStartupTimeoutSeconds(final Integer startupTimeoutSeconds) {
     this.startupTimeoutSeconds = startupTimeoutSeconds;
+    return this;
+  }
+
+  public TekuConfigurationBuilder setPeerRateLimit(final Integer peerRateLimit) {
+    this.peerRateLimit = peerRateLimit;
+    return this;
+  }
+
+  public TekuConfigurationBuilder setPeerRequestLimit(final Integer peerRequestLimit) {
+    this.peerRequestLimit = peerRequestLimit;
     return this;
   }
 
@@ -142,6 +160,12 @@ public class TekuConfigurationBuilder {
 
   public TekuConfigurationBuilder setP2pPeerUpperBound(final int p2pPeerUpperBound) {
     this.p2pPeerUpperBound = p2pPeerUpperBound;
+    return this;
+  }
+
+  public TekuConfigurationBuilder setTargetSubnetSubscriberCount(
+      final int targetSubnetSubscriberCount) {
+    this.targetSubnetSubscriberCount = targetSubnetSubscriberCount;
     return this;
   }
 
@@ -369,6 +393,26 @@ public class TekuConfigurationBuilder {
     return this;
   }
 
+  public TekuConfigurationBuilder setRemoteValidatorApiInterface(final String host) {
+    this.remoteValidatorApiInterface = host;
+    return this;
+  }
+
+  public TekuConfigurationBuilder setRemoteValidatorApiPort(final int port) {
+    this.remoteValidatorApiPort = port;
+    return this;
+  }
+
+  public TekuConfigurationBuilder setRemoteValidatorApiMaxSubscribers(final int maxSubscribers) {
+    this.remoteValidatorApiMaxSubscribers = maxSubscribers;
+    return this;
+  }
+
+  public TekuConfigurationBuilder setRemoteValidatorApiEnabled(final boolean enabled) {
+    this.remoteValidatorApiEnabled = enabled;
+    return this;
+  }
+
   public TekuConfigurationBuilder setGraffiti(final Bytes32 graffiti) {
     this.graffiti = graffiti;
     return this;
@@ -405,6 +449,8 @@ public class TekuConfigurationBuilder {
         constants,
         startupTargetPeerCount,
         startupTimeoutSeconds,
+        peerRateLimit,
+        peerRequestLimit,
         p2pEnabled,
         p2pInterface,
         p2pPort,
@@ -415,6 +461,7 @@ public class TekuConfigurationBuilder {
         p2pPrivateKeyFile,
         p2pPeerLowerBound,
         p2pPeerUpperBound,
+        targetSubnetSubscriberCount,
         p2pStaticPeers,
         p2pSnappyEnabled,
         interopGenesisTime,
@@ -457,6 +504,10 @@ public class TekuConfigurationBuilder {
         restApiEnabled,
         restApiInterface,
         restApiHostAllowlist,
+        remoteValidatorApiInterface,
+        remoteValidatorApiPort,
+        remoteValidatorApiMaxSubscribers,
+        remoteValidatorApiEnabled,
         graffiti);
   }
 

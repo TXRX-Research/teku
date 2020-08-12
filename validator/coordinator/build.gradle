@@ -1,5 +1,6 @@
 dependencies {
   implementation project(':bls')
+  implementation project(':infrastructure:async')
   implementation project(':validator:api')
   implementation project(':validator:client')
   implementation project(':storage')
@@ -26,4 +27,7 @@ dependencies {
   testImplementation testFixtures(project(':ethereum:statetransition'))
   testImplementation testFixtures(project(':util'))
   testImplementation testFixtures(project(':storage'))
+
+  integrationTestImplementation testFixtures(project(':ethereum:core'))
+  integrationTestImplementation testFixtures(project(':infrastructure:async'))
 }

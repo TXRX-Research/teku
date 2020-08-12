@@ -13,7 +13,7 @@
 
 package tech.pegasys.teku.datastructures.forkchoice;
 
-import com.google.common.primitives.UnsignedLong;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import org.apache.tuweni.bytes.Bytes32;
@@ -22,19 +22,18 @@ import tech.pegasys.teku.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.datastructures.blocks.SignedBlockAndState;
 import tech.pegasys.teku.datastructures.state.BeaconState;
 import tech.pegasys.teku.datastructures.state.Checkpoint;
-import tech.pegasys.teku.datastructures.state.CheckpointAndBlock;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 
-public interface ReadOnlyStore extends ForkChoiceState {
+public interface ReadOnlyStore {
 
-  UnsignedLong getTime();
+  UInt64 getTime();
 
-  UnsignedLong getGenesisTime();
+  UInt64 getGenesisTime();
 
   Checkpoint getJustifiedCheckpoint();
 
   Checkpoint getFinalizedCheckpoint();
-
-  CheckpointAndBlock getFinalizedCheckpointAndBlock();
 
   /**
    * Return the slot of the latest finalized block. This slot may be at or prior to the epoch
@@ -42,23 +41,49 @@ public interface ReadOnlyStore extends ForkChoiceState {
    *
    * @return the slot of the latest finalized block.
    */
-  UnsignedLong getLatestFinalizedBlockSlot();
+  UInt64 getLatestFinalizedBlockSlot();
 
   SignedBlockAndState getLatestFinalizedBlockAndState();
 
   Checkpoint getBestJustifiedCheckpoint();
 
-  BeaconBlock getBlock(Bytes32 blockRoot);
-
-  SignedBeaconBlock getSignedBlock(Bytes32 blockRoot);
-
-  Optional<SignedBlockAndState> getBlockAndState(Bytes32 blockRoot);
+  boolean containsBlock(Bytes32 blockRoot);
 
   Set<Bytes32> getBlockRoots();
 
-  BeaconState getBlockState(Bytes32 blockRoot);
+  /**
+   * @return A list of block roots ordered to guarantee that parent roots will be sorted earlier
+   *     than child roots
+   */
+  List<Bytes32> getOrderedBlockRoots();
 
-  BeaconState getCheckpointState(Checkpoint checkpoint);
+  Set<UInt64> getVotedValidatorIndices();
 
-  boolean containsCheckpointState(Checkpoint checkpoint);
+  /**
+   * Returns a block state only if it is immediately available (not pruned).
+   *
+   * @param blockRoot The block root corresponding to the state to retrieve
+   * @return The block state if available.
+   */
+  Optional<BeaconState> getBlockStateIfAvailable(Bytes32 blockRoot);
+
+  /**
+   * Returns a block only if it is immediately available (not pruned).
+   *
+   * @param blockRoot The block root of the block to retrieve
+   * @return The block if available.
+   */
+  Optional<SignedBeaconBlock> getBlockIfAvailable(final Bytes32 blockRoot);
+
+  default SafeFuture<Optional<BeaconBlock>> retrieveBlock(Bytes32 blockRoot) {
+    return retrieveSignedBlock(blockRoot).thenApply(res -> res.map(SignedBeaconBlock::getMessage));
+  }
+
+  SafeFuture<Optional<SignedBeaconBlock>> retrieveSignedBlock(Bytes32 blockRoot);
+
+  SafeFuture<Optional<SignedBlockAndState>> retrieveBlockAndState(Bytes32 blockRoot);
+
+  SafeFuture<Optional<BeaconState>> retrieveBlockState(Bytes32 blockRoot);
+
+  SafeFuture<Optional<BeaconState>> retrieveCheckpointState(Checkpoint checkpoint);
 }

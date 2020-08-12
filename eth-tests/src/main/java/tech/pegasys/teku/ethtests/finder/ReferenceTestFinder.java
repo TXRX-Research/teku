@@ -20,7 +20,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import tech.pegasys.teku.util.async.ExceptionThrowingFunction;
+import tech.pegasys.teku.infrastructure.async.ExceptionThrowingFunction;
 
 @SuppressWarnings("MustBeClosedChecker")
 public class ReferenceTestFinder {
@@ -43,8 +43,7 @@ public class ReferenceTestFinder {
             new SszTestFinder("ssz_generic"),
             new SszTestFinder("ssz_static"),
             new ShufflingTestFinder(),
-            new PyspecTestFinder(),
-            new ForkChoiceTestFinder())
+            new PyspecTestFinder())
         .flatMap(unchecked(finder -> finder.findTests(spec, phase0Tests)));
   }
 

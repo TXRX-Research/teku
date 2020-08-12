@@ -26,17 +26,17 @@ import java.util.function.Function;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.networking.p2p.gossip.TopicHandler;
-import tech.pegasys.teku.util.async.SafeFuture;
 import tech.pegasys.teku.util.collections.ConcurrentLimitedSet;
 import tech.pegasys.teku.util.collections.LimitStrategy;
 
 public class GossipHandler implements Function<MessageApi, CompletableFuture<ValidationResult>> {
   private static final Logger LOG = LogManager.getLogger();
 
-  private static SafeFuture<ValidationResult> VALIDATION_FAILED =
+  private static final SafeFuture<ValidationResult> VALIDATION_FAILED =
       SafeFuture.completedFuture(ValidationResult.Invalid);
-  private static SafeFuture<ValidationResult> VALIDATION_IGNORED =
+  private static final SafeFuture<ValidationResult> VALIDATION_IGNORED =
       SafeFuture.completedFuture(ValidationResult.Ignore);
 
   private static final int MAX_SENT_MESSAGES = 2048;
@@ -74,8 +74,7 @@ public class GossipHandler implements Function<MessageApi, CompletableFuture<Val
     }
     LOG.trace("Received message for topic {}: {} bytes", topic, bytes.size());
 
-    final ValidationResult result = handler.handleMessage(bytes);
-    return SafeFuture.completedFuture(result);
+    return handler.handleMessage(bytes);
   }
 
   public void gossip(Bytes bytes) {

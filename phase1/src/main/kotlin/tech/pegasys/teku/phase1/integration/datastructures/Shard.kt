@@ -6,7 +6,6 @@ import tech.pegasys.teku.phase1.integration.ssz.SSZByteListImpl
 import tech.pegasys.teku.phase1.integration.ssz.SSZListImpl
 import tech.pegasys.teku.phase1.integration.ssz.getListView
 import tech.pegasys.teku.phase1.integration.toUInt64
-import tech.pegasys.teku.phase1.integration.toUnsignedLong
 import tech.pegasys.teku.phase1.integration.wrapValues
 import tech.pegasys.teku.phase1.onotole.phase1.BLSSignature
 import tech.pegasys.teku.phase1.onotole.phase1.Gwei
@@ -76,7 +75,7 @@ class ShardTransition : AbstractImmutableContainer {
         BasicViewTypes.UINT64_TYPE,
         MAX_SHARD_BLOCKS_PER_ATTESTATION,
         shard_block_lengths
-      ) { UInt64View(it.toUnsignedLong()) },
+      ) { UInt64View(it.toUInt64()) },
       getListView(
         BasicViewTypes.BYTES32_TYPE,
         MAX_SHARD_BLOCKS_PER_ATTESTATION,

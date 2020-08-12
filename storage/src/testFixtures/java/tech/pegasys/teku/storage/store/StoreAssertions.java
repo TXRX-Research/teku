@@ -23,13 +23,21 @@ public class StoreAssertions {
         .isEqualToIgnoringGivenFields(
             expectedState,
             "time",
+            "stateCountGauge",
+            "blockCountGauge",
+            "checkpointCountGauge",
             "lock",
             "readLock",
+            "blockProvider",
             "block_states",
-            "forkChoiceState",
+            "checkpoint_states",
+            "blocks",
             "stateRequestCachedCounter",
             "stateRequestRegenerateCounter",
             "stateRequestMissCounter",
+            "checkpointStateRequestCachedCounter",
+            "checkpointStateRequestRegenerateCounter",
+            "checkpointStateRequestMissCounter",
             "metricsSystem");
   }
 }

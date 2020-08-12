@@ -33,7 +33,7 @@ public class NetworkOptionsTest extends AbstractBeaconNodeCommandTest {
   }
 
   @ParameterizedTest(name = "{0}")
-  @ValueSource(strings = {"mainnet", "minimal", "topaz"})
+  @ValueSource(strings = {"mainnet", "minimal", "altona", "onyx", "medalla"})
   public void useDefaultsFromNetworkDefinition(final String networkName) {
     final NetworkDefinition networkDefinition = NetworkDefinition.fromCliArg(networkName);
 
@@ -77,5 +77,18 @@ public class NetworkOptionsTest extends AbstractBeaconNodeCommandTest {
     final TekuConfiguration config =
         getTekuConfigurationFromArguments("--initial-state", initialState);
     assertThat(config.getInitialState()).isEqualTo(initialState);
+  }
+
+  @Test
+  public void setPeerRateLimit() {
+    final TekuConfiguration config = getTekuConfigurationFromArguments("--Xpeer-rate-limit", "10");
+    assertThat(config.getPeerRateLimit()).isEqualTo(10);
+  }
+
+  @Test
+  public void setPeerRequestLimit() {
+    final TekuConfiguration config =
+        getTekuConfigurationFromArguments("--Xpeer-request-limit", "10");
+    assertThat(config.getPeerRequestLimit()).isEqualTo(10);
   }
 }

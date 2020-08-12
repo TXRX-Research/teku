@@ -17,15 +17,15 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 
-import com.google.common.primitives.UnsignedLong;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import org.apache.tuweni.bytes.Bytes32;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.logging.ValidatorLogger;
-import tech.pegasys.teku.util.async.SafeFuture;
 import tech.pegasys.teku.validator.api.NodeSyncingException;
 
 public class DutyResult {
@@ -87,8 +87,7 @@ public class DutyResult {
         combinedSuccessCount, combinedSyncingCount, combinedRoots, combinedErrors);
   }
 
-  public void report(
-      final String producedType, final UnsignedLong slot, final ValidatorLogger logger) {
+  public void report(final String producedType, final UInt64 slot, final ValidatorLogger logger) {
     if (successCount > 0) {
       logger.dutyCompleted(producedType, slot, successCount, roots);
     }
@@ -96,5 +95,19 @@ public class DutyResult {
       logger.dutySkippedWhileSyncing(producedType, slot, nodeSyncingCount);
     }
     errors.forEach(error -> logger.dutyFailed(producedType, slot, error));
+  }
+
+  @Override
+  public String toString() {
+    return "DutyResult{"
+        + "successCount="
+        + successCount
+        + ", nodeSyncingCount="
+        + nodeSyncingCount
+        + ", roots="
+        + roots
+        + ", errors="
+        + errors
+        + '}';
   }
 }

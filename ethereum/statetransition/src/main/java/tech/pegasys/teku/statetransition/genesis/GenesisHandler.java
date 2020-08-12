@@ -16,15 +16,17 @@ package tech.pegasys.teku.statetransition.genesis;
 import static tech.pegasys.teku.logging.EventLogger.EVENT_LOG;
 import static tech.pegasys.teku.logging.StatusLogger.STATUS_LOG;
 
-import com.google.common.primitives.UnsignedLong;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.datastructures.operations.DepositWithIndex;
 import tech.pegasys.teku.datastructures.state.BeaconState;
 import tech.pegasys.teku.datastructures.util.BeaconStateUtil;
 import tech.pegasys.teku.datastructures.util.DepositUtil;
 import tech.pegasys.teku.datastructures.util.GenesisGenerator;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.pow.api.Eth1EventsChannel;
 import tech.pegasys.teku.pow.event.DepositsFromBlockEvent;
 import tech.pegasys.teku.pow.event.MinGenesisTimeBlockEvent;
@@ -32,7 +34,7 @@ import tech.pegasys.teku.storage.client.RecentChainData;
 import tech.pegasys.teku.util.config.Constants;
 
 public class GenesisHandler implements Eth1EventsChannel {
-
+  private static final Logger LOG = LogManager.getLogger();
   private final RecentChainData recentChainData;
   private final GenesisGenerator genesisGenerator = new GenesisGenerator();
 
@@ -46,6 +48,8 @@ public class GenesisHandler implements Eth1EventsChannel {
       return;
     }
 
+    LOG.trace(
+        "Processing {} deposits from block {}", event.getDeposits().size(), event.getBlockNumber());
     final List<DepositWithIndex> deposits =
         event.getDeposits().stream()
             .map(DepositUtil::convertDepositEventToOperationDeposit)
@@ -64,7 +68,7 @@ public class GenesisHandler implements Eth1EventsChannel {
   }
 
   private void processNewData(
-      Bytes32 blockHash, UnsignedLong timestamp, List<DepositWithIndex> deposits) {
+      Bytes32 blockHash, UInt64 timestamp, List<DepositWithIndex> deposits) {
     final int previousValidatorRequirementPercent =
         roundPercent(genesisGenerator.getActiveValidatorCount());
     genesisGenerator.updateCandidateState(blockHash, timestamp, deposits);
@@ -84,8 +88,14 @@ public class GenesisHandler implements Eth1EventsChannel {
   }
 
   private void eth2Genesis(BeaconState genesisState) {
-    recentChainData.initializeFromGenesis(genesisState);
-    Bytes32 genesisBlockRoot = recentChainData.getBestBlockRoot().orElseThrow();
-    EVENT_LOG.genesisEvent(genesisState.hash_tree_root(), genesisBlockRoot);
+    recentChainData
+        .initializeFromGenesis(genesisState)
+        .thenAccept(
+            __ -> {
+              Bytes32 genesisBlockRoot = recentChainData.getBestBlockRoot().orElseThrow();
+              EVENT_LOG.genesisEvent(
+                  genesisState.hash_tree_root(), genesisBlockRoot, genesisState.getGenesis_time());
+            })
+        .reportExceptions();
   }
 }

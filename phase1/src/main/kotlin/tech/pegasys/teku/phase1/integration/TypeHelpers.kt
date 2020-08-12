@@ -23,12 +23,14 @@ import tech.pegasys.teku.ssz.backing.type.ViewType
 import tech.pegasys.teku.ssz.backing.view.BasicViews
 import tech.pegasys.teku.ssz.backing.view.BasicViews.ByteView
 import tech.pegasys.teku.ssz.backing.view.ViewUtils
+import tech.pegasys.teku.infrastructure.unsigned.UInt64 as TekuUInt64
 
 val Bytes48Type = VectorViewType<ByteView>(BasicViewTypes.BYTE_TYPE, 48)
 val Bytes96Type = VectorViewType<ByteView>(BasicViewTypes.BYTE_TYPE, 96)
 
-fun UnsignedLong.toUInt64() = this.toLong().toULong()
+fun TekuUInt64.toUInt64() = this.longValue().toULong()
 fun uint64.toUnsignedLong() = UnsignedLong.valueOf(this.toString())
+fun uint64.toUInt64() = TekuUInt64.fromLongBits(this.toLong())
 
 fun <T : Any> wrapValues(vararg values: T): Array<ViewRead> {
   return values.map { wrapValue(it) }.toTypedArray()
@@ -75,7 +77,7 @@ val UInt8Type = object : ViewType {
 inline fun <reified T> wrapBasicValue(value: Any): T {
   return when (value) {
     is uint8 -> UInt8View(value)
-    is uint64 -> BasicViews.UInt64View(value.toUnsignedLong())
+    is uint64 -> BasicViews.UInt64View(value.toUInt64())
     is boolean -> BasicViews.BitView(value)
     is BLSSignature -> ViewUtils.createVectorFromBytes(value.wrappedBytes)
     is BLSPubkey -> ViewUtils.createVectorFromBytes(value)

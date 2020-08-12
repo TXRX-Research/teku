@@ -22,7 +22,7 @@ public class NetworkOptions {
       paramLabel = "<NETWORK>",
       description = "Represents which network to use.",
       arity = "1")
-  private String network = "minimal";
+  private String network = "altona";
 
   @Option(
       names = {"--initial-state"},
@@ -31,11 +31,60 @@ public class NetworkOptions {
       arity = "1")
   private String initialState = null;
 
+  @Option(
+      names = {"--Xstartup-target-peer-count"},
+      paramLabel = "<NUMBER>",
+      description = "Number of peers to wait for before considering the node in sync.",
+      hidden = true)
+  private Integer startupTargetPeerCount;
+
+  @Option(
+      names = {"--Xstartup-timeout-seconds"},
+      paramLabel = "<NUMBER>",
+      description =
+          "Timeout in seconds to allow the node to be in sync even if startup target peer count has not yet been reached.",
+      hidden = true)
+  private Integer startupTimeoutSeconds;
+
+  @Option(
+      names = {"--Xpeer-rate-limit"},
+      paramLabel = "<NUMBER>",
+      description =
+          "The number of requested objects per peer to allow per minute before disconnecting the peer.",
+      arity = "1",
+      hidden = true)
+  private Integer peerRateLimit = 500;
+
+  @Option(
+      names = {"--Xpeer-request-limit"},
+      paramLabel = "<NUMBER>",
+      description =
+          "The number of requests per peer to allow per minute before disconnecting the peer.",
+      arity = "1",
+      hidden = true)
+  private Integer peerRequestLimit = 50;
+
   public String getNetwork() {
     return network;
   }
 
   public String getInitialState() {
     return initialState;
+  }
+
+  public Integer getStartupTargetPeerCount() {
+    return startupTargetPeerCount;
+  }
+
+  public Integer getStartupTimeoutSeconds() {
+    return startupTimeoutSeconds;
+  }
+
+  public Integer getPeerRateLimit() {
+    return peerRateLimit;
+  }
+
+  public Integer getPeerRequestLimit() {
+    return peerRequestLimit;
   }
 }

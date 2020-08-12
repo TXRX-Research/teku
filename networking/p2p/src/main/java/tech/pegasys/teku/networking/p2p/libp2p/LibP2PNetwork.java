@@ -13,9 +13,9 @@
 
 package tech.pegasys.teku.networking.p2p.libp2p;
 
+import static tech.pegasys.teku.infrastructure.async.SafeFuture.failedFuture;
+import static tech.pegasys.teku.infrastructure.async.SafeFuture.reportExceptions;
 import static tech.pegasys.teku.logging.StatusLogger.STATUS_LOG;
-import static tech.pegasys.teku.util.async.SafeFuture.failedFuture;
-import static tech.pegasys.teku.util.async.SafeFuture.reportExceptions;
 
 import identify.pb.IdentifyOuterClass;
 import io.libp2p.core.Host;
@@ -41,10 +41,11 @@ import io.libp2p.transport.tcp.TcpTransport;
 import io.netty.channel.ChannelHandler;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.UnknownHostException;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -54,8 +55,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.crypto.Hash;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
+import tech.pegasys.teku.infrastructure.async.AsyncRunner;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.networking.p2p.connection.ReputationManager;
 import tech.pegasys.teku.networking.p2p.discovery.DiscoveryPeer;
 import tech.pegasys.teku.networking.p2p.gossip.GossipNetwork;
@@ -71,8 +75,6 @@ import tech.pegasys.teku.networking.p2p.peer.NodeId;
 import tech.pegasys.teku.networking.p2p.peer.Peer;
 import tech.pegasys.teku.networking.p2p.peer.PeerConnectedSubscriber;
 import tech.pegasys.teku.networking.p2p.rpc.RpcMethod;
-import tech.pegasys.teku.util.async.AsyncRunner;
-import tech.pegasys.teku.util.async.SafeFuture;
 import tech.pegasys.teku.util.cli.VersionProvider;
 
 public class LibP2PNetwork implements P2PNetwork<Peer> {
@@ -104,7 +106,9 @@ public class LibP2PNetwork implements P2PNetwork<Peer> {
     this.nodeId = new LibP2PNodeId(PeerId.fromPubKey(privKey.publicKey()));
     this.config = config;
 
-    advertisedAddr = getAdvertisedAddr(config, nodeId);
+    advertisedAddr =
+        MultiaddrUtil.fromInetSocketAddress(
+            new InetSocketAddress(config.getAdvertisedIp(), config.getAdvertisedPort()), nodeId);
     this.listenPort = config.getListenPort();
 
     // Setup gossip
@@ -118,11 +122,6 @@ public class LibP2PNetwork implements P2PNetwork<Peer> {
     // Setup peers
     peerManager = new PeerManager(metricsSystem, reputationManager, peerHandlers, rpcHandlers);
 
-    // temporary flag
-    // set true for Lighthouse compatibility
-    // set false for Prysm compatibility
-    // TODO remove when all clients adjust the same Noise spec
-    NoiseXXSecureChannel.setRustInteroperability(false);
     final Multiaddr listenAddr =
         MultiaddrUtil.fromInetSocketAddress(
             new InetSocketAddress(config.getNetworkInterface(), config.getListenPort()));
@@ -141,9 +140,13 @@ public class LibP2PNetwork implements P2PNetwork<Peer> {
               b.getProtocols().addAll(getDefaultProtocols());
               b.getProtocols().addAll(rpcHandlers.values());
 
+              List<ChannelHandler> beforeSecureLogHandler = new ArrayList<>();
               if (config.getWireLogsConfig().isLogWireCipher()) {
-                b.getDebug().getBeforeSecureHandler().setLogger(LogLevel.DEBUG, "wire.ciphered");
+                beforeSecureLogHandler.add(new LoggingHandler("wire.ciphered", LogLevel.DEBUG));
               }
+              Firewall firewall = new Firewall(Duration.ofSeconds(30), beforeSecureLogHandler);
+              b.getDebug().getBeforeSecureHandler().setHandler(firewall);
+
               if (config.getWireLogsConfig().isLogWirePlain()) {
                 b.getDebug().getAfterSecureHandler().setLogger(LogLevel.DEBUG, "wire.plain");
               }
@@ -193,7 +196,7 @@ public class LibP2PNetwork implements P2PNetwork<Peer> {
             .setPublicKey(ByteArrayExtKt.toProtobuf(privKey.publicKey().bytes()))
             .addListenAddrs(ByteArrayExtKt.toProtobuf(advertisedAddr.getBytes()))
             .setObservedAddr(
-                ByteArrayExtKt.toProtobuf( // TODO: Report external IP?
+                ByteArrayExtKt.toProtobuf( // TODO (#1854): Report external IP?
                     advertisedAddr.getBytes()))
             .addAllProtocols(ping.getProtocolDescriptor().getAnnounceProtocols())
             .addAllProtocols(gossip.getProtocolDescriptor().getAnnounceProtocols())
@@ -213,24 +216,6 @@ public class LibP2PNetwork implements P2PNetwork<Peer> {
               STATUS_LOG.listeningForLibP2P(getNodeAddress());
               return null;
             });
-  }
-
-  private Multiaddr getAdvertisedAddr(NetworkConfig config, final NodeId nodeId) {
-    try {
-      final InetSocketAddress advertisedAddress =
-          new InetSocketAddress(config.getAdvertisedIp(), config.getAdvertisedPort());
-      final InetSocketAddress resolvedAddress;
-      if (advertisedAddress.getAddress().isAnyLocalAddress()) {
-        resolvedAddress =
-            new InetSocketAddress(InetAddress.getLocalHost(), advertisedAddress.getPort());
-      } else {
-        resolvedAddress = advertisedAddress;
-      }
-      return MultiaddrUtil.fromInetSocketAddress(resolvedAddress, nodeId);
-    } catch (UnknownHostException err) {
-      throw new RuntimeException(
-          "Unable to start LibP2PNetwork due to failed attempt at obtaining host address", err);
-    }
   }
 
   @Override
@@ -319,7 +304,17 @@ public class LibP2PNetwork implements P2PNetwork<Peer> {
   }
 
   @Override
+  public SafeFuture<?> gossip(final String topic, final Bytes data) {
+    return gossipNetwork.gossip(topic, data);
+  }
+
+  @Override
   public TopicChannel subscribe(final String topic, final TopicHandler topicHandler) {
     return gossipNetwork.subscribe(topic, topicHandler);
+  }
+
+  @Override
+  public Map<String, Collection<NodeId>> getSubscribersByTopic() {
+    return gossipNetwork.getSubscribersByTopic();
   }
 }

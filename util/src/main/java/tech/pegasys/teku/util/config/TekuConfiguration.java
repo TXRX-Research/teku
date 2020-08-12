@@ -28,14 +28,17 @@ import org.apache.logging.log4j.status.StatusLogger;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.bls.BLSPublicKey;
+import tech.pegasys.teku.metrics.MetricsConfig;
 
 /** Configuration of an instance of Teku. */
-public class TekuConfiguration {
+public class TekuConfiguration implements MetricsConfig {
   // Network
   private final String constants;
   private final String initialState;
   private final Integer startupTargetPeerCount;
   private final Integer startupTimeoutSeconds;
+  private final Integer peerRateLimit;
+  private final Integer peerRequestLimit;
 
   // P2P
   private final boolean p2pEnabled;
@@ -48,6 +51,7 @@ public class TekuConfiguration {
   private final String p2pPrivateKeyFile;
   private final int p2pPeerLowerBound;
   private final int p2pPeerUpperBound;
+  private final int targetSubnetSubscriberCount;
   private final List<String> p2pStaticPeers;
   private final boolean p2pSnappyEnabled;
 
@@ -60,7 +64,7 @@ public class TekuConfiguration {
 
   // Validator
   private final String validatorsKeyFile;
-  // TODO: The following two options will eventually be moved to the validator subcommand
+  // TODO (#1918): The following two options will eventually be moved to the validator subcommand
   private final List<String> validatorKeystoreFiles;
   private final List<String> validatorKeystorePasswordFiles;
   private final List<String> validatorExternalSignerPublicKeys;
@@ -108,6 +112,12 @@ public class TekuConfiguration {
   private final String restApiInterface;
   private final List<String> restApiHostAllowlist;
 
+  // Remote Validator WS API
+  private final String remoteValidatorApiInterface;
+  private final int remoteValidatorApiPort;
+  private final boolean remoteValidatorApiEnabled;
+  private final int remoteValidatorApiMaxSubscribers;
+
   public static TekuConfigurationBuilder builder() {
     return new TekuConfigurationBuilder();
   }
@@ -116,6 +126,8 @@ public class TekuConfiguration {
       final String constants,
       final Integer startupTargetPeerCount,
       final Integer startupTimeoutSeconds,
+      final Integer peerRateLimit,
+      final Integer peerRequestLimit,
       final boolean p2pEnabled,
       final String p2pInterface,
       final int p2pPort,
@@ -126,6 +138,7 @@ public class TekuConfiguration {
       final String p2pPrivateKeyFile,
       final int p2pPeerLowerBound,
       final int p2pPeerUpperBound,
+      final int targetSubnetSubscriberCount,
       final List<String> p2pStaticPeers,
       final boolean p2pSnappyEnabled,
       final Integer interopGenesisTime,
@@ -168,10 +181,16 @@ public class TekuConfiguration {
       final boolean restApiEnabled,
       final String restApiInterface,
       final List<String> restApiHostAllowlist,
+      final String remoteValidatorApiInterface,
+      final int remoteValidatorApiPort,
+      final int remoteValidatorApiMaxSubscribers,
+      final boolean remoteValidatorApiEnabled,
       final Bytes32 graffiti) {
     this.constants = constants;
     this.startupTargetPeerCount = startupTargetPeerCount;
     this.startupTimeoutSeconds = startupTimeoutSeconds;
+    this.peerRateLimit = peerRateLimit;
+    this.peerRequestLimit = peerRequestLimit;
     this.p2pEnabled = p2pEnabled;
     this.p2pInterface = p2pInterface;
     this.p2pPort = p2pPort;
@@ -182,6 +201,7 @@ public class TekuConfiguration {
     this.p2pPrivateKeyFile = p2pPrivateKeyFile;
     this.p2pPeerLowerBound = p2pPeerLowerBound;
     this.p2pPeerUpperBound = p2pPeerUpperBound;
+    this.targetSubnetSubscriberCount = targetSubnetSubscriberCount;
     this.p2pStaticPeers = p2pStaticPeers;
     this.p2pSnappyEnabled = p2pSnappyEnabled;
     this.interopGenesisTime = interopGenesisTime;
@@ -224,6 +244,10 @@ public class TekuConfiguration {
     this.restApiEnabled = restApiEnabled;
     this.restApiInterface = restApiInterface;
     this.restApiHostAllowlist = restApiHostAllowlist;
+    this.remoteValidatorApiInterface = remoteValidatorApiInterface;
+    this.remoteValidatorApiPort = remoteValidatorApiPort;
+    this.remoteValidatorApiEnabled = remoteValidatorApiEnabled;
+    this.remoteValidatorApiMaxSubscribers = remoteValidatorApiMaxSubscribers;
     this.graffiti = graffiti;
   }
 
@@ -237,6 +261,14 @@ public class TekuConfiguration {
 
   public int getStartupTimeoutSeconds() {
     return startupTimeoutSeconds;
+  }
+
+  public int getPeerRateLimit() {
+    return peerRateLimit;
+  }
+
+  public int getPeerRequestLimit() {
+    return peerRequestLimit;
   }
 
   public boolean isP2pEnabled() {
@@ -277,6 +309,14 @@ public class TekuConfiguration {
 
   public int getP2pPeerUpperBound() {
     return p2pPeerUpperBound;
+  }
+
+  public int getMinimumRandomlySelectedPeerCount() {
+    return Math.min(1, p2pPeerLowerBound * 2 / 10);
+  }
+
+  public int getTargetSubnetSubscriberCount() {
+    return targetSubnetSubscriberCount;
   }
 
   public List<String> getP2pStaticPeers() {
@@ -333,7 +373,7 @@ public class TekuConfiguration {
     }
     try {
       return validatorExternalSignerPublicKeys.stream()
-          .map(key -> BLSPublicKey.fromBytes(Bytes.fromHexString(key)))
+          .map(key -> BLSPublicKey.fromSSZBytes(Bytes.fromHexString(key)))
           .collect(Collectors.toList());
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException("Invalid configuration. Signer public key is invalid", e);
@@ -412,22 +452,27 @@ public class TekuConfiguration {
     return transitionRecordDirectory;
   }
 
+  @Override
   public boolean isMetricsEnabled() {
     return metricsEnabled;
   }
 
+  @Override
   public int getMetricsPort() {
     return metricsPort;
   }
 
+  @Override
   public String getMetricsInterface() {
     return metricsInterface;
   }
 
+  @Override
   public List<String> getMetricsCategories() {
     return metricsCategories;
   }
 
+  @Override
   public List<String> getMetricsHostAllowlist() {
     return metricsHostAllowlist;
   }
@@ -466,6 +511,22 @@ public class TekuConfiguration {
 
   public List<String> getRestApiHostAllowlist() {
     return restApiHostAllowlist;
+  }
+
+  public String getRemoteValidatorApiInterface() {
+    return remoteValidatorApiInterface;
+  }
+
+  public int getRemoteValidatorApiPort() {
+    return remoteValidatorApiPort;
+  }
+
+  public boolean isRemoteValidatorApiEnabled() {
+    return remoteValidatorApiEnabled;
+  }
+
+  public int getRemoteValidatorApiMaxSubscribers() {
+    return remoteValidatorApiMaxSubscribers;
   }
 
   public Bytes32 getGraffiti() {

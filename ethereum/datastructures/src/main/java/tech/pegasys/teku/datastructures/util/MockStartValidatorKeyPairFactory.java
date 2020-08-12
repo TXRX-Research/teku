@@ -13,8 +13,6 @@
 
 package tech.pegasys.teku.datastructures.util;
 
-import static tech.pegasys.teku.datastructures.util.BeaconStateUtil.int_to_bytes32;
-
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -22,12 +20,12 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.tuweni.bytes.Bytes;
+import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.bls.BLSKeyPair;
 import tech.pegasys.teku.bls.BLSSecretKey;
 import tech.pegasys.teku.util.message.BouncyCastleMessageDigestFactory;
 
 public class MockStartValidatorKeyPairFactory {
-  private static final int KEY_LENGTH = 48;
   private static final BigInteger CURVE_ORDER =
       new BigInteger(
           "52435875175126190479447740508185965837690552500527637822603658699938581184513");
@@ -39,9 +37,9 @@ public class MockStartValidatorKeyPairFactory {
   }
 
   private BLSKeyPair createKeyPairForValidator(final int validatorIndex) {
-    final Bytes hash = sha256(int_to_bytes32(validatorIndex));
+    final Bytes hash = sha256(BeaconStateUtil.uint_to_bytes32(validatorIndex));
     final BigInteger privKey = hash.reverse().toUnsignedBigInteger().mod(CURVE_ORDER);
-    final Bytes privKeyBytes = padLeft(Bytes.of(privKey.toByteArray()), KEY_LENGTH);
+    final Bytes32 privKeyBytes = Bytes32.leftPad(Bytes.of(privKey.toByteArray()));
 
     return new BLSKeyPair(BLSSecretKey.fromBytes(privKeyBytes));
   }
@@ -58,9 +56,5 @@ public class MockStartValidatorKeyPairFactory {
     } catch (NoSuchAlgorithmException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  private Bytes padLeft(Bytes input, int targetLength) {
-    return Bytes.concatenate(Bytes.wrap(new byte[targetLength - input.size()]), input);
   }
 }

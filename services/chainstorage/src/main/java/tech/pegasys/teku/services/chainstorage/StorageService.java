@@ -15,7 +15,9 @@ package tech.pegasys.teku.services.chainstorage;
 
 import static tech.pegasys.teku.util.config.Constants.STORAGE_QUERY_CHANNEL_PARALLELISM;
 
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.pow.api.Eth1EventsChannel;
+import tech.pegasys.teku.protoarray.ProtoArrayStorageChannel;
 import tech.pegasys.teku.service.serviceutils.Service;
 import tech.pegasys.teku.service.serviceutils.ServiceConfig;
 import tech.pegasys.teku.storage.api.Eth1DepositStorageChannel;
@@ -24,12 +26,12 @@ import tech.pegasys.teku.storage.api.StorageUpdateChannel;
 import tech.pegasys.teku.storage.server.ChainStorage;
 import tech.pegasys.teku.storage.server.Database;
 import tech.pegasys.teku.storage.server.DepositStorage;
+import tech.pegasys.teku.storage.server.ProtoArrayStorage;
 import tech.pegasys.teku.storage.server.VersionedDatabaseFactory;
-import tech.pegasys.teku.util.async.SafeFuture;
 
 public class StorageService extends Service {
   private volatile ChainStorage chainStorage;
-  private volatile DepositStorage depositStorage;
+  private volatile ProtoArrayStorage protoArrayStorage;
   private final ServiceConfig serviceConfig;
   private volatile Database database;
 
@@ -46,26 +48,29 @@ public class StorageService extends Service {
                   serviceConfig.getMetricsSystem(),
                   serviceConfig.getConfig().getDataPath(),
                   serviceConfig.getConfig().getDataStorageMode(),
-                  serviceConfig.getConfig().getDataStorageCreateDbVersion());
+                  serviceConfig.getConfig().getDataStorageCreateDbVersion(),
+                  serviceConfig.getConfig().getDataStorageFrequency(),
+                  serviceConfig.getConfig().getEth1DepositContractAddress());
           database = dbFactory.createDatabase();
 
           chainStorage = ChainStorage.create(serviceConfig.getEventBus(), database);
-          depositStorage =
+          final DepositStorage depositStorage =
               DepositStorage.create(
                   serviceConfig.getEventChannels().getPublisher(Eth1EventsChannel.class),
                   database,
                   serviceConfig.getConfig().isEth1DepositsFromStorageEnabled());
+          protoArrayStorage = new ProtoArrayStorage(database);
 
           serviceConfig
               .getEventChannels()
               .subscribe(Eth1DepositStorageChannel.class, depositStorage)
               .subscribe(Eth1EventsChannel.class, depositStorage)
               .subscribe(StorageUpdateChannel.class, chainStorage)
+              .subscribe(ProtoArrayStorageChannel.class, protoArrayStorage)
               .subscribeMultithreaded(
                   StorageQueryChannel.class, chainStorage, STORAGE_QUERY_CHANNEL_PARALLELISM);
 
           chainStorage.start();
-          depositStorage.start();
         });
   }
 
@@ -74,7 +79,6 @@ public class StorageService extends Service {
     return SafeFuture.fromRunnable(
         () -> {
           chainStorage.stop();
-          depositStorage.stop();
           database.close();
         });
   }

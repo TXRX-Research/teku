@@ -34,8 +34,9 @@ public class P2POptionsTest extends AbstractBeaconNodeCommandTest {
     assertThat(config.getP2pPort()).isEqualTo(4321);
     assertThat(config.getP2pPrivateKeyFile()).isEqualTo("/the/file");
     assertThat(config.getP2pStaticPeers()).isEqualTo(List.of("127.1.0.1", "127.1.1.1"));
-    assertThat(config.getP2pPeerLowerBound()).isEqualTo(11);
-    assertThat(config.getP2pPeerUpperBound()).isEqualTo(12);
+    assertThat(config.getP2pPeerLowerBound()).isEqualTo(70);
+    assertThat(config.getP2pPeerUpperBound()).isEqualTo(85);
+    assertThat(config.getTargetSubnetSubscriberCount()).isEqualTo(5);
   }
 
   @Test
@@ -58,7 +59,17 @@ public class P2POptionsTest extends AbstractBeaconNodeCommandTest {
     beaconNodeCommand.parse(args);
 
     final TekuConfiguration tekuConfiguration = getResultingTekuConfiguration();
-    assertThat(tekuConfiguration.isP2pSnappyEnabled()).isFalse();
+    assertThat(tekuConfiguration.isP2pSnappyEnabled()).isTrue();
+  }
+
+  @Test
+  public void snappyCompressionDefaultsToTrueForCustomNetwork() {
+    final String[] args = {"--network=/tmp/foo.yaml"};
+
+    beaconNodeCommand.parse(args);
+
+    final TekuConfiguration tekuConfiguration = getResultingTekuConfiguration();
+    assertThat(tekuConfiguration.isP2pSnappyEnabled()).isTrue();
   }
 
   @Test

@@ -13,17 +13,16 @@
 
 package tech.pegasys.teku.services.beaconchain;
 
-import static com.google.common.primitives.UnsignedLong.ONE;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static tech.pegasys.teku.datastructures.util.BeaconStateUtil.compute_start_slot_at_epoch;
+import static tech.pegasys.teku.infrastructure.unsigned.UInt64.ONE;
 import static tech.pegasys.teku.metrics.TekuMetricCategory.BEACON;
 import static tech.pegasys.teku.util.config.Constants.SLOTS_PER_EPOCH;
 
 import com.google.common.eventbus.EventBus;
-import com.google.common.primitives.UnsignedLong;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
@@ -37,7 +36,9 @@ import tech.pegasys.teku.datastructures.state.Checkpoint;
 import tech.pegasys.teku.datastructures.state.PendingAttestation;
 import tech.pegasys.teku.datastructures.state.Validator;
 import tech.pegasys.teku.datastructures.util.DataStructureUtil;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.metrics.StubMetricsSystem;
+import tech.pegasys.teku.networking.eth2.Eth2Network;
 import tech.pegasys.teku.ssz.SSZTypes.Bitlist;
 import tech.pegasys.teku.ssz.SSZTypes.SSZList;
 import tech.pegasys.teku.storage.client.MemoryOnlyRecentChainData;
@@ -45,7 +46,7 @@ import tech.pegasys.teku.storage.client.RecentChainData;
 import tech.pegasys.teku.util.config.Constants;
 
 class BeaconChainMetricsTest {
-  private static final UnsignedLong NODE_SLOT_VALUE = UnsignedLong.valueOf(100L);
+  private static final UInt64 NODE_SLOT_VALUE = UInt64.valueOf(100L);
   private final DataStructureUtil dataStructureUtil = new DataStructureUtil();
   private final Bytes32 root =
       Bytes32.fromHexString("0x760aa80a2c5cc1452a5301ecb176b366372d5f2218e0c24eFFFFFFFFFFFFFFFF");
@@ -63,10 +64,11 @@ class BeaconChainMetricsTest {
   private final RecentChainData recentChainData = mock(RecentChainData.class);
   private final RecentChainData preGenesisChainData =
       MemoryOnlyRecentChainData.create(mock(EventBus.class));
+  private final Eth2Network eth2Network = mock(Eth2Network.class);
 
   private final StubMetricsSystem metricsSystem = new StubMetricsSystem();
   private final BeaconChainMetrics beaconChainMetrics =
-      new BeaconChainMetrics(recentChainData, nodeSlot, metricsSystem);
+      new BeaconChainMetrics(recentChainData, nodeSlot, metricsSystem, eth2Network);
 
   @Test
   void getLongFromRoot_shouldParseNegativeOne() {
@@ -92,7 +94,7 @@ class BeaconChainMetricsTest {
   @Test
   void getHeadSlotValue_shouldSupplyValueWhenStoreIsPresent() {
     when(recentChainData.isPreGenesis()).thenReturn(false);
-    when(recentChainData.getBestSlot()).thenReturn(ONE);
+    when(recentChainData.getHeadSlot()).thenReturn(ONE);
 
     assertThat(metricsSystem.getGauge(BEACON, "head_slot").getValue()).isEqualTo(1L);
   }
@@ -120,6 +122,12 @@ class BeaconChainMetricsTest {
   }
 
   @Test
+  void getPeerCount_shouldSupplyValue() {
+    when(eth2Network.getPeerCount()).thenReturn(1);
+    assertThat(metricsSystem.getGauge(BEACON, "peer_count").getValue()).isEqualTo(1);
+  }
+
+  @Test
   void getHeadRootValue_shouldReturnNotSetWhenStoreNotPresent() {
     when(recentChainData.isPreGenesis()).thenReturn(true);
 
@@ -143,7 +151,7 @@ class BeaconChainMetricsTest {
 
   @Test
   void getFinalizedRootValue_shouldReturnValueWhenStoreIsPresent() {
-    when(recentChainData.getBestBlockAndState()).thenReturn(Optional.of(blockAndState));
+    when(recentChainData.getHeadBlockAndState()).thenReturn(Optional.of(blockAndState));
     when(blockAndState.getState()).thenReturn(state);
     when(state.getFinalized_checkpoint()).thenReturn(checkpoint);
 
@@ -160,7 +168,7 @@ class BeaconChainMetricsTest {
   @Test
   void getPreviousJustifiedEpochValue_shouldSupplyValueWhenStoreIsPresent() {
     when(recentChainData.isPreGenesis()).thenReturn(false);
-    when(recentChainData.getBestBlockAndState()).thenReturn(Optional.of(blockAndState));
+    when(recentChainData.getHeadBlockAndState()).thenReturn(Optional.of(blockAndState));
     when(blockAndState.getState()).thenReturn(state);
     when(state.getPrevious_justified_checkpoint()).thenReturn(checkpoint);
 
@@ -177,7 +185,7 @@ class BeaconChainMetricsTest {
 
   @Test
   void getPreviousJustifiedRootValue_shouldReturnValueWhenStoreIsPresent() {
-    when(recentChainData.getBestBlockAndState()).thenReturn(Optional.of(blockAndState));
+    when(recentChainData.getHeadBlockAndState()).thenReturn(Optional.of(blockAndState));
     when(blockAndState.getState()).thenReturn(state);
     when(state.getPrevious_justified_checkpoint()).thenReturn(checkpoint);
 
@@ -193,7 +201,7 @@ class BeaconChainMetricsTest {
 
   @Test
   void getJustifiedRootValue_shouldReturnValueWhenStoreIsPresent() {
-    when(recentChainData.getBestBlockAndState()).thenReturn(Optional.of(blockAndState));
+    when(recentChainData.getHeadBlockAndState()).thenReturn(Optional.of(blockAndState));
     when(blockAndState.getState()).thenReturn(state);
     when(state.getCurrent_justified_checkpoint()).thenReturn(new Checkpoint(NODE_SLOT_VALUE, root));
 
@@ -223,7 +231,7 @@ class BeaconChainMetricsTest {
 
   @Test
   void activeValidators_retrievesCorrectValue() {
-    final UnsignedLong slotNumber = compute_start_slot_at_epoch(UnsignedLong.valueOf(13));
+    final UInt64 slotNumber = compute_start_slot_at_epoch(UInt64.valueOf(13));
     when(state.getSlot()).thenReturn(slotNumber);
     final List<Validator> validators =
         List.of(
@@ -250,7 +258,7 @@ class BeaconChainMetricsTest {
             .collect(toList());
     withCurrentEpochAttestations(attestations);
 
-    beaconChainMetrics.onSlot(UnsignedLong.valueOf(100));
+    beaconChainMetrics.onSlot(UInt64.valueOf(100));
     assertThat(metricsSystem.getGauge(BEACON, "current_live_validators").getValue()).isEqualTo(8);
   }
 
@@ -262,7 +270,7 @@ class BeaconChainMetricsTest {
             .collect(toList());
     withCurrentEpochAttestations(attestations);
 
-    beaconChainMetrics.onSlot(UnsignedLong.valueOf(100));
+    beaconChainMetrics.onSlot(UInt64.valueOf(100));
     assertThat(metricsSystem.getGauge(BEACON, "current_live_validators").getValue()).isEqualTo(8);
   }
 
@@ -272,7 +280,7 @@ class BeaconChainMetricsTest {
     final Bitlist bitlist2 = bitlistOf(1, 2, 3, 4);
     withCurrentEpochAttestations(createAttestations(13, 1, bitlist1, bitlist2).collect(toList()));
 
-    beaconChainMetrics.onSlot(UnsignedLong.valueOf(100));
+    beaconChainMetrics.onSlot(UInt64.valueOf(100));
     assertThat(metricsSystem.getGauge(BEACON, "current_live_validators").getValue()).isEqualTo(6);
   }
 
@@ -284,7 +292,7 @@ class BeaconChainMetricsTest {
             .collect(toList());
     withPreviousEpochAttestations(attestations);
 
-    beaconChainMetrics.onSlot(UnsignedLong.valueOf(100));
+    beaconChainMetrics.onSlot(UInt64.valueOf(100));
     assertThat(metricsSystem.getGauge(BEACON, "previous_live_validators").getValue()).isEqualTo(8);
   }
 
@@ -296,7 +304,7 @@ class BeaconChainMetricsTest {
             .collect(toList());
     withPreviousEpochAttestations(attestations);
 
-    beaconChainMetrics.onSlot(UnsignedLong.valueOf(100));
+    beaconChainMetrics.onSlot(UInt64.valueOf(100));
     assertThat(metricsSystem.getGauge(BEACON, "previous_live_validators").getValue()).isEqualTo(8);
   }
 
@@ -306,7 +314,7 @@ class BeaconChainMetricsTest {
     final Bitlist bitlist2 = bitlistOf(1, 2, 3, 4);
     withPreviousEpochAttestations(createAttestations(13, 1, bitlist1, bitlist2).collect(toList()));
 
-    beaconChainMetrics.onSlot(UnsignedLong.valueOf(100));
+    beaconChainMetrics.onSlot(UInt64.valueOf(100));
     assertThat(metricsSystem.getGauge(BEACON, "previous_live_validators").getValue()).isEqualTo(6);
   }
 
@@ -317,7 +325,7 @@ class BeaconChainMetricsTest {
     when(state.getPrevious_epoch_attestations())
         .thenReturn(SSZList.empty(PendingAttestation.class));
     when(state.getValidators()).thenReturn(SSZList.empty(Validator.class));
-    when(state.getSlot()).thenReturn(UnsignedLong.valueOf(100));
+    when(state.getSlot()).thenReturn(UInt64.valueOf(100));
     when(recentChainData.getBestState()).thenReturn(Optional.of(state));
   }
 
@@ -327,7 +335,7 @@ class BeaconChainMetricsTest {
             SSZList.createMutable(attestations, attestations.size(), PendingAttestation.class));
     when(state.getCurrent_epoch_attestations()).thenReturn(SSZList.empty(PendingAttestation.class));
     when(state.getValidators()).thenReturn(SSZList.empty(Validator.class));
-    when(state.getSlot()).thenReturn(UnsignedLong.valueOf(100));
+    when(state.getSlot()).thenReturn(UInt64.valueOf(100));
     when(recentChainData.getBestState()).thenReturn(Optional.of(state));
   }
 
@@ -339,13 +347,13 @@ class BeaconChainMetricsTest {
                 new PendingAttestation(
                     bitlist1,
                     new AttestationData(
-                        UnsignedLong.valueOf(slot),
-                        UnsignedLong.valueOf(index),
+                        UInt64.valueOf(slot),
+                        UInt64.valueOf(index),
                         dataStructureUtil.randomBytes32(),
                         dataStructureUtil.randomCheckpoint(),
                         dataStructureUtil.randomCheckpoint()),
-                    dataStructureUtil.randomUnsignedLong(),
-                    dataStructureUtil.randomUnsignedLong()));
+                    dataStructureUtil.randomUInt64(),
+                    dataStructureUtil.randomUInt64()));
   }
 
   private Bitlist bitlistOf(final int... indices) {
@@ -359,11 +367,11 @@ class BeaconChainMetricsTest {
     return new Validator(
         dataStructureUtil.randomPublicKey(),
         dataStructureUtil.randomBytes32(),
-        dataStructureUtil.randomUnsignedLong(),
+        dataStructureUtil.randomUInt64(),
         slashed,
-        UnsignedLong.valueOf(activationEpoch),
-        UnsignedLong.valueOf(activationEpoch),
-        UnsignedLong.valueOf(exitEpoch),
-        UnsignedLong.valueOf(exitEpoch));
+        UInt64.valueOf(activationEpoch),
+        UInt64.valueOf(activationEpoch),
+        UInt64.valueOf(exitEpoch),
+        UInt64.valueOf(exitEpoch));
   }
 }

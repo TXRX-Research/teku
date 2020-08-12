@@ -14,10 +14,9 @@
 package tech.pegasys.teku.util.hashtree;
 
 import static java.lang.Long.max;
-import static java.lang.Math.toIntExact;
 import static java.nio.ByteOrder.LITTLE_ENDIAN;
 
-import com.google.common.primitives.UnsignedLong;
+import com.google.common.annotations.VisibleForTesting;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +27,7 @@ import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.crypto.Hash;
 import org.apache.tuweni.ssz.SSZ;
 import tech.pegasys.teku.bls.BLSPublicKey;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.ssz.SSZTypes.Bitlist;
 import tech.pegasys.teku.ssz.SSZTypes.Bitvector;
 import tech.pegasys.teku.ssz.SSZTypes.SSZImmutableCollection;
@@ -146,10 +146,10 @@ public final class HashTreeUtil {
   }
 
   public static Bytes32 hash_tree_root_list_ul(SSZList<Bytes> bytes) {
-    return hash_tree_root_list_of_unsigned_long(bytes);
+    return hash_tree_root_list_of_uint64(bytes);
   }
 
-  public static Bytes32 hash_tree_root_vector_unsigned_long(SSZVector<UnsignedLong> vector) {
+  public static Bytes32 hash_tree_root_vector_uint64(SSZVector<UInt64> vector) {
     List<Bytes> bytes =
         vector.stream().map(i -> SSZ.encodeUInt64(i.longValue())).collect(Collectors.toList());
     return merkleize(separateIntoChunks(bytes.toArray(new Bytes[0])));
@@ -276,7 +276,8 @@ public final class HashTreeUtil {
    *     Spec v0.5.1</a>
    */
   public static Bytes32 hash_tree_root_bitlist(Bitlist bitlist) {
-    // TODO The following lines are a hack and can be fixed once we shift from Bytes to a real
+    // TODO (#2396): The following lines are a hack and can be fixed once we shift from Bytes to a
+    // real
     // bitlist type.
     return mix_in_length(
         merkleize(
@@ -310,11 +311,9 @@ public final class HashTreeUtil {
    *     href="https://github.com/ethereum/eth2.0-specs/blob/v0.5.1/specs/simple-serialize.md">SSZ
    *     Spec v0.5.1</a>
    */
-  private static Bytes32 hash_tree_root_list_of_unsigned_long(SSZList<? extends Bytes> bytes) {
+  private static Bytes32 hash_tree_root_list_of_uint64(SSZList<? extends Bytes> bytes) {
     return mix_in_length(
-        merkleize(
-            separateIntoChunks(bytes.toArray()),
-            chunk_count_list_unsigned_long(bytes.getMaxSize())),
+        merkleize(separateIntoChunks(bytes.toArray()), chunk_count_list_uint64(bytes.getMaxSize())),
         bytes.size());
   }
 
@@ -338,7 +337,7 @@ public final class HashTreeUtil {
   private static Bytes32 hash_tree_root_list_pubkey(SSZList<BLSPublicKey> bytes) {
     List<Bytes32> hashTreeRootList =
         bytes.stream()
-            .map(item -> hash_tree_root(SSZTypes.VECTOR_OF_BASIC, item.toBytes()))
+            .map(item -> hash_tree_root(SSZTypes.VECTOR_OF_BASIC, item.toSSZBytes()))
             .collect(Collectors.toList());
     return mix_in_length(
         merkleize(hashTreeRootList, chunk_count(SSZTypes.LIST_OF_COMPOSITE, bytes.getMaxSize())),
@@ -415,7 +414,7 @@ public final class HashTreeUtil {
     return chunkifiedBytes;
   }
 
-  private static long chunk_count_list_unsigned_long(long maxSize) {
+  private static long chunk_count_list_uint64(long maxSize) {
     return (maxSize * 8 + 31) / 32;
   }
 
@@ -425,7 +424,8 @@ public final class HashTreeUtil {
         throw new UnsupportedOperationException(
             "Use chunk_count(HashTreeUtil.SSZTypes, Bytes) for BASIC SSZ types.");
       case BITLIST:
-        // TODO The following lines are a hack and can be fixed once we shift from Bytes to a real
+        // TODO (#2396): The following lines are a hack and can be fixed once we shift from Bytes to
+        // a real
         // bitlist type.
         long chunkCount = (maxSize + 255) / 256;
         return chunkCount > 0 ? chunkCount : 1;
@@ -433,7 +433,7 @@ public final class HashTreeUtil {
         return (maxSize + 255) / 256;
       case LIST_OF_BASIC:
         throw new UnsupportedOperationException(
-            "Use chunk_count_list_unsigned_long(int, Bytes) for List of uint64 SSZ types.");
+            "Use chunk_count_list_uint64(int, Bytes) for List of uint64 SSZ types.");
       case VECTOR_OF_BASIC:
         throw new UnsupportedOperationException(
             "Use chunk_count(HashTreeUtil.SSZTypes, Bytes) for VECTORS of BASIC SSZ types.");
@@ -456,11 +456,8 @@ public final class HashTreeUtil {
             merkle_root, Bytes.ofUnsignedLong(length, LITTLE_ENDIAN), Bytes.wrap(new byte[24])));
   }
 
-  public static boolean is_power_of_two(int value) {
+  @VisibleForTesting
+  static boolean is_power_of_two(int value) {
     return value > 0 && (value & (value - 1)) == 0;
-  }
-
-  public static boolean is_power_of_two(UnsignedLong value) {
-    return is_power_of_two(toIntExact(value.longValue()));
   }
 }

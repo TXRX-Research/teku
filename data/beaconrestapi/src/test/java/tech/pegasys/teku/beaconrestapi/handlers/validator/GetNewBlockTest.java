@@ -13,7 +13,6 @@
 
 package tech.pegasys.teku.beaconrestapi.handlers.validator;
 
-import static com.google.common.primitives.UnsignedLong.ONE;
 import static javax.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -23,6 +22,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static tech.pegasys.teku.beaconrestapi.RestApiConstants.RANDAO_REVEAL;
+import static tech.pegasys.teku.infrastructure.unsigned.UInt64.ONE;
 
 import io.javalin.http.Context;
 import java.util.List;
@@ -41,9 +41,9 @@ import tech.pegasys.teku.api.schema.BeaconBlock;
 import tech.pegasys.teku.beaconrestapi.RestApiConstants;
 import tech.pegasys.teku.beaconrestapi.schema.BadRequest;
 import tech.pegasys.teku.datastructures.util.DataStructureUtil;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.provider.JsonProvider;
 import tech.pegasys.teku.storage.client.ChainDataUnavailableException;
-import tech.pegasys.teku.util.async.SafeFuture;
 
 public class GetNewBlockTest {
 

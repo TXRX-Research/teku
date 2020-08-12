@@ -13,51 +13,53 @@
 
 package tech.pegasys.teku.services.beaconchain;
 
-import static com.google.common.primitives.UnsignedLong.ONE;
-import static com.google.common.primitives.UnsignedLong.ZERO;
 import static tech.pegasys.teku.datastructures.util.BeaconStateUtil.compute_epoch_at_slot;
 import static tech.pegasys.teku.datastructures.util.BeaconStateUtil.compute_start_slot_at_epoch;
+import static tech.pegasys.teku.infrastructure.unsigned.UInt64.ONE;
+import static tech.pegasys.teku.infrastructure.unsigned.UInt64.ZERO;
 import static tech.pegasys.teku.util.config.Constants.SECONDS_PER_SLOT;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.eventbus.EventBus;
-import com.google.common.primitives.UnsignedLong;
-import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.core.ForkChoiceUtil;
 import tech.pegasys.teku.datastructures.blocks.NodeSlot;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.logging.EventLogger;
 import tech.pegasys.teku.networking.eth2.Eth2Network;
 import tech.pegasys.teku.statetransition.events.attestation.BroadcastAggregatesEvent;
 import tech.pegasys.teku.statetransition.events.attestation.BroadcastAttestationEvent;
+import tech.pegasys.teku.statetransition.forkchoice.ForkChoice;
 import tech.pegasys.teku.storage.client.RecentChainData;
-import tech.pegasys.teku.storage.store.UpdatableStore.StoreTransaction;
 import tech.pegasys.teku.sync.SyncService;
 import tech.pegasys.teku.util.time.channels.SlotEventsChannel;
 
 public class SlotProcessor {
   private final RecentChainData recentChainData;
   private final SyncService syncService;
+  private final ForkChoice forkChoice;
   private final Eth2Network p2pNetwork;
   private final SlotEventsChannel slotEventsChannelPublisher;
   private final EventBus eventBus;
   private final NodeSlot nodeSlot = new NodeSlot(ZERO);
   private final EventLogger eventLog;
 
-  private volatile UnsignedLong onTickSlotStart;
-  private volatile UnsignedLong onTickSlotAttestation;
-  private volatile UnsignedLong onTickSlotAggregate;
-  private final UnsignedLong oneThirdSlotSeconds = UnsignedLong.valueOf(SECONDS_PER_SLOT / 3);
+  private volatile UInt64 onTickSlotStart;
+  private volatile UInt64 onTickSlotAttestation;
+  private volatile UInt64 onTickSlotAggregate;
+  private final UInt64 oneThirdSlotSeconds = UInt64.valueOf(SECONDS_PER_SLOT / 3);
 
   @VisibleForTesting
   SlotProcessor(
       final RecentChainData recentChainData,
       final SyncService syncService,
+      final ForkChoice forkChoice,
       final Eth2Network p2pNetwork,
       final SlotEventsChannel slotEventsChannelPublisher,
       final EventBus eventBus,
       final EventLogger eventLogger) {
     this.recentChainData = recentChainData;
     this.syncService = syncService;
+    this.forkChoice = forkChoice;
     this.p2pNetwork = p2pNetwork;
     this.slotEventsChannelPublisher = slotEventsChannelPublisher;
     this.eventBus = eventBus;
@@ -67,12 +69,14 @@ public class SlotProcessor {
   public SlotProcessor(
       final RecentChainData recentChainData,
       final SyncService syncService,
+      final ForkChoice forkChoice,
       final Eth2Network p2pNetwork,
       final SlotEventsChannel slotEventsChannelPublisher,
       final EventBus eventBus) {
     this(
         recentChainData,
         syncService,
+        forkChoice,
         p2pNetwork,
         slotEventsChannelPublisher,
         eventBus,
@@ -83,12 +87,12 @@ public class SlotProcessor {
     return nodeSlot;
   }
 
-  public void setCurrentSlot(final UnsignedLong slot) {
+  public void setCurrentSlot(final UInt64 slot) {
     nodeSlot.setValue(slot);
   }
 
-  public void onTick(final UnsignedLong currentTime) {
-    final UnsignedLong genesisTime = recentChainData.getGenesisTime();
+  public void onTick(final UInt64 currentTime) {
+    final UInt64 genesisTime = recentChainData.getGenesisTime();
     if (currentTime.compareTo(genesisTime) < 0) {
       return;
     }
@@ -98,15 +102,15 @@ public class SlotProcessor {
       return;
     }
 
-    final UnsignedLong calculatedSlot = ForkChoiceUtil.getCurrentSlot(currentTime, genesisTime);
+    final UInt64 calculatedSlot = ForkChoiceUtil.getCurrentSlot(currentTime, genesisTime);
     // tolerate 1 slot difference, not more
     if (calculatedSlot.compareTo(nodeSlot.getValue().plus(ONE)) > 0) {
       eventLog.nodeSlotsMissed(nodeSlot.getValue(), calculatedSlot);
       nodeSlot.setValue(calculatedSlot);
     }
 
-    final UnsignedLong epoch = compute_epoch_at_slot(nodeSlot.getValue());
-    final UnsignedLong nodeSlotStartTime =
+    final UInt64 epoch = compute_epoch_at_slot(nodeSlot.getValue());
+    final UInt64 nodeSlotStartTime =
         ForkChoiceUtil.getSlotStartTime(nodeSlot.getValue(), genesisTime);
     if (isSlotStartDue(calculatedSlot)) {
       processSlotStart(epoch);
@@ -121,58 +125,50 @@ public class SlotProcessor {
   }
 
   private void processSlotWhileSyncing() {
-    final StoreTransaction tx = recentChainData.startStoreTransaction();
-    tx.updateHead();
-    tx.commit().reportExceptions();
-
-    eventLog.syncEvent(
-        nodeSlot.getValue(), recentChainData.getBestSlot(), p2pNetwork.getPeerCount());
-    slotEventsChannelPublisher.onSlot(nodeSlot.getValue());
+    UInt64 slot = nodeSlot.getValue();
+    this.forkChoice.processHead(slot);
+    eventLog.syncEvent(slot, recentChainData.getHeadSlot(), p2pNetwork.getPeerCount());
+    slotEventsChannelPublisher.onSlot(slot);
   }
 
-  boolean isNextSlotDue(final UnsignedLong currentTime, final UnsignedLong genesisTime) {
-    final UnsignedLong slotStartTime =
-        ForkChoiceUtil.getSlotStartTime(nodeSlot.getValue(), genesisTime);
+  boolean isNextSlotDue(final UInt64 currentTime, final UInt64 genesisTime) {
+    final UInt64 slotStartTime = ForkChoiceUtil.getSlotStartTime(nodeSlot.getValue(), genesisTime);
     return currentTime.compareTo(slotStartTime) >= 0;
   }
 
-  boolean isProcessingDueForSlot(
-      final UnsignedLong calculatedSlot, final UnsignedLong currentPosition) {
+  boolean isProcessingDueForSlot(final UInt64 calculatedSlot, final UInt64 currentPosition) {
     return currentPosition == null || calculatedSlot.compareTo(currentPosition) > 0;
   }
 
-  boolean isTimeReached(final UnsignedLong currentTime, final UnsignedLong earliestTime) {
+  boolean isTimeReached(final UInt64 currentTime, final UInt64 earliestTime) {
     return currentTime.compareTo(earliestTime) >= 0;
   }
 
-  boolean isSlotStartDue(final UnsignedLong calculatedSlot) {
+  boolean isSlotStartDue(final UInt64 calculatedSlot) {
     return isProcessingDueForSlot(calculatedSlot, onTickSlotStart);
   }
 
   // Attestations are due 1/3 of the way through the slots time period
   boolean isSlotAttestationDue(
-      final UnsignedLong calculatedSlot,
-      final UnsignedLong currentTime,
-      final UnsignedLong nodeSlotStartTime) {
-    final UnsignedLong earliestTime = nodeSlotStartTime.plus(oneThirdSlotSeconds);
+      final UInt64 calculatedSlot, final UInt64 currentTime, final UInt64 nodeSlotStartTime) {
+    final UInt64 earliestTime = nodeSlotStartTime.plus(oneThirdSlotSeconds);
     return isProcessingDueForSlot(calculatedSlot, onTickSlotAttestation)
         && isTimeReached(currentTime, earliestTime);
   }
 
   // Aggregations are due 2/3 of the way through the slots time period
   boolean isSlotAggregationDue(
-      final UnsignedLong calculatedSlot,
-      final UnsignedLong currentTime,
-      final UnsignedLong nodeSlotStartTime) {
-    final UnsignedLong earliestTime =
+      final UInt64 calculatedSlot, final UInt64 currentTime, final UInt64 nodeSlotStartTime) {
+    final UInt64 earliestTime =
         nodeSlotStartTime.plus(oneThirdSlotSeconds).plus(oneThirdSlotSeconds);
     return isProcessingDueForSlot(calculatedSlot, onTickSlotAggregate)
         && isTimeReached(currentTime, earliestTime);
   }
 
-  private void processSlotStart(final UnsignedLong nodeEpoch) {
+  private void processSlotStart(final UInt64 nodeEpoch) {
     onTickSlotStart = nodeSlot.getValue();
     if (nodeSlot.getValue().equals(compute_start_slot_at_epoch(nodeEpoch))) {
+      forkChoice.save();
       eventLog.epochEvent(
           nodeEpoch,
           recentChainData.getStore().getJustifiedCheckpoint().getEpoch(),
@@ -182,23 +178,23 @@ public class SlotProcessor {
     slotEventsChannelPublisher.onSlot(nodeSlot.getValue());
   }
 
-  private void processSlotAttestation(final UnsignedLong nodeEpoch) {
+  private void processSlotAttestation(final UInt64 nodeEpoch) {
     onTickSlotAttestation = nodeSlot.getValue();
-    final StoreTransaction tx = recentChainData.startStoreTransaction();
-    tx.updateHead();
-    tx.commit().reportExceptions();
+    this.forkChoice.processHead(onTickSlotAttestation);
+    recentChainData
+        .getHeadBlock()
+        .ifPresent(
+            (head) ->
+                eventLog.slotEvent(
+                    nodeSlot.getValue(),
+                    head.getSlot(),
+                    head.getRoot(),
+                    nodeEpoch,
+                    recentChainData.getStore().getFinalizedCheckpoint().getEpoch(),
+                    recentChainData.getFinalizedRoot(),
+                    p2pNetwork.getPeerCount()));
 
-    Bytes32 headBlockRoot = recentChainData.getStore().getHead();
-
-    eventLog.slotEvent(
-        nodeSlot.getValue(),
-        recentChainData.getBestSlot(),
-        headBlockRoot,
-        nodeEpoch,
-        recentChainData.getStore().getFinalizedCheckpoint().getEpoch(),
-        recentChainData.getFinalizedRoot(),
-        p2pNetwork.getPeerCount());
-    this.eventBus.post(new BroadcastAttestationEvent(headBlockRoot, nodeSlot.getValue()));
+    this.eventBus.post(new BroadcastAttestationEvent(nodeSlot.getValue()));
   }
 
   private void processSlotAggregate() {
@@ -207,17 +203,17 @@ public class SlotProcessor {
   }
 
   @VisibleForTesting
-  void setOnTickSlotStart(final UnsignedLong slot) {
+  void setOnTickSlotStart(final UInt64 slot) {
     this.onTickSlotStart = slot;
   }
 
   @VisibleForTesting
-  void setOnTickSlotAttestation(final UnsignedLong slot) {
+  void setOnTickSlotAttestation(final UInt64 slot) {
     this.onTickSlotAttestation = slot;
   }
 
   @VisibleForTesting
-  void setOnTickSlotAggregate(final UnsignedLong slot) {
+  void setOnTickSlotAggregate(final UInt64 slot) {
     this.onTickSlotAggregate = slot;
   }
 }

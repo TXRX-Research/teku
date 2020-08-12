@@ -21,17 +21,22 @@ import com.google.common.eventbus.EventBus;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import org.hyperledger.besu.plugin.services.MetricsSystem;
 import tech.pegasys.teku.datastructures.attestation.ValidateableAttestation;
 import tech.pegasys.teku.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.datastructures.operations.ProposerSlashing;
 import tech.pegasys.teku.datastructures.operations.SignedVoluntaryExit;
+import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.networking.eth2.gossip.encoding.GossipEncoding;
+import tech.pegasys.teku.networking.eth2.gossip.subnets.AttestationSubnetTopicProvider;
+import tech.pegasys.teku.networking.eth2.gossip.subnets.PeerSubnetSubscriptions;
 import tech.pegasys.teku.networking.eth2.gossip.topics.GossipedOperationConsumer;
 import tech.pegasys.teku.networking.eth2.gossip.topics.ProcessedAttestationSubscriptionProvider;
 import tech.pegasys.teku.networking.eth2.gossip.topics.VerifiedBlockAttestationsSubscriptionProvider;
 import tech.pegasys.teku.networking.eth2.peers.Eth2PeerManager;
+import tech.pegasys.teku.networking.eth2.peers.Eth2PeerSelectionStrategy;
 import tech.pegasys.teku.networking.eth2.rpc.core.encodings.RpcEncoding;
 import tech.pegasys.teku.networking.p2p.DiscoveryNetwork;
 import tech.pegasys.teku.networking.p2p.connection.ReputationManager;
@@ -41,7 +46,6 @@ import tech.pegasys.teku.networking.p2p.network.PeerHandler;
 import tech.pegasys.teku.networking.p2p.rpc.RpcMethod;
 import tech.pegasys.teku.storage.api.StorageQueryChannel;
 import tech.pegasys.teku.storage.client.RecentChainData;
-import tech.pegasys.teku.util.async.AsyncRunner;
 import tech.pegasys.teku.util.config.Constants;
 import tech.pegasys.teku.util.time.TimeProvider;
 
@@ -70,6 +74,8 @@ public class Eth2NetworkBuilder {
   private Duration eth2RpcPingInterval = DEFAULT_ETH2_RPC_PING_INTERVAL;
   private int eth2RpcOutstandingPingThreshold = DEFAULT_ETH2_RPC_OUTSTANDING_PING_THRESHOLD;
   private Duration eth2StatusUpdateInterval = DEFAULT_ETH2_STATUS_UPDATE_INTERVAL;
+  private int peerRateLimit = 500;
+  private int peerRequestLimit = 50;
 
   private Eth2NetworkBuilder() {}
 
@@ -94,17 +100,21 @@ public class Eth2NetworkBuilder {
             rpcEncoding,
             eth2RpcPingInterval,
             eth2RpcOutstandingPingThreshold,
-            eth2StatusUpdateInterval);
+            eth2StatusUpdateInterval,
+            timeProvider,
+            peerRateLimit,
+            peerRequestLimit);
     final Collection<RpcMethod> eth2RpcMethods = eth2PeerManager.getBeaconChainMethods().all();
     rpcMethods.addAll(eth2RpcMethods);
     peerHandlers.add(eth2PeerManager);
 
-    // Build core network and inject eth2 handlers
-    final DiscoveryNetwork<?> network = buildNetwork();
-
     final GossipEncoding gossipEncoding =
         eth2Config.isSnappyCompressionEnabled() ? GossipEncoding.SSZ_SNAPPY : GossipEncoding.SSZ;
+    // Build core network and inject eth2 handlers
+    final DiscoveryNetwork<?> network = buildNetwork(gossipEncoding);
+
     return new ActiveEth2Network(
+        metricsSystem,
         network,
         eth2PeerManager,
         eventBus,
@@ -119,14 +129,25 @@ public class Eth2NetworkBuilder {
         verifiedBlockAttestationsSubscriptionProvider);
   }
 
-  protected DiscoveryNetwork<?> buildNetwork() {
+  protected DiscoveryNetwork<?> buildNetwork(final GossipEncoding gossipEncoding) {
     final ReputationManager reputationManager =
-        new ReputationManager(timeProvider, Constants.REPUTATION_MANAGER_CAPACITY);
-    return DiscoveryNetwork.create(
-        asyncRunner,
+        new ReputationManager(metricsSystem, timeProvider, Constants.REPUTATION_MANAGER_CAPACITY);
+    final LibP2PNetwork p2pNetwork =
         new LibP2PNetwork(
-            asyncRunner, config, reputationManager, metricsSystem, rpcMethods, peerHandlers),
-        reputationManager,
+            asyncRunner, config, reputationManager, metricsSystem, rpcMethods, peerHandlers);
+    final AttestationSubnetTopicProvider subnetTopicProvider =
+        new AttestationSubnetTopicProvider(recentChainData, gossipEncoding);
+    return DiscoveryNetwork.create(
+        metricsSystem,
+        asyncRunner,
+        p2pNetwork,
+        new Eth2PeerSelectionStrategy(
+            config.getTargetPeerRange(),
+            network ->
+                PeerSubnetSubscriptions.create(
+                    network, subnetTopicProvider, config.getTargetSubnetSubscriberCount()),
+            reputationManager,
+            Collections::shuffle),
         config);
   }
 
@@ -150,6 +171,16 @@ public class Eth2NetworkBuilder {
   public Eth2NetworkBuilder config(final NetworkConfig config) {
     checkNotNull(config);
     this.config = config;
+    return this;
+  }
+
+  public Eth2NetworkBuilder peerRateLimit(final int peerRateLimit) {
+    this.peerRateLimit = peerRateLimit;
+    return this;
+  }
+
+  public Eth2NetworkBuilder peerRequestLimit(final int peerRequestLimit) {
+    this.peerRequestLimit = peerRequestLimit;
     return this;
   }
 

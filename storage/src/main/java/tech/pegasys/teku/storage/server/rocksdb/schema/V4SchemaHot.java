@@ -17,32 +17,39 @@ import static tech.pegasys.teku.storage.server.rocksdb.serialization.RocksDbSeri
 import static tech.pegasys.teku.storage.server.rocksdb.serialization.RocksDbSerializer.CHECKPOINT_SERIALIZER;
 import static tech.pegasys.teku.storage.server.rocksdb.serialization.RocksDbSerializer.DEPOSITS_FROM_BLOCK_EVENT_SERIALIZER;
 import static tech.pegasys.teku.storage.server.rocksdb.serialization.RocksDbSerializer.MIN_GENESIS_TIME_BLOCK_EVENT_SERIALIZER;
+import static tech.pegasys.teku.storage.server.rocksdb.serialization.RocksDbSerializer.PROTO_ARRAY_SNAPSHOT_SERIALIZER;
 import static tech.pegasys.teku.storage.server.rocksdb.serialization.RocksDbSerializer.SIGNED_BLOCK_SERIALIZER;
+import static tech.pegasys.teku.storage.server.rocksdb.serialization.RocksDbSerializer.SLOT_AND_BLOCK_ROOT_SERIALIZER;
 import static tech.pegasys.teku.storage.server.rocksdb.serialization.RocksDbSerializer.STATE_SERIALIZER;
-import static tech.pegasys.teku.storage.server.rocksdb.serialization.RocksDbSerializer.UNSIGNED_LONG_SERIALIZER;
+import static tech.pegasys.teku.storage.server.rocksdb.serialization.RocksDbSerializer.UINT64_SERIALIZER;
 import static tech.pegasys.teku.storage.server.rocksdb.serialization.RocksDbSerializer.VOTES_SERIALIZER;
 
-import com.google.common.primitives.UnsignedLong;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.datastructures.blocks.SignedBeaconBlock;
+import tech.pegasys.teku.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.datastructures.forkchoice.VoteTracker;
 import tech.pegasys.teku.datastructures.state.BeaconState;
 import tech.pegasys.teku.datastructures.state.Checkpoint;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.pow.event.DepositsFromBlockEvent;
 import tech.pegasys.teku.pow.event.MinGenesisTimeBlockEvent;
+import tech.pegasys.teku.protoarray.ProtoArraySnapshot;
 
 public interface V4SchemaHot extends Schema {
   RocksDbColumn<Bytes32, SignedBeaconBlock> HOT_BLOCKS_BY_ROOT =
       RocksDbColumn.create(1, BYTES32_SERIALIZER, SIGNED_BLOCK_SERIALIZER);
+  // Checkpoint states are no longer stored, keeping only for backwards compatibility.
   RocksDbColumn<Checkpoint, BeaconState> CHECKPOINT_STATES =
       RocksDbColumn.create(2, CHECKPOINT_SERIALIZER, STATE_SERIALIZER);
-  RocksDbColumn<UnsignedLong, VoteTracker> VOTES =
-      RocksDbColumn.create(3, UNSIGNED_LONG_SERIALIZER, VOTES_SERIALIZER);
-  RocksDbColumn<UnsignedLong, DepositsFromBlockEvent> DEPOSITS_FROM_BLOCK_EVENTS =
-      RocksDbColumn.create(4, UNSIGNED_LONG_SERIALIZER, DEPOSITS_FROM_BLOCK_EVENT_SERIALIZER);
+  RocksDbColumn<UInt64, VoteTracker> VOTES =
+      RocksDbColumn.create(3, UINT64_SERIALIZER, VOTES_SERIALIZER);
+  RocksDbColumn<UInt64, DepositsFromBlockEvent> DEPOSITS_FROM_BLOCK_EVENTS =
+      RocksDbColumn.create(4, UINT64_SERIALIZER, DEPOSITS_FROM_BLOCK_EVENT_SERIALIZER);
+  RocksDbColumn<Bytes32, SlotAndBlockRoot> STATE_ROOT_TO_SLOT_AND_BLOCK_ROOT =
+      RocksDbColumn.create(5, BYTES32_SERIALIZER, SLOT_AND_BLOCK_ROOT_SERIALIZER);
 
   // Variables
-  RocksDbVariable<UnsignedLong> GENESIS_TIME = RocksDbVariable.create(1, UNSIGNED_LONG_SERIALIZER);
+  RocksDbVariable<UInt64> GENESIS_TIME = RocksDbVariable.create(1, UINT64_SERIALIZER);
   RocksDbVariable<Checkpoint> JUSTIFIED_CHECKPOINT =
       RocksDbVariable.create(2, CHECKPOINT_SERIALIZER);
   RocksDbVariable<Checkpoint> BEST_JUSTIFIED_CHECKPOINT =
@@ -52,4 +59,6 @@ public interface V4SchemaHot extends Schema {
   RocksDbVariable<BeaconState> LATEST_FINALIZED_STATE = RocksDbVariable.create(5, STATE_SERIALIZER);
   RocksDbVariable<MinGenesisTimeBlockEvent> MIN_GENESIS_TIME_BLOCK =
       RocksDbVariable.create(6, MIN_GENESIS_TIME_BLOCK_EVENT_SERIALIZER);
+  RocksDbVariable<ProtoArraySnapshot> PROTO_ARRAY_SNAPSHOT =
+      RocksDbVariable.create(7, PROTO_ARRAY_SNAPSHOT_SERIALIZER);
 }

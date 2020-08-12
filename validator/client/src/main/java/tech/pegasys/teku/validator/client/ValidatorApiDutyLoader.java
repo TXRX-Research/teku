@@ -13,7 +13,6 @@
 
 package tech.pegasys.teku.validator.client;
 
-import com.google.common.primitives.UnsignedLong;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -24,8 +23,9 @@ import org.hyperledger.besu.plugin.services.MetricsSystem;
 import tech.pegasys.teku.bls.BLSPublicKey;
 import tech.pegasys.teku.datastructures.operations.Attestation;
 import tech.pegasys.teku.datastructures.util.CommitteeUtil;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.metrics.TekuMetricCategory;
-import tech.pegasys.teku.util.async.SafeFuture;
 import tech.pegasys.teku.validator.api.ValidatorApiChannel;
 import tech.pegasys.teku.validator.api.ValidatorDuties;
 import tech.pegasys.teku.validator.client.duties.ScheduledDuties;
@@ -55,11 +55,11 @@ class ValidatorApiDutyLoader implements DutyLoader {
   }
 
   @Override
-  public SafeFuture<ScheduledDuties> loadDutiesForEpoch(final UnsignedLong epoch) {
+  public SafeFuture<ScheduledDuties> loadDutiesForEpoch(final UInt64 epoch) {
     return requestAndScheduleDutiesForEpoch(epoch);
   }
 
-  private SafeFuture<ScheduledDuties> requestAndScheduleDutiesForEpoch(final UnsignedLong epoch) {
+  private SafeFuture<ScheduledDuties> requestAndScheduleDutiesForEpoch(final UInt64 epoch) {
     LOG.trace("Requesting duties for epoch {}", epoch);
     final ScheduledDuties scheduledDuties = scheduledDutiesFactory.get();
     return validatorApiChannel
@@ -106,7 +106,7 @@ class ValidatorApiDutyLoader implements DutyLoader {
   }
 
   private void scheduleBlockProduction(
-      final ScheduledDuties scheduledDuties, final Validator validator, final UnsignedLong slot) {
+      final ScheduledDuties scheduledDuties, final Validator validator, final UInt64 slot) {
     scheduledDuties.scheduleBlockProduction(slot, validator);
   }
 
@@ -116,13 +116,14 @@ class ValidatorApiDutyLoader implements DutyLoader {
       final int attestationCommitteePosition,
       final int validatorIndex,
       final Validator validator,
-      final UnsignedLong slot,
+      final UInt64 slot,
       final int aggregatorModulo) {
     final SafeFuture<Optional<Attestation>> unsignedAttestationFuture =
         scheduleAttestationProduction(
             scheduledDuties,
             attestationCommitteeIndex,
             attestationCommitteePosition,
+            validatorIndex,
             validator,
             slot);
 
@@ -140,10 +141,11 @@ class ValidatorApiDutyLoader implements DutyLoader {
       final ScheduledDuties scheduledDuties,
       final int attestationCommitteeIndex,
       final int attestationCommitteePosition,
+      final int validatorIndex,
       final Validator validator,
-      final UnsignedLong slot) {
+      final UInt64 slot) {
     return scheduledDuties.scheduleAttestationProduction(
-        slot, validator, attestationCommitteeIndex, attestationCommitteePosition);
+        slot, validator, attestationCommitteeIndex, attestationCommitteePosition, validatorIndex);
   }
 
   private SafeFuture<Void> scheduleAggregation(
@@ -151,7 +153,7 @@ class ValidatorApiDutyLoader implements DutyLoader {
       final int attestationCommitteeIndex,
       final int validatorIndex,
       final Validator validator,
-      final UnsignedLong slot,
+      final UInt64 slot,
       final int aggregatorModulo,
       final SafeFuture<Optional<Attestation>> unsignedAttestationFuture) {
     return forkProvider

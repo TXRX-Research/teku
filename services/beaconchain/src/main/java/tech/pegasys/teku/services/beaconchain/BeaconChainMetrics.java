@@ -18,7 +18,6 @@ import static tech.pegasys.teku.datastructures.util.BeaconStateUtil.get_current_
 import static tech.pegasys.teku.datastructures.util.BeaconStateUtil.get_previous_epoch;
 import static tech.pegasys.teku.datastructures.util.ValidatorsUtil.get_active_validator_indices;
 
-import com.google.common.primitives.UnsignedLong;
 import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,8 +28,10 @@ import tech.pegasys.teku.datastructures.blocks.BeaconBlockAndState;
 import tech.pegasys.teku.datastructures.blocks.NodeSlot;
 import tech.pegasys.teku.datastructures.state.BeaconState;
 import tech.pegasys.teku.datastructures.state.PendingAttestation;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.metrics.SettableGauge;
 import tech.pegasys.teku.metrics.TekuMetricCategory;
+import tech.pegasys.teku.networking.eth2.Eth2Network;
 import tech.pegasys.teku.ssz.SSZTypes.Bitlist;
 import tech.pegasys.teku.ssz.SSZTypes.SSZList;
 import tech.pegasys.teku.storage.client.RecentChainData;
@@ -47,7 +48,10 @@ public class BeaconChainMetrics implements SlotEventsChannel {
   private final SettableGauge currentLiveValidators;
 
   public BeaconChainMetrics(
-      final RecentChainData recentChainData, NodeSlot nodeSlot, final MetricsSystem metricsSystem) {
+      final RecentChainData recentChainData,
+      final NodeSlot nodeSlot,
+      final MetricsSystem metricsSystem,
+      final Eth2Network p2pNetwork) {
     this.recentChainData = recentChainData;
     this.nodeSlot = nodeSlot;
 
@@ -104,6 +108,11 @@ public class BeaconChainMetrics implements SlotEventsChannel {
         "previous_justified_root",
         "Current previously justified root",
         this::getPreviousJustifiedRootValue);
+    metricsSystem.createGauge(
+        TekuMetricCategory.BEACON,
+        "peer_count",
+        "Tracks number of connected peers, verified to be on the same chain",
+        p2pNetwork::getPeerCount);
 
     previousLiveValidators =
         SettableGauge.create(
@@ -132,7 +141,7 @@ public class BeaconChainMetrics implements SlotEventsChannel {
   }
 
   @Override
-  public void onSlot(final UnsignedLong slot) {
+  public void onSlot(final UInt64 slot) {
     recentChainData.getBestState().ifPresent(this::updateMetrics);
   }
 
@@ -146,8 +155,7 @@ public class BeaconChainMetrics implements SlotEventsChannel {
   }
 
   private int getLiveValidators(final SSZList<PendingAttestation> attestations) {
-    final Map<UnsignedLong, Map<UnsignedLong, Bitlist>> aggregationBitsBySlotAndCommittee =
-        new HashMap<>();
+    final Map<UInt64, Map<UInt64, Bitlist>> aggregationBitsBySlotAndCommittee = new HashMap<>();
     attestations.forEach(
         attestation ->
             aggregationBitsBySlotAndCommittee
@@ -175,11 +183,11 @@ public class BeaconChainMetrics implements SlotEventsChannel {
     if (recentChainData.isPreGenesis()) {
       return NOT_SET;
     }
-    return recentChainData.getBestSlot().longValue();
+    return recentChainData.getHeadSlot().longValue();
   }
 
   private long getFinalizedRootValue() {
-    Optional<BeaconBlockAndState> maybeBlockAndState = recentChainData.getBestBlockAndState();
+    Optional<BeaconBlockAndState> maybeBlockAndState = recentChainData.getHeadBlockAndState();
     if (maybeBlockAndState.isPresent()) {
       Bytes32 root = maybeBlockAndState.get().getState().getFinalized_checkpoint().getRoot();
       return getLongFromRoot(root);
@@ -188,7 +196,7 @@ public class BeaconChainMetrics implements SlotEventsChannel {
   }
 
   private long getPreviousJustifiedRootValue() {
-    Optional<BeaconBlockAndState> maybeBlockAndState = recentChainData.getBestBlockAndState();
+    Optional<BeaconBlockAndState> maybeBlockAndState = recentChainData.getHeadBlockAndState();
     if (maybeBlockAndState.isPresent()) {
       Bytes32 root =
           maybeBlockAndState.get().getState().getPrevious_justified_checkpoint().getRoot();
@@ -198,7 +206,7 @@ public class BeaconChainMetrics implements SlotEventsChannel {
   }
 
   private long getJustifiedRootValue() {
-    Optional<BeaconBlockAndState> maybeBlockAndState = recentChainData.getBestBlockAndState();
+    Optional<BeaconBlockAndState> maybeBlockAndState = recentChainData.getHeadBlockAndState();
     if (maybeBlockAndState.isPresent()) {
       Bytes32 root =
           maybeBlockAndState.get().getState().getCurrent_justified_checkpoint().getRoot();
@@ -230,7 +238,7 @@ public class BeaconChainMetrics implements SlotEventsChannel {
   }
 
   private long getPreviousJustifiedEpochValue() {
-    Optional<BeaconBlockAndState> maybeBlockAndState = recentChainData.getBestBlockAndState();
+    Optional<BeaconBlockAndState> maybeBlockAndState = recentChainData.getHeadBlockAndState();
     return maybeBlockAndState
         .map(
             beaconBlockAndState ->

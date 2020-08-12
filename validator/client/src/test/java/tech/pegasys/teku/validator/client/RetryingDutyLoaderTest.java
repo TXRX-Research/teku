@@ -13,16 +13,16 @@
 
 package tech.pegasys.teku.validator.client;
 
-import static com.google.common.primitives.UnsignedLong.ONE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+import static tech.pegasys.teku.infrastructure.unsigned.UInt64.ONE;
 
 import org.junit.jupiter.api.Test;
-import tech.pegasys.teku.util.async.SafeFuture;
-import tech.pegasys.teku.util.async.StubAsyncRunner;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.async.StubAsyncRunner;
 import tech.pegasys.teku.validator.api.NodeSyncingException;
 import tech.pegasys.teku.validator.client.duties.ScheduledDuties;
 

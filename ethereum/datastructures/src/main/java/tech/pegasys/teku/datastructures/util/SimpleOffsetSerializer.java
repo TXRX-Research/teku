@@ -14,9 +14,9 @@
 package tech.pegasys.teku.datastructures.util;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static tech.pegasys.teku.util.config.Constants.BYTES_PER_LENGTH_OFFSET;
 
-import com.google.common.primitives.UnsignedLong;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -65,7 +65,9 @@ import tech.pegasys.teku.datastructures.state.Fork;
 import tech.pegasys.teku.datastructures.state.ForkData;
 import tech.pegasys.teku.datastructures.state.HistoricalBatch;
 import tech.pegasys.teku.datastructures.state.PendingAttestation;
+import tech.pegasys.teku.datastructures.state.SigningData;
 import tech.pegasys.teku.datastructures.state.Validator;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.ssz.SSZTypes.Bitlist;
 import tech.pegasys.teku.ssz.SSZTypes.Bitvector;
 import tech.pegasys.teku.ssz.SSZTypes.Bytes4;
@@ -79,7 +81,9 @@ import tech.pegasys.teku.ssz.sos.SimpleOffsetSerializable;
 @SuppressWarnings({"rawtypes", "unchecked"})
 public class SimpleOffsetSerializer {
 
+  static final int BOOLEAN_SIZE = 1;
   public static HashMap<Class, ReflectionInformation> classReflectionInfo = new HashMap<>();
+  public static HashMap<Class, LengthBounds> classLengthBounds = new HashMap<>();
 
   public static void setConstants() {
     List<Class> classes =
@@ -116,10 +120,15 @@ public class SimpleOffsetSerializer {
             VoteTracker.class,
             MetadataMessage.class,
             EmptyMessage.class,
-            PingMessage.class);
+            PingMessage.class,
+            SigningData.class);
 
     for (Class classItem : classes) {
       classReflectionInfo.put(classItem, new ReflectionInformation(classItem));
+    }
+
+    for (Class classItem : classes) {
+      classLengthBounds.put(classItem, LengthBoundCalculator.calculateLengthBounds(classItem));
     }
   }
 
@@ -128,27 +137,22 @@ public class SimpleOffsetSerializer {
   }
 
   public static Bytes serialize(SimpleOffsetSerializable value) {
-    // TODO assert sum(fixed_lengths + variable_lengths) < 2**(BYTES_PER_LENGTH_OFFSET *
-    // BITS_PER_BYTE)
-    // List<UnsignedLong> variable_lengths = new ArrayList<>();
-    List<UnsignedLong> variable_offsets = new ArrayList<>();
+    List<UInt64> variable_offsets = new ArrayList<>();
     List<Bytes> interleaved_values = new ArrayList<>();
-    UnsignedLong fixedLengthSum = UnsignedLong.ZERO;
-    UnsignedLong varLengthSum = UnsignedLong.ZERO;
+    UInt64 fixedLengthSum = UInt64.ZERO;
+    UInt64 varLengthSum = UInt64.ZERO;
 
-    // System.out.println("Fixed Part Size: " + value.get_fixed_parts().size());
-    // System.out.println("Var Part Size: " + value.get_variable_parts().size());
     for (Bytes fixedPart : value.get_fixed_parts()) {
-      UnsignedLong fixedPartSize = UnsignedLong.valueOf(fixedPart.size());
-      if (fixedPartSize.equals(UnsignedLong.ZERO)) {
-        fixedPartSize = UnsignedLong.valueOf(4L);
+      UInt64 fixedPartSize = UInt64.valueOf(fixedPart.size());
+      if (fixedPartSize.equals(UInt64.ZERO)) {
+        fixedPartSize = UInt64.valueOf(4L);
       }
       fixedLengthSum = fixedLengthSum.plus(fixedPartSize);
     }
 
     variable_offsets.add(fixedLengthSum);
     for (Bytes varPart : value.get_variable_parts()) {
-      UnsignedLong varPartSize = UnsignedLong.valueOf(varPart.size());
+      UInt64 varPartSize = UInt64.valueOf(varPart.size());
       varLengthSum = varLengthSum.plus(varPartSize);
       variable_offsets.add(fixedLengthSum.plus(varLengthSum));
     }
@@ -181,17 +185,17 @@ public class SimpleOffsetSerializer {
       SSZList<? extends SimpleOffsetSerializable> values) {
     List<Bytes> parts =
         values.stream().map(SimpleOffsetSerializer::serialize).collect(Collectors.toList());
-    List<UnsignedLong> fixed_lengths = Collections.nCopies(values.size(), BYTES_PER_LENGTH_OFFSET);
+    List<UInt64> fixed_lengths = Collections.nCopies(values.size(), BYTES_PER_LENGTH_OFFSET);
     List<Bytes> variable_parts = new ArrayList<>();
     List<Bytes> fixed_parts = new ArrayList<>();
-    UnsignedLong offset = UnsignedLong.ZERO;
-    for (UnsignedLong length : fixed_lengths) {
+    UInt64 offset = UInt64.ZERO;
+    for (UInt64 length : fixed_lengths) {
       offset = offset.plus(length);
     }
     for (Bytes part : parts) {
       fixed_parts.add(SSZ.encodeUInt32(offset.longValue()));
       variable_parts.add(part);
-      offset = offset.plus(UnsignedLong.valueOf(part.size()));
+      offset = offset.plus(part.size());
     }
     return Bytes.wrap(
         Bytes.concatenate(fixed_parts.toArray(new Bytes[0])),
@@ -218,6 +222,10 @@ public class SimpleOffsetSerializer {
             return result;
           });
     }
+  }
+
+  public static <T> LengthBounds getLengthBounds(final Class<T> type) {
+    return checkNotNull(classLengthBounds.get(type), "Length bounds unknown for type %s", type);
   }
 
   private static void assertAllDataRead(SSZReader reader) {
@@ -337,6 +345,8 @@ public class SimpleOffsetSerializer {
       throws InstantiationException, InvocationTargetException, IllegalAccessException {
 
     int variableObjectCounter = 0;
+    int bitlistCounter = 0;
+    int sszListCounter = 0;
     for (Integer variableFieldIndex : variableFieldIndices) {
       Class fieldClass = reflectionInformation.getFields()[variableFieldIndex].getType();
 
@@ -346,10 +356,9 @@ public class SimpleOffsetSerializer {
               : currentObjectStartByte + offsets.get(variableObjectCounter + 1);
       Object fieldObject = null;
       if (fieldClass == SSZList.class) {
-        Class listElementType =
-            reflectionInformation.getListElementTypes().get(variableObjectCounter);
+        Class listElementType = reflectionInformation.getListElementTypes().get(sszListCounter);
         Long listElementMaxSize =
-            reflectionInformation.getListElementMaxSizes().get(variableObjectCounter);
+            reflectionInformation.getListElementMaxSizes().get(sszListCounter);
         SSZMutableList newSSZList = SSZList.createMutable(listElementType, listElementMaxSize);
         if (!isVariable(listElementType)) {
           // If SSZList element is fixed size
@@ -361,15 +370,13 @@ public class SimpleOffsetSerializer {
           deserializeVariableElementList(
               reader, bytesPointer, listElementType, currentObjectEndByte, newSSZList);
         }
+        sszListCounter++;
         fieldObject = newSSZList;
       } else if (fieldClass == Bitlist.class) {
         fieldObject =
             deserializeBitlist(
-                reflectionInformation,
-                reader,
-                bytesPointer,
-                variableObjectCounter,
-                currentObjectEndByte);
+                reflectionInformation, reader, bytesPointer, bitlistCounter, currentObjectEndByte);
+        bitlistCounter++;
 
       } else if (isContainer(fieldClass)) {
         fieldObject = deserializeContainer(fieldClass, reader, bytesPointer, currentObjectEndByte);
@@ -462,7 +469,7 @@ public class SimpleOffsetSerializer {
     return SSZVector.createMutable(newList, classInfo);
   }
 
-  private static ReflectionInformation getRequiredReflectionInfo(Class classInfo) {
+  static ReflectionInformation getRequiredReflectionInfo(Class classInfo) {
     final ReflectionInformation reflectionInfo = classReflectionInfo.get(classInfo);
     checkArgument(
         reflectionInfo != null,
@@ -470,32 +477,33 @@ public class SimpleOffsetSerializer {
     return reflectionInfo;
   }
 
-  private static Optional<ReflectionInformation> getOptionalReflectionInfo(Class classInfo) {
+  static Optional<ReflectionInformation> getOptionalReflectionInfo(Class classInfo) {
     return Optional.ofNullable(classReflectionInfo.get(classInfo));
   }
 
   private static Object deserializePrimitive(
       Class classInfo, SSZReader reader, MutableInt bytePointer) {
     switch (classInfo.getSimpleName()) {
-      case "UnsignedLong":
-        bytePointer.add(8);
-        return UnsignedLong.fromLongBits(reader.readUInt64());
+      case "UInt64":
+        bytePointer.add(UInt64.BYTES);
+        return UInt64.fromLongBits(reader.readUInt64());
       case "ArrayWrappingBytes32":
       case "Bytes32":
-        bytePointer.add(32);
-        return Bytes32.wrap(reader.readFixedBytes(32));
+        bytePointer.add(Bytes32.SIZE);
+        return Bytes32.wrap(reader.readFixedBytes(Bytes32.SIZE));
       case "Bytes4":
-        bytePointer.add(4);
-        return new Bytes4(reader.readFixedBytes(4));
+        bytePointer.add(Bytes4.SIZE);
+        return new Bytes4(reader.readFixedBytes(Bytes4.SIZE));
       case "BLSSignature":
-        bytePointer.add(96);
-        return BLSSignature.fromBytes(reader.readFixedBytes(96));
+        bytePointer.add(BLSSignature.SSZ_BLS_SIGNATURE_SIZE);
+        return BLSSignature.fromSSZBytes(
+            reader.readFixedBytes(BLSSignature.SSZ_BLS_SIGNATURE_SIZE));
       case "BLSPublicKey":
-        bytePointer.add(48);
-        return BLSPublicKey.fromBytes(reader.readFixedBytes(48));
+        bytePointer.add(BLSPublicKey.SSZ_BLS_PUBKEY_SIZE);
+        return BLSPublicKey.fromSSZBytes(reader.readFixedBytes(BLSPublicKey.SSZ_BLS_PUBKEY_SIZE));
       case "Boolean":
       case "boolean":
-        bytePointer.add(1);
+        bytePointer.add(BOOLEAN_SIZE);
         return reader.readBoolean();
       default:
         throw new IllegalArgumentException("Unable to deserialize " + classInfo.getSimpleName());
@@ -507,7 +515,7 @@ public class SimpleOffsetSerializer {
     return reader.readInt32();
   }
 
-  private static boolean isVariable(Class classInfo) {
+  static boolean isVariable(Class classInfo) {
     if (classInfo == SSZList.class || classInfo == Bitlist.class) {
       return true;
     } else {
@@ -517,18 +525,18 @@ public class SimpleOffsetSerializer {
     }
   }
 
-  private static boolean isPrimitive(Class classInfo) {
+  static boolean isPrimitive(Class classInfo) {
     return !(SSZContainer.class.isAssignableFrom(classInfo)
         || classInfo == SSZVector.class
         || classInfo == Bitvector.class
         || classInfo == VoteTracker.class);
   }
 
-  private static boolean isVector(Class classInfo) {
+  static boolean isVector(Class classInfo) {
     return classInfo == SSZVector.class;
   }
 
-  private static boolean isBitvector(Class classInfo) {
+  static boolean isBitvector(Class classInfo) {
     return classInfo == Bitvector.class;
   }
 

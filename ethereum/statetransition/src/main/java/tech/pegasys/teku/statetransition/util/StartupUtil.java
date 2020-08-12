@@ -13,9 +13,9 @@
 
 package tech.pegasys.teku.statetransition.util;
 
+import static tech.pegasys.teku.logging.EventLogger.EVENT_LOG;
 import static tech.pegasys.teku.logging.StatusLogger.STATUS_LOG;
 
-import com.google.common.primitives.UnsignedLong;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.List;
@@ -30,6 +30,7 @@ import tech.pegasys.teku.datastructures.util.MockStartBeaconStateGenerator;
 import tech.pegasys.teku.datastructures.util.MockStartDepositGenerator;
 import tech.pegasys.teku.datastructures.util.MockStartValidatorKeyPairFactory;
 import tech.pegasys.teku.datastructures.util.SimpleOffsetSerializer;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.storage.client.RecentChainData;
 import tech.pegasys.teku.util.resource.ResourceLoader;
 
@@ -48,7 +49,7 @@ public final class StartupUtil {
         new MockStartDepositGenerator(new DepositGenerator(signDeposits))
             .createDeposits(validatorKeys);
     return new MockStartBeaconStateGenerator()
-        .createInitialBeaconState(UnsignedLong.valueOf(genesisTime), initialDepositData);
+        .createInitialBeaconState(UInt64.valueOf(genesisTime), initialDepositData);
   }
 
   private static BeaconState loadBeaconState(final String source) throws IOException {
@@ -80,6 +81,7 @@ public final class StartupUtil {
       try {
         STATUS_LOG.loadingGenesisFile(startState);
         initialState = StartupUtil.loadBeaconState(startState);
+
       } catch (final IOException e) {
         throw new IllegalStateException("Failed to load initial state", e);
       }
@@ -90,6 +92,15 @@ public final class StartupUtil {
               genesisTime, validatorKeyPairs, signDeposits);
     }
 
-    recentChainData.initializeFromGenesis(initialState);
+    recentChainData
+        .initializeFromGenesis(initialState)
+        .thenAccept(
+            __ -> {
+              EVENT_LOG.genesisEvent(
+                  initialState.hashTreeRoot(),
+                  recentChainData.getBestBlockRoot().orElseThrow(),
+                  initialState.getGenesis_time());
+            })
+        .reportExceptions();
   }
 }

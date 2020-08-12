@@ -13,10 +13,11 @@
 
 package tech.pegasys.teku.storage.api;
 
-import com.google.common.primitives.UnsignedLong;
 import org.apache.tuweni.bytes.Bytes32;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.util.channels.VoidReturningChannelInterface;
 
-public interface ReorgEventChannel {
+public interface ReorgEventChannel extends VoidReturningChannelInterface {
 
   /**
    * Called each time the chain switches forks.
@@ -27,5 +28,5 @@ public interface ReorgEventChannel {
    * @param bestBlockRoot the block root of the new chain head
    * @param bestSlot the slot of the new chain head
    */
-  void reorgOccurred(final Bytes32 bestBlockRoot, final UnsignedLong bestSlot);
+  void reorgOccurred(final Bytes32 bestBlockRoot, final UInt64 bestSlot);
 }

@@ -9,7 +9,6 @@ import tech.pegasys.teku.phase1.integration.ssz.SSZVectorImpl
 import tech.pegasys.teku.phase1.integration.ssz.getListView
 import tech.pegasys.teku.phase1.integration.ssz.getVectorView
 import tech.pegasys.teku.phase1.integration.toUInt64
-import tech.pegasys.teku.phase1.integration.toUnsignedLong
 import tech.pegasys.teku.phase1.integration.wrapValues
 import tech.pegasys.teku.phase1.onotole.phase1.BLSSignature
 import tech.pegasys.teku.phase1.onotole.phase1.Domain
@@ -365,8 +364,8 @@ class BeaconBlock : AbstractImmutableContainer {
     body: BeaconBlockBody
   ) : super(
     TYPE,
-    UInt64View(slot.toUnsignedLong()),
-    UInt64View(proposer_index.toUnsignedLong()),
+    UInt64View(slot.toUInt64()),
+    UInt64View(proposer_index.toUInt64()),
     Bytes32View(parent_root),
     Bytes32View(state_root),
     body

@@ -4,8 +4,10 @@ plugins {
 
 dependencies {
   api 'org.bouncycastle:bcprov-jdk15on'
+  api project(':data:metrics')
 
   implementation project(':bls')
+  implementation project(':infrastructure:async')
   implementation project(':ssz')
 
   implementation 'com.fasterxml.jackson.core:jackson-databind'
@@ -22,8 +24,8 @@ dependencies {
   testImplementation 'org.apache.logging.log4j:log4j-core'
 
   testFixturesApi 'com.google.guava:guava'
+  testFixturesApi project(':infrastructure:unsigned')
 
   testFixturesImplementation 'org.apache.logging.log4j:log4j-core'
-  testFixturesImplementation 'org.awaitility:awaitility'
   testFixturesImplementation 'org.apache.tuweni:tuweni-bytes'
 }

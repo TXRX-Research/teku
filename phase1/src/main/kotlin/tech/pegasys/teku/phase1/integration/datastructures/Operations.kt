@@ -11,7 +11,6 @@ import tech.pegasys.teku.phase1.integration.ssz.SSZByteVectorImpl
 import tech.pegasys.teku.phase1.integration.ssz.SSZListImpl
 import tech.pegasys.teku.phase1.integration.ssz.SSZVectorImpl
 import tech.pegasys.teku.phase1.integration.toUInt64
-import tech.pegasys.teku.phase1.integration.toUnsignedLong
 import tech.pegasys.teku.phase1.integration.wrapBasicValue
 import tech.pegasys.teku.phase1.integration.wrapValues
 import tech.pegasys.teku.phase1.onotole.phase1.BLSPubkey
@@ -244,7 +243,7 @@ class DepositMessage : AbstractImmutableContainer {
     TYPE,
     ViewUtils.createVectorFromBytes(pubkey),
     Bytes32View(withdrawal_credentials),
-    UInt64View(amount.toUnsignedLong())
+    UInt64View(amount.toUInt64())
   )
 
   constructor(
@@ -281,7 +280,7 @@ class DepositData : AbstractImmutableContainer {
     TYPE,
     ViewUtils.createVectorFromBytes(pubkey),
     Bytes32View(withdrawal_credentials),
-    UInt64View(amount.toUnsignedLong()),
+    UInt64View(amount.toUInt64()),
     ViewUtils.createVectorFromBytes(signature.wrappedBytes)
   )
 
@@ -592,7 +591,7 @@ class VoluntaryExit : AbstractImmutableContainer {
     get() = (get(1) as UInt64View).get().toUInt64()
 
   constructor(epoch: Epoch, validator_index: ValidatorIndex) : super(
-    TYPE, UInt64View(epoch.toUnsignedLong()), UInt64View(validator_index.toUnsignedLong())
+    TYPE, UInt64View(epoch.toUInt64()), UInt64View(validator_index.toUInt64())
   )
 
   constructor(
@@ -670,7 +669,7 @@ class CustodyKeyReveal : AbstractImmutableContainer {
   constructor(revealer_index: ValidatorIndex, reveal: BLSSignature)
       : super(
     TYPE,
-    UInt64View(revealer_index.toUnsignedLong()),
+    UInt64View(revealer_index.toUInt64()),
     ViewUtils.createVectorFromBytes(reveal.wrappedBytes)
   )
 
@@ -711,10 +710,10 @@ class EarlyDerivedSecretReveal : AbstractImmutableContainer {
     mask: Bytes32
   ) : super(
     TYPE,
-    UInt64View(revealed_index.toUnsignedLong()),
-    UInt64View(epoch.toUnsignedLong()),
+    UInt64View(revealed_index.toUInt64()),
+    UInt64View(epoch.toUInt64()),
     ViewUtils.createVectorFromBytes(reveal.wrappedBytes),
-    UInt64View(masker_index.toUnsignedLong()),
+    UInt64View(masker_index.toUInt64()),
     Bytes32View(mask)
   )
 
@@ -764,10 +763,10 @@ class CustodySlashing : AbstractImmutableContainer {
     data: SSZByteList
   ) : super(
     TYPE,
-    UInt64View(data_index.toUnsignedLong()),
-    UInt64View(malefactor_index.toUnsignedLong()),
+    UInt64View(data_index.toUInt64()),
+    UInt64View(malefactor_index.toUInt64()),
     ViewUtils.createVectorFromBytes(malefactor_secret.wrappedBytes),
-    UInt64View(whistleblower_index.toUnsignedLong()),
+    UInt64View(whistleblower_index.toUInt64()),
     shard_transition,
     attestation,
     (data as SSZAbstractCollection<*, *>).view
@@ -837,7 +836,7 @@ class AttestationCustodyBit : AbstractImmutableContainer {
   ) : super(type, backingNode)
 
   constructor(attestation_data_root: Root, block_index: uint64, bit: boolean) : super(
-    TYPE, Bytes32View(attestation_data_root), UInt64View(block_index.toUnsignedLong()), BitView(bit)
+    TYPE, Bytes32View(attestation_data_root), UInt64View(block_index.toUInt64()), BitView(bit)
   )
 
   constructor() : super(TYPE)
@@ -875,11 +874,11 @@ class CustodyChunkChallenge : AbstractImmutableContainer {
     chunk_index: uint64
   ) : super(
     TYPE,
-    UInt64View(responder_index.toUnsignedLong()),
+    UInt64View(responder_index.toUInt64()),
     shard_transition,
     attestation,
-    UInt64View(data_index.toUnsignedLong()),
-    UInt64View(chunk_index.toUnsignedLong())
+    UInt64View(data_index.toUInt64()),
+    UInt64View(chunk_index.toUInt64())
   )
 
   constructor() : super(TYPE)
@@ -919,8 +918,8 @@ class CustodyChunkResponse : AbstractImmutableContainer {
     branch: SSZVector<Root>
   ) : super(
     TYPE,
-    UInt64View(challenge_index.toUnsignedLong()),
-    UInt64View(chunk_index.toUnsignedLong()),
+    UInt64View(challenge_index.toUInt64()),
+    UInt64View(chunk_index.toUInt64()),
     (chunk as SSZAbstractCollection<*, *>).view,
     (branch as SSZAbstractCollection<*, *>).view
   )

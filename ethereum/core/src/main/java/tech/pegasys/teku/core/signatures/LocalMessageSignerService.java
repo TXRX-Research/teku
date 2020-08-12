@@ -17,7 +17,7 @@ import org.apache.tuweni.bytes.Bytes;
 import tech.pegasys.teku.bls.BLS;
 import tech.pegasys.teku.bls.BLSKeyPair;
 import tech.pegasys.teku.bls.BLSSignature;
-import tech.pegasys.teku.util.async.SafeFuture;
+import tech.pegasys.teku.infrastructure.async.SafeFuture;
 
 public class LocalMessageSignerService implements MessageSignerService {
   private final BLSKeyPair keypair;
@@ -54,6 +54,11 @@ public class LocalMessageSignerService implements MessageSignerService {
   @Override
   public SafeFuture<BLSSignature> signVoluntaryExit(final Bytes signingRoot) {
     return sign(signingRoot);
+  }
+
+  @Override
+  public boolean isLocal() {
+    return true;
   }
 
   private SafeFuture<BLSSignature> sign(final Bytes signing_root) {

@@ -1,12 +1,10 @@
 package tech.pegasys.teku.phase1.onotole.deps
 
-import com.google.common.primitives.UnsignedLong
 import org.apache.milagro.amcl.BLS381.BIG
 import org.apache.milagro.amcl.BLS381.FP2
 import org.apache.tuweni.crypto.Hash
-import tech.pegasys.teku.bls.mikuli.PublicKey
-import tech.pegasys.teku.bls.mikuli.SecretKey
 import tech.pegasys.teku.phase1.integration.bls.G2Points
+import tech.pegasys.teku.phase1.integration.toUInt64
 import tech.pegasys.teku.phase1.onotole.phase1.BLSPubkey
 import tech.pegasys.teku.phase1.onotole.phase1.BLSSignature
 import tech.pegasys.teku.phase1.onotole.pylib.pyint
@@ -34,7 +32,7 @@ fun hash_tree_root(v: Any): Bytes32 {
     is Byte -> BasicViews.ByteView(v).hashTreeRoot()
     is Bytes4 -> BasicViews.Bytes4View(v).hashTreeRoot()
     is uint8 -> BasicViews.ByteView(v.toByte()).hashTreeRoot()
-    is uint64 -> BasicViews.UInt64View(UnsignedLong.valueOf(v.toLong())).hashTreeRoot()
+    is uint64 -> BasicViews.UInt64View(v.toUInt64()).hashTreeRoot()
     is boolean -> BasicViews.BitView(v).hashTreeRoot()
     is Bytes -> ViewUtils.createVectorFromBytes(v).hashTreeRoot()
     is BLSSignature -> ViewUtils.createVectorFromBytes(v.wrappedBytes).hashTreeRoot()
@@ -73,38 +71,38 @@ object BLS12381 : BLS {
       TekuBLS.sign(
         TekuBLSSecretKey.fromBytes(Bytes32.leftPad(Bytes.wrap(privkey.value.toByteArray()))),
         message
-      ).toBytes()
+      ).toBytesCompressed()
     )
   }
 
   override fun Verify(pubkey: Bytes48, message: Bytes, signature: BLSSignature): boolean {
     return TekuBLS.verify(
-      TekuBLSPublicKey.fromBytes(pubkey),
+      TekuBLSPublicKey.fromBytesCompressed(pubkey),
       message,
-      TekuBLSSignature.fromBytes(signature.wrappedBytes)
+      TekuBLSSignature.fromBytesCompressed(signature.wrappedBytes)
     )
   }
 
   override fun Aggregate(signatures: Collection<BLSSignature>): BLSSignature {
     return BLSSignature(
-      TekuBLS.aggregate(signatures.map { s -> TekuBLSSignature.fromBytes(s.wrappedBytes) })
-        .toBytes()
+      TekuBLS.aggregate(signatures.map { s -> TekuBLSSignature.fromBytesCompressed(s.wrappedBytes) })
+        .toBytesCompressed()
     )
   }
 
   override fun FastAggregateVerify(pubkeys: Collection<Bytes48>, root: Bytes, signature: BLSSignature): boolean {
     return TekuBLS.fastAggregateVerify(
-      pubkeys.map { k -> TekuBLSPublicKey.fromBytes(k) }.toList(),
+      pubkeys.map { k -> TekuBLSPublicKey.fromBytesCompressed(k) }.toList(),
       root,
-      TekuBLSSignature.fromBytes(signature.wrappedBytes)
+      TekuBLSSignature.fromBytesCompressed(signature.wrappedBytes)
     )
   }
 
   override fun AggregateVerify(pubkeys: List<Bytes48>, messages: List<Bytes>, signature: BLSSignature): boolean {
     return TekuBLS.aggregateVerify(
-      pubkeys.map { p -> TekuBLSPublicKey.fromBytes(p) }.toList(),
+      pubkeys.map { p -> TekuBLSPublicKey.fromBytesCompressed(p) }.toList(),
       messages,
-      TekuBLSSignature.fromBytes(signature.wrappedBytes)
+      TekuBLSSignature.fromBytesCompressed(signature.wrappedBytes)
     )
   }
 
@@ -144,8 +142,8 @@ object NoOpBLS : BLS {
 object PseudoBLS : BLS {
 
   override fun Sign(privkey: pyint, message: Bytes): BLSSignature {
-    val secretKey = SecretKey.fromBytes(Bytes48.leftPad(Bytes.wrap(privkey.value.toByteArray())))
-    val publicKey = Bytes48.wrap(PublicKey(secretKey).toBytesCompressed())
+    val secretKey = TekuBLSSecretKey.fromBytes(Bytes32.leftPad(Bytes.wrap(privkey.value.toByteArray())))
+    val publicKey = Bytes48.wrap(TekuBLSPublicKey(secretKey).toBytesCompressed())
     return pseudoSign(publicKey, message)
   }
 

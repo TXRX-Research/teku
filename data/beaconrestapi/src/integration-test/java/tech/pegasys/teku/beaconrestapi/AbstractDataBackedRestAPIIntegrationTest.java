@@ -22,7 +22,6 @@ import static org.mockito.Mockito.mock;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.primitives.UnsignedLong;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,14 +39,21 @@ import tech.pegasys.teku.api.schema.SignedBeaconBlock;
 import tech.pegasys.teku.bls.BLSKeyGenerator;
 import tech.pegasys.teku.bls.BLSKeyPair;
 import tech.pegasys.teku.core.ChainBuilder;
+import tech.pegasys.teku.core.StateTransition;
+import tech.pegasys.teku.datastructures.blocks.BeaconBlockAndState;
 import tech.pegasys.teku.datastructures.blocks.SignedBlockAndState;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.networking.eth2.Eth2Network;
 import tech.pegasys.teku.provider.JsonProvider;
+import tech.pegasys.teku.statetransition.BeaconChainUtil;
+import tech.pegasys.teku.statetransition.attestation.AggregatingAttestationPool;
 import tech.pegasys.teku.statetransition.blockimport.BlockImporter;
-import tech.pegasys.teku.storage.InMemoryStorageSystem;
+import tech.pegasys.teku.statetransition.forkchoice.ForkChoice;
 import tech.pegasys.teku.storage.client.ChainUpdater;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.storage.client.RecentChainData;
+import tech.pegasys.teku.storage.storageSystem.InMemoryStorageSystem;
+import tech.pegasys.teku.storage.storageSystem.StorageSystem;
 import tech.pegasys.teku.sync.SyncService;
 import tech.pegasys.teku.util.config.StateStorageMode;
 import tech.pegasys.teku.util.config.TekuConfiguration;
@@ -60,22 +66,25 @@ public abstract class AbstractDataBackedRestAPIIntegrationTest {
   private static final TekuConfiguration CONFIG =
       TekuConfiguration.builder()
           .setRestApiPort(0)
-          .setRestApiDocsEnabled(false)
+          .setRestApiEnabled(true)
+          .setRestApiDocsEnabled(true)
           .setRestApiHostAllowlist(List.of("127.0.0.1", "localhost"))
           .build();
 
-  protected static final UnsignedLong SIX = UnsignedLong.valueOf(6);
-  protected static final UnsignedLong SEVEN = UnsignedLong.valueOf(7);
-  protected static final UnsignedLong EIGHT = UnsignedLong.valueOf(8);
-  protected static final UnsignedLong NINE = UnsignedLong.valueOf(9);
-  protected static final UnsignedLong TEN = UnsignedLong.valueOf(10);
+  protected static final UInt64 SIX = UInt64.valueOf(6);
+  protected static final UInt64 SEVEN = UInt64.valueOf(7);
+  protected static final UInt64 EIGHT = UInt64.valueOf(8);
+  protected static final UInt64 NINE = UInt64.valueOf(9);
+  protected static final UInt64 TEN = UInt64.valueOf(10);
 
   // Mocks
   protected final Eth2Network eth2Network = mock(Eth2Network.class);
   protected final SyncService syncService = mock(SyncService.class);
   protected final ValidatorApiChannel validatorApiChannel = mock(ValidatorApiChannel.class);
+  protected final AggregatingAttestationPool attestationPool =
+      mock(AggregatingAttestationPool.class);
 
-  private InMemoryStorageSystem storageSystem;
+  private StorageSystem storageSystem;
 
   protected RecentChainData recentChainData;
   protected CombinedChainDataClient combinedChainDataClient;
@@ -89,23 +98,33 @@ public abstract class AbstractDataBackedRestAPIIntegrationTest {
 
   protected DataProvider dataProvider;
   protected BeaconRestApi beaconRestApi;
+  private BeaconChainUtil beaconChainUtil;
 
   protected OkHttpClient client;
   protected final ObjectMapper objectMapper = new ObjectMapper();
 
-  private void setupStorage(final StateStorageMode storageMode) {
-    setupStorage(InMemoryStorageSystem.createEmptyV3StorageSystem(storageMode));
+  protected final StateTransition stateTransition = new StateTransition();
+  protected ForkChoice forkChoice;
+
+  private void setupStorage(final StateStorageMode storageMode, final boolean useMockForkChoice) {
+    setupStorage(InMemoryStorageSystem.createEmptyV3StorageSystem(storageMode), useMockForkChoice);
   }
 
-  private void setupStorage(final InMemoryStorageSystem storageSystem) {
+  private void setupStorage(final StorageSystem storageSystem, final boolean useMockForkChoice) {
     this.storageSystem = storageSystem;
     recentChainData = storageSystem.recentChainData();
     chainBuilder = ChainBuilder.create(VALIDATOR_KEYS);
     chainUpdater = new ChainUpdater(recentChainData, chainBuilder);
+    forkChoice =
+        useMockForkChoice
+            ? mock(ForkChoice.class)
+            : new ForkChoice(recentChainData, stateTransition);
+    beaconChainUtil =
+        BeaconChainUtil.create(recentChainData, chainBuilder.getValidatorKeys(), forkChoice, true);
   }
 
   private void setupAndStartRestAPI(TekuConfiguration config) {
-    blockImporter = new BlockImporter(recentChainData, storageSystem.eventBus());
+    blockImporter = new BlockImporter(recentChainData, forkChoice, storageSystem.eventBus());
     combinedChainDataClient = storageSystem.combinedChainDataClient();
     dataProvider =
         new DataProvider(
@@ -114,7 +133,8 @@ public abstract class AbstractDataBackedRestAPIIntegrationTest {
             eth2Network,
             syncService,
             validatorApiChannel,
-            blockImporter);
+            blockImporter,
+            attestationPool);
     beaconRestApi = new BeaconRestApi(dataProvider, config);
     beaconRestApi.start();
     client = new OkHttpClient.Builder().readTimeout(0, TimeUnit.SECONDS).build();
@@ -126,28 +146,23 @@ public abstract class AbstractDataBackedRestAPIIntegrationTest {
 
   protected void startPreForkChoiceRestAPI() {
     // Initialize genesis
-    setupStorage(StateStorageMode.ARCHIVE);
+    setupStorage(StateStorageMode.ARCHIVE, true);
     chainUpdater.initializeGenesis();
-    // Setup finalized checkpoint without any attestations
-    // Making protoarray fork-choice incompatible with the Store's justified checkpoint
-    // and preventing the chainhead from being set
-    chainUpdater.advanceChain();
-    chainUpdater.finalizeEpoch(UnsignedLong.ONE);
     // Restart storage system without running fork choice
     storageSystem = storageSystem.restarted(StateStorageMode.ARCHIVE);
-    setupStorage(storageSystem);
+    setupStorage(storageSystem, true);
     // Start API
     setupAndStartRestAPI();
   }
 
   protected void startPreGenesisRestAPI() {
-    setupStorage(StateStorageMode.ARCHIVE);
+    setupStorage(StateStorageMode.ARCHIVE, false);
     // Start API
     setupAndStartRestAPI();
   }
 
   protected void startPreGenesisRestAPIWithConfig(TekuConfiguration config) {
-    setupStorage(StateStorageMode.ARCHIVE);
+    setupStorage(StateStorageMode.ARCHIVE, false);
     // Start API
     setupAndStartRestAPI(config);
   }
@@ -158,21 +173,21 @@ public abstract class AbstractDataBackedRestAPIIntegrationTest {
 
   protected void startRestAPIAtGenesis(final StateStorageMode storageMode) {
     // Initialize genesis
-    setupStorage(storageMode);
+    setupStorage(storageMode, false);
     chainUpdater.initializeGenesis();
     // Start API
     setupAndStartRestAPI();
   }
 
   public List<SignedBlockAndState> createBlocksAtSlots(long... slots) {
-    final UnsignedLong[] unsignedSlots =
-        Arrays.stream(slots).mapToObj(UnsignedLong::valueOf).toArray(UnsignedLong[]::new);
+    final UInt64[] unsignedSlots =
+        Arrays.stream(slots).mapToObj(UInt64::valueOf).toArray(UInt64[]::new);
     return createBlocksAtSlots(unsignedSlots);
   }
 
-  public ArrayList<SignedBlockAndState> createBlocksAtSlots(UnsignedLong... slots) {
+  public ArrayList<SignedBlockAndState> createBlocksAtSlots(UInt64... slots) {
     final ArrayList<SignedBlockAndState> results = new ArrayList<>();
-    for (UnsignedLong slot : slots) {
+    for (UInt64 slot : slots) {
       final SignedBlockAndState block = chainUpdater.advanceChain(slot);
       chainUpdater.updateBestBlock(block);
       results.add(block);
@@ -180,20 +195,36 @@ public abstract class AbstractDataBackedRestAPIIntegrationTest {
     return results;
   }
 
+  // by using importBlocksAtSlots instead of createBlocksAtSlots, blocks are created
+  // via the blockImporter, and this will mean forkChoice has been processed.
+  // this is particularly useful if testing for missing state roots (states without blocks)
+  public ArrayList<BeaconBlockAndState> importBlocksAtSlots(UInt64... slots) throws Exception {
+    assertThat(beaconChainUtil).isNotNull();
+    final ArrayList<BeaconBlockAndState> results = new ArrayList<>();
+    for (UInt64 slot : slots) {
+      final tech.pegasys.teku.datastructures.blocks.SignedBeaconBlock signedBeaconBlock =
+          beaconChainUtil.createAndImportBlockAtSlot(slot.longValue());
+      results.add(
+          new BeaconBlockAndState(
+              signedBeaconBlock.getMessage(), recentChainData.getBestState().get()));
+    }
+    return results;
+  }
+
   public List<SignedBeaconBlock> createBlocksAtSlotsAndMapToApiResult(long... slots) {
-    final UnsignedLong[] unsignedSlots =
-        Arrays.stream(slots).mapToObj(UnsignedLong::valueOf).toArray(UnsignedLong[]::new);
+    final UInt64[] unsignedSlots =
+        Arrays.stream(slots).mapToObj(UInt64::valueOf).toArray(UInt64[]::new);
     return createBlocksAtSlotsAndMapToApiResult(unsignedSlots);
   }
 
-  public List<SignedBeaconBlock> createBlocksAtSlotsAndMapToApiResult(UnsignedLong... slots) {
+  public List<SignedBeaconBlock> createBlocksAtSlotsAndMapToApiResult(UInt64... slots) {
     return createBlocksAtSlots(slots).stream()
         .map(SignedBlockAndState::getBlock)
         .map(SignedBeaconBlock::new)
         .collect(Collectors.toList());
   }
 
-  public SignedBlockAndState finalizeChainAtEpoch(UnsignedLong epoch) {
+  public SignedBlockAndState finalizeChainAtEpoch(UInt64 epoch) {
     return chainUpdater.finalizeEpoch(epoch);
   }
 
@@ -209,7 +240,6 @@ public abstract class AbstractDataBackedRestAPIIntegrationTest {
 
   protected void assertNotFound(final Response response) throws IOException {
     assertThat(response.code()).isEqualTo(SC_NOT_FOUND);
-    assertThat(response.body().string()).isEmpty();
   }
 
   protected void assertForbidden(final Response response) throws IOException {
@@ -222,9 +252,16 @@ public abstract class AbstractDataBackedRestAPIIntegrationTest {
   }
 
   protected Response getResponse(final String path) throws IOException {
-    final String url = "http://localhost:" + beaconRestApi.getListenPort();
-    final Request request = new Request.Builder().url(url + path).build();
+    return getResponseFromUrl(getUrl(path));
+  }
+
+  protected Response getResponseFromUrl(final String url) throws IOException {
+    final Request request = new Request.Builder().url(url).build();
     return client.newCall(request).execute();
+  }
+
+  protected String getUrl(final String path) {
+    return "http://localhost:" + beaconRestApi.getListenPort() + path;
   }
 
   protected Response getResponse(final String route, Map<String, String> getParams)

@@ -13,16 +13,15 @@
 
 package tech.pegasys.teku.datastructures.forkchoice;
 
-import com.google.common.primitives.UnsignedLong;
+import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.datastructures.blocks.SignedBlockAndState;
-import tech.pegasys.teku.datastructures.operations.IndexedAttestation;
+import tech.pegasys.teku.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.datastructures.state.BeaconState;
 import tech.pegasys.teku.datastructures.state.Checkpoint;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 
 public interface MutableStore extends ReadOnlyStore {
-
-  void putCheckpointState(Checkpoint checkpoint, BeaconState state);
 
   void putBlockAndState(SignedBeaconBlock block, BeaconState state);
 
@@ -30,9 +29,11 @@ public interface MutableStore extends ReadOnlyStore {
     putBlockAndState(blockAndState.getBlock(), blockAndState.getState());
   }
 
-  void setTime(UnsignedLong time);
+  void putStateRoot(Bytes32 stateRoot, SlotAndBlockRoot slotAndBlockRoot);
 
-  void setGenesis_time(UnsignedLong genesis_time);
+  void setTime(UInt64 time);
+
+  void setGenesis_time(UInt64 genesis_time);
 
   void setJustifiedCheckpoint(Checkpoint justified_checkpoint);
 
@@ -40,9 +41,5 @@ public interface MutableStore extends ReadOnlyStore {
 
   void setBestJustifiedCheckpoint(Checkpoint best_justified_checkpoint);
 
-  // Fork-choice updates
-
-  void updateHead();
-
-  void processAttestation(IndexedAttestation attestation);
+  VoteTracker getVote(UInt64 validatorIndex);
 }

@@ -34,6 +34,7 @@ import org.junit.jupiter.api.BeforeEach;
 import tech.pegasys.teku.api.DataProvider;
 import tech.pegasys.teku.datastructures.util.DataStructureUtil;
 import tech.pegasys.teku.networking.eth2.Eth2Network;
+import tech.pegasys.teku.statetransition.attestation.AggregatingAttestationPool;
 import tech.pegasys.teku.statetransition.blockimport.BlockImporter;
 import tech.pegasys.teku.storage.api.StorageQueryChannel;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
@@ -49,6 +50,7 @@ public abstract class AbstractBeaconRestAPIIntegrationTest {
   static final TekuConfiguration config =
       TekuConfiguration.builder()
           .setRestApiPort(0)
+          .setRestApiEnabled(true)
           .setRestApiDocsEnabled(false)
           .setRestApiHostAllowlist(List.of("127.0.0.1", "localhost"))
           .build();
@@ -62,6 +64,7 @@ public abstract class AbstractBeaconRestAPIIntegrationTest {
   protected final SyncService syncService = mock(SyncService.class);
   protected final ValidatorApiChannel validatorApiChannel = mock(ValidatorApiChannel.class);
   private final BlockImporter blockImporter = mock(BlockImporter.class);
+  private final AggregatingAttestationPool attestationPool = mock(AggregatingAttestationPool.class);
 
   protected CombinedChainDataClient combinedChainDataClient =
       new CombinedChainDataClient(recentChainData, historicalChainData);
@@ -78,7 +81,8 @@ public abstract class AbstractBeaconRestAPIIntegrationTest {
             eth2Network,
             syncService,
             validatorApiChannel,
-            blockImporter);
+            blockImporter,
+            attestationPool);
 
     beaconRestApi = new BeaconRestApi(dataProvider, config);
     beaconRestApi.start();

@@ -6,7 +6,7 @@ import tech.pegasys.teku.phase1.integration.ssz.SSZBitvectorImpl
 import tech.pegasys.teku.phase1.integration.ssz.SSZByteListImpl
 import tech.pegasys.teku.phase1.integration.ssz.SSZListImpl
 import tech.pegasys.teku.phase1.integration.ssz.SSZVectorImpl
-import tech.pegasys.teku.phase1.integration.toUnsignedLong
+import tech.pegasys.teku.phase1.integration.toUInt64
 import tech.pegasys.teku.phase1.onotole.phase1.ENDIANNESS
 import tech.pegasys.teku.phase1.onotole.phase1.Root
 import tech.pegasys.teku.phase1.onotole.pylib.pybytes
@@ -192,7 +192,7 @@ fun <U : Any, V : ViewRead> getWrapper(view: ViewRead): (U) -> V {
     is BasicViews.BitView -> { e -> BasicViews.BitView(e as boolean) as V }
     is BasicViews.ByteView -> { e -> BasicViews.ByteView(e as Byte) as V }
     is UInt8View -> { e -> UInt8View(e as uint8) as V }
-    is BasicViews.UInt64View -> { e -> BasicViews.UInt64View((e as uint64).toUnsignedLong()) as V }
+    is BasicViews.UInt64View -> { e -> BasicViews.UInt64View((e as uint64).toUInt64()) as V }
     is BasicViews.Bytes4View -> { e -> BasicViews.Bytes4View(e as Bytes4) as V }
     is BasicViews.Bytes32View -> { e -> BasicViews.Bytes32View(e as Bytes32) as V }
     else -> throw IllegalArgumentException("Unsupported type ${view::class.qualifiedName}")

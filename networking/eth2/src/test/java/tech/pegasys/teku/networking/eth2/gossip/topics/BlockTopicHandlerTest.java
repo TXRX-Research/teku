@@ -20,7 +20,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.common.eventbus.EventBus;
-import com.google.common.primitives.UnsignedLong;
 import io.libp2p.core.pubsub.ValidationResult;
 import org.apache.tuweni.bytes.Bytes;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +28,7 @@ import tech.pegasys.teku.core.StateTransition;
 import tech.pegasys.teku.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.datastructures.state.ForkInfo;
 import tech.pegasys.teku.datastructures.util.DataStructureUtil;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.networking.eth2.gossip.encoding.GossipEncoding;
 import tech.pegasys.teku.networking.eth2.gossip.events.GossipedBlockEvent;
 import tech.pegasys.teku.networking.eth2.gossip.topics.validation.BlockValidator;
@@ -57,24 +57,24 @@ public class BlockTopicHandlerTest {
 
   @Test
   public void handleMessage_validBlock() throws Exception {
-    final UnsignedLong nextSlot = recentChainData.getBestSlot().plus(UnsignedLong.ONE);
+    final UInt64 nextSlot = recentChainData.getHeadSlot().plus(UInt64.ONE);
     final SignedBeaconBlock block = beaconChainUtil.createBlockAtSlot(nextSlot);
     Bytes serialized = gossipEncoding.encode(block);
     beaconChainUtil.setSlot(nextSlot);
 
-    final ValidationResult result = topicHandler.handleMessage(serialized);
+    final ValidationResult result = topicHandler.handleMessage(serialized).join();
     assertThat(result).isEqualTo(ValidationResult.Valid);
     verify(eventBus).post(new GossipedBlockEvent(block));
   }
 
   @Test
   public void handleMessage_validFutureBlock() throws Exception {
-    final UnsignedLong nextSlot = recentChainData.getBestSlot().plus(UnsignedLong.ONE);
+    final UInt64 nextSlot = recentChainData.getHeadSlot().plus(UInt64.ONE);
     final SignedBeaconBlock block = beaconChainUtil.createBlockAtSlot(nextSlot);
     Bytes serialized = gossipEncoding.encode(block);
-    beaconChainUtil.setSlot(recentChainData.getBestSlot());
+    beaconChainUtil.setSlot(recentChainData.getHeadSlot());
 
-    final ValidationResult result = topicHandler.handleMessage(serialized);
+    final ValidationResult result = topicHandler.handleMessage(serialized).join();
     assertThat(result).isEqualTo(ValidationResult.Ignore);
     verify(eventBus).post(new GossipedBlockEvent(block));
   }
@@ -84,7 +84,7 @@ public class BlockTopicHandlerTest {
     SignedBeaconBlock block = dataStructureUtil.randomSignedBeaconBlock(1);
     Bytes serialized = gossipEncoding.encode(block);
 
-    final ValidationResult result = topicHandler.handleMessage(serialized);
+    final ValidationResult result = topicHandler.handleMessage(serialized).join();
     assertThat(result).isEqualTo(ValidationResult.Ignore);
     verify(eventBus).post(new GossipedBlockEvent(block));
   }
@@ -93,18 +93,18 @@ public class BlockTopicHandlerTest {
   public void handleMessage_invalidBlock_invalidSSZ() {
     Bytes serialized = Bytes.fromHexString("0x1234");
 
-    final ValidationResult result = topicHandler.handleMessage(serialized);
+    final ValidationResult result = topicHandler.handleMessage(serialized).join();
     assertThat(result).isEqualTo(ValidationResult.Invalid);
   }
 
   @Test
   public void handleMessage_invalidBlock_wrongProposer() throws Exception {
-    final UnsignedLong nextSlot = recentChainData.getBestSlot().plus(UnsignedLong.ONE);
+    final UInt64 nextSlot = recentChainData.getHeadSlot().plus(UInt64.ONE);
     final SignedBeaconBlock block = beaconChainUtil.createBlockAtSlotFromInvalidProposer(nextSlot);
     Bytes serialized = gossipEncoding.encode(block);
     beaconChainUtil.setSlot(nextSlot);
 
-    final ValidationResult result = topicHandler.handleMessage(serialized);
+    final ValidationResult result = topicHandler.handleMessage(serialized).join();
     assertThat(result).isEqualTo(ValidationResult.Invalid);
     verify(eventBus, never()).post(new GossipedBlockEvent(block));
   }
