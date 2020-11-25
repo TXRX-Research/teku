@@ -47,6 +47,9 @@ class ExecutableData : AbstractImmutableContainer {
     get() = getBasicValue(get(5))
   val logs_bloom: SSZByteVector
     get() = SSZByteVectorImpl(getAny<VectorViewRead<BasicViews.ByteView>>(6))
+
+  // Below fields are not in the spec and meant to be removed in the next version
+  // They are used to be able to communicate with old-styled eth1-engine
   val tx_root: Bytes32
     get() = getBasicValue(get(7))
   val parent_hash: Bytes32
