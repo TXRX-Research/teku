@@ -211,6 +211,8 @@ class BeaconBlockBody : AbstractImmutableContainer {
     get() = SSZBitvectorImpl(getAny<VectorViewRead<BitView>>(14))
   val light_client_signature: BLSSignature
     get() = Bytes96(ViewUtils.getAllBytes(getAny(15)))
+  val executable_data: ExecutableData
+    get() = getAny(16)
 
   constructor(
     randao_reveal: BLSSignature,
@@ -226,7 +228,8 @@ class BeaconBlockBody : AbstractImmutableContainer {
     early_derived_secret_reveals: SSZList<EarlyDerivedSecretReveal>,
     shard_transitions: SSZVector<ShardTransition>,
     light_client_signature_bitfield: SSZBitvector,
-    light_client_signature: BLSSignature
+    light_client_signature: BLSSignature,
+    executable_data: ExecutableData
   ) : super(
     TYPE,
     ViewUtils.createVectorFromBytes(randao_reveal.wrappedBytes),
@@ -242,7 +245,8 @@ class BeaconBlockBody : AbstractImmutableContainer {
     (early_derived_secret_reveals as SSZAbstractCollection<*, *>).view,
     (shard_transitions as SSZAbstractCollection<*, *>).view,
     (light_client_signature_bitfield as SSZAbstractCollection<*, *>).view,
-    ViewUtils.createVectorFromBytes(light_client_signature.wrappedBytes)
+    ViewUtils.createVectorFromBytes(light_client_signature.wrappedBytes),
+    executable_data
   )
 
   constructor(
@@ -250,7 +254,8 @@ class BeaconBlockBody : AbstractImmutableContainer {
     eth1_data: Eth1Data,
     graffiti: Bytes32,
     attestations: List<Attestation>,
-    shard_transitions: List<ShardTransition>
+    shard_transitions: List<ShardTransition>,
+    executableData: ExecutableData = ExecutableData.TYPE.default
   ) : super(
     TYPE,
     ViewUtils.createVectorFromBytes(randao_reveal.wrappedBytes),
@@ -283,7 +288,8 @@ class BeaconBlockBody : AbstractImmutableContainer {
     ).default,
     getVectorView(ShardTransition.TYPE, MAX_SHARDS, shard_transitions) { it },
     VectorViewType<BitView>(BasicViewTypes.BIT_TYPE, LIGHT_CLIENT_COMMITTEE_SIZE.toLong()).default,
-    Bytes96Type.default
+    Bytes96Type.default,
+    executableData
   )
 
   constructor(
@@ -326,7 +332,8 @@ class BeaconBlockBody : AbstractImmutableContainer {
         ),
         VectorViewType<ShardTransition>(ShardTransition.TYPE, MAX_SHARDS.toLong()),
         VectorViewType<BitView>(BasicViewTypes.BIT_TYPE, LIGHT_CLIENT_COMMITTEE_SIZE.toLong()),
-        Bytes96Type
+        Bytes96Type,
+        ExecutableData.TYPE
       ), ::BeaconBlockBody
     )
   }
@@ -338,6 +345,7 @@ class BeaconBlockBody : AbstractImmutableContainer {
   fun toStringFull(): String {
     return "(\n" +
         "  eth1_data=$eth1_data\n" +
+        "  executable_data=$executable_data\n" +
         "  attestations:\n    ${attestations.joinToString("\n    ") { it.toString() }}\n" +
         "  shard_transitions:\n    ${(0uL until INITIAL_ACTIVE_SHARDS).map { shard_transitions[it] }
           .joinToString("\n    ") { it.toString() }}\n)"

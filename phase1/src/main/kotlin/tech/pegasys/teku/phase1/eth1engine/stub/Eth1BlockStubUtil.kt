@@ -20,16 +20,3 @@ fun encodeBlockDataWithRLP(
     it.writeValue(body)
   }
 }
-
-fun parseBlockNumberFromRLP(rlp: Bytes): uint64 {
-  return RLP.decodeList(rlp) {
-    it.readLong().toULong()
-  }
-}
-
-fun parseParentHashFromRLP(rlp: Bytes): Bytes32 {
-  return Bytes32.wrap(RLP.decodeList(rlp) {
-    it.readLong()
-    return@decodeList it.readValue()
-  })
-}

@@ -55,6 +55,26 @@ data class Bytes96(val wrappedBytes: Bytes) {
   }
 }
 
+data class Bytes20(val wrappedBytes: Bytes) {
+
+  companion object {
+    val ZERO = Bytes20(Bytes.wrap(ByteArray(20)))
+
+    fun leftPad(bytes: Bytes): Bytes20 {
+      require(bytes.size() <= 20)
+      if (bytes.size() == 20) {
+        return Bytes20(bytes)
+      }
+      val zeros = Bytes.wrap(ByteArray(20 - bytes.size()))
+      return Bytes20(Bytes.concatenate(zeros, bytes))
+    }
+  }
+
+  override fun toString(): String {
+    return wrappedBytes.toHexString()
+  }
+}
+
 typealias SSZDict<K, V> = MutableMap<K, V>
 
 typealias Sequence<T> = List<T>
@@ -109,7 +129,9 @@ interface SSZVector<T : Any> : SSZCollection<T> {
   fun updated(mutator: (SSZMutableVector<T>) -> Unit): SSZVector<T>
 }
 
-interface SSZByteVector : SSZVector<Byte>
+interface SSZByteVector : SSZVector<Byte> {
+  fun toBytes(): Bytes
+}
 interface SSZMutableVector<T : Any> : SSZVector<T>, SSZMutableCollection<T>
 interface SSZBitvector : SSZVector<Boolean>
 interface SSZMutableBitvector : SSZMutableVector<Boolean>

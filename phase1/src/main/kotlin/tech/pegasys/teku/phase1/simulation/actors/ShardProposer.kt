@@ -68,7 +68,7 @@ class ShardProposer(
       val response = eth1Engine.eth2_setHead(eth1BlockData.blockHash)
       if (response.result != true) {
         throw IllegalStateException(
-          "Failed to eth2_setHead(parent_hash=${printRoot(eth1BlockData.blockHash)}), " +
+          "Failed to eth2_setHead(hash=${printRoot(eth1BlockData.blockHash)}), " +
               "reason ${response.reason}"
         )
       }

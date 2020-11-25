@@ -29,6 +29,7 @@ import tech.pegasys.teku.ssz.backing.type.VectorViewType
 import tech.pegasys.teku.ssz.backing.type.ViewType
 import tech.pegasys.teku.ssz.backing.view.BasicViews.BitView
 import tech.pegasys.teku.ssz.backing.view.BasicViews.ByteView
+import tech.pegasys.teku.ssz.backing.view.ViewUtils
 
 abstract class SSZAbstractCollection<U : Any, V : ViewRead> : SSZCollection<U> {
   protected abstract val unwrapper: (V) -> U
@@ -357,6 +358,9 @@ class SSZByteListImpl(override val view: ListViewRead<ByteView>) :
     ).commitChanges()
   )
 
+  constructor(maxSize: ULong, bytes: Bytes)
+      : this(maxSize, (0 until bytes.size()).map { bytes[it] })
+
   override fun toBytes(): Bytes {
     val bytes = ByteArray(size)
     this.forEachIndexed { i, value -> bytes[i] = value }
@@ -367,6 +371,11 @@ class SSZByteListImpl(override val view: ListViewRead<ByteView>) :
 class SSZByteVectorImpl(override val view: VectorViewRead<ByteView>) :
   SSZAbstractCollection<Byte, ByteView>(), SSZByteVector {
   override val unwrapper: (ByteView) -> Byte = ByteView::get
+
+  override fun toBytes(): Bytes {
+    return ViewUtils.getAllBytes(view)
+  }
+
   override fun updated(mutator: (SSZMutableVector<Byte>) -> Unit): SSZVector<Byte> =
     throw UnsupportedOperationException()
 

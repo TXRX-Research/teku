@@ -848,7 +848,7 @@ open class Phase1Spec(internal val bls: BLS) {
     state.current_epoch_attestations.clear()
   }
 
-  fun process_block(state: BeaconState, block: BeaconBlock): Unit {
+  open fun process_block(state: BeaconState, block: BeaconBlock): Unit {
     process_block_header(state, block)
     process_randao(state, block.body)
     process_eth1_data(state, block.body)

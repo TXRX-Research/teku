@@ -6,6 +6,7 @@ import tech.pegasys.teku.phase1.integration.ssz.SSZAbstractCollection
 import tech.pegasys.teku.phase1.onotole.phase1.BLSPubkey
 import tech.pegasys.teku.phase1.onotole.phase1.BLSSignature
 import tech.pegasys.teku.phase1.onotole.ssz.Bytes
+import tech.pegasys.teku.phase1.onotole.ssz.Bytes20
 import tech.pegasys.teku.phase1.onotole.ssz.Bytes32
 import tech.pegasys.teku.phase1.onotole.ssz.Bytes4
 import tech.pegasys.teku.phase1.onotole.ssz.Bytes96
@@ -82,6 +83,7 @@ inline fun <reified T> wrapBasicValue(value: Any): T {
     is BLSSignature -> ViewUtils.createVectorFromBytes(value.wrappedBytes)
     is BLSPubkey -> ViewUtils.createVectorFromBytes(value)
     is Bytes32 -> BasicViews.Bytes32View(value)
+    is Bytes20 -> BasicViews.Bytes32View(Bytes32.leftPad(value.wrappedBytes))
     is Bytes4 -> BasicViews.Bytes4View(value)
     is Bytes -> ViewUtils.createVectorFromBytes(value)
     is Byte -> ByteView(value.toByte())
@@ -98,6 +100,7 @@ inline fun <reified T> getBasicValue(view: ViewRead): T {
     BLSSignature::class -> Bytes96(ViewUtils.getAllBytes(view as VectorViewRead<BasicViews.ByteView>))
     BLSPubkey::class -> Bytes48.wrap(ViewUtils.getAllBytes(view as VectorViewRead<BasicViews.ByteView>))
     Bytes32::class -> (view as BasicViews.Bytes32View).get()
+    Bytes20::class -> Bytes20((view as BasicViews.Bytes32View).get().slice(12, 20))
     Bytes4::class -> (view as BasicViews.Bytes4View).get()
     Bytes::class -> ViewUtils.getAllBytes(view as VectorViewRead<BasicViews.ByteView>)
     Byte::class -> (view as BasicViews.ByteView).get()

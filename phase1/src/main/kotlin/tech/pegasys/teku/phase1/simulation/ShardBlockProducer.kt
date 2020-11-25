@@ -3,6 +3,7 @@ package tech.pegasys.teku.phase1.simulation
 import org.apache.tuweni.bytes.Bytes32
 import tech.pegasys.teku.phase1.eth1engine.Eth1BlockData
 import tech.pegasys.teku.phase1.eth1engine.Eth1EngineClient
+import tech.pegasys.teku.phase1.eth1engine.parseEth1BlockDataFromRLP
 import tech.pegasys.teku.phase1.eth1shard.ETH1_SHARD_NUMBER
 import tech.pegasys.teku.phase1.integration.datastructures.ShardBlock
 import tech.pegasys.teku.phase1.integration.datastructures.SignedShardBlock
@@ -74,10 +75,11 @@ class Eth1ShardBlockProducer(
               "reason ${produceResponse.reason}"
       )
     }
-    val eth1BlockData = produceResponse.result
+    val blockRLP = produceResponse.result
+    val eth1BlockData = parseEth1BlockDataFromRLP(blockRLP)
 
     // Check if created Eth1 block is imported successfully
-    val importResponse = eth1Engine.eth2_insertBlock(eth1BlockData.blockRLP)
+    val importResponse = eth1Engine.eth2_insertBlock(blockRLP)
     if (importResponse.result != true) {
       throw IllegalStateException(
           "Failed to import $eth1BlockData, " +

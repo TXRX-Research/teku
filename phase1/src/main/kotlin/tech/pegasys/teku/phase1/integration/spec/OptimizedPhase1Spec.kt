@@ -23,7 +23,7 @@ import tech.pegasys.teku.phase1.onotole.ssz.Sequence
 import tech.pegasys.teku.phase1.onotole.ssz.uint64
 import tech.pegasys.teku.phase1.util.Caches
 
-class OptimizedPhase1Spec(private val caches: Caches, bls: BLS) : Phase1Spec(bls) {
+open class OptimizedPhase1Spec(private val caches: Caches, bls: BLS) : Phase1Spec(bls) {
 
   override fun get_active_validator_indices(
     state: BeaconState,

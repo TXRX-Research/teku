@@ -6,6 +6,7 @@ import tech.pegasys.teku.phase1.integration.datastructures.Attestation
 import tech.pegasys.teku.phase1.integration.datastructures.BeaconBlock
 import tech.pegasys.teku.phase1.integration.datastructures.BeaconBlockBody
 import tech.pegasys.teku.phase1.integration.datastructures.BeaconState
+import tech.pegasys.teku.phase1.integration.datastructures.ExecutableData
 import tech.pegasys.teku.phase1.integration.datastructures.ShardTransition
 import tech.pegasys.teku.phase1.integration.datastructures.SignedBeaconBlock
 import tech.pegasys.teku.phase1.onotole.phase1.MAX_SHARDS
@@ -21,7 +22,8 @@ fun produceBeaconBlock(
   attestations: List<Attestation>,
   shardTransitions: List<ShardTransition>,
   secretKeys: SecretKeyRegistry,
-  spec: Phase1Spec
+  spec: Phase1Spec,
+  executableData: ExecutableData
 ): SignedBeaconBlock {
   val stateWithAdvancedSlot = state.copy()
   spec.process_slots(stateWithAdvancedSlot, slot)
@@ -59,7 +61,8 @@ fun produceBeaconBlock(
       state.eth1_data,
       Bytes32.rightPad(Bytes.ofUnsignedLong(proposerIndex.toLong())),
       attestations,
-      shardTransitionVector
+      shardTransitionVector,
+      executableData
     )
   )
   logDebug { "ProposerUtil: new block created ${block.toStringFull()}" }

@@ -34,7 +34,7 @@ class Web3jEth1EngineClient(private val rpcUrl: String, private val context: Cor
 
   override fun eth2_produceBlock(parentHash: Bytes32) = runBlocking(context) {
     val response = web3j.eth2ProduceBlock(parentHash.toHexString()).flowable().asFlow().first()
-    getResultOrThrowError(response, { parseEth1BlockDataFromRLP(Bytes.fromBase64String(it!!)) })
+    getResultOrThrowError(response, { Bytes.fromBase64String(it!!) })
   }
 
   override fun eth2_validateBlock(blockRLP: Bytes) = runBlocking {

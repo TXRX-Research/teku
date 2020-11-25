@@ -9,10 +9,10 @@ import tech.pegasys.teku.phase1.eth1engine.Eth1EngineClient
 import tech.pegasys.teku.phase1.eth1engine.Web3jEth1EngineClient
 import tech.pegasys.teku.phase1.eth1engine.stub.Eth1EngineClientStub
 import tech.pegasys.teku.phase1.eth1engine.withLogger
+import tech.pegasys.teku.phase1.integration.spec.ExecutableBeaconSpec
 import tech.pegasys.teku.phase1.integration.spec.OptimizedPhase1Spec
 import tech.pegasys.teku.phase1.onotole.deps.BLS12381
 import tech.pegasys.teku.phase1.onotole.deps.NoOpBLS
-import tech.pegasys.teku.phase1.onotole.phase1.MAX_SHARDS
 import tech.pegasys.teku.phase1.onotole.phase1.SLOTS_PER_EPOCH
 import tech.pegasys.teku.phase1.simulation.actors.BeaconAttester
 import tech.pegasys.teku.phase1.simulation.actors.BeaconProposer
@@ -34,7 +34,7 @@ import tech.pegasys.teku.phase1.util.logDebug
 import tech.pegasys.teku.phase1.util.logSetDebugMode
 import kotlin.coroutines.CoroutineContext
 
-class Phase1Simulation(
+class ExecutableBeaconSimulation(
   private val scope: CoroutineScope,
   private val config: Config
 ) {
@@ -52,19 +52,9 @@ class Phase1Simulation(
   private val actors: List<Eth2Actor>
 
   init {
-    require(config.activeShards > 0uL) { "Active shard number can't be 0" }
-    require(config.activeShards <= MAX_SHARDS) {
-      "Active shard number(${config.activeShards}) exceeds MAX_SHARDS($MAX_SHARDS)"
-    }
-    if (config.eth1ShardNumber.toLong() != -1L) {
-      require(config.eth1ShardNumber < config.activeShards) {
-        "Eth1 Shard number exceeds active shards limit = ${config.activeShards}"
-      }
-    }
-
     setConstants(
       "minimal",
-      ConstantsConfig(config.activeShards, config.eth1ShardNumber, config.registrySize)
+      ConstantsConfig(config.activeShards, (-1).toULong(), config.registrySize)
     )
     logSetDebugMode(config.debug)
 
@@ -99,12 +89,16 @@ class Phase1Simulation(
       scope.coroutineContext
     ).withLogger("ProcessorEth1Engine")
 
+    val proposerSpec = ExecutableBeaconSpec(proposerEth1Engine, bls, cache)
+    val processorSpec = ExecutableBeaconSpec(processorEth1Engine, bls, cache)
+    val executableDataProducer = ExecutableDataProducer(proposerEth1Engine)
+
     actors = listOf(
       SlotTicker(eventBus, config.slotsToRun),
-      Eth2ChainProcessor(eventBus, store, processorEth1Engine, spec),
-      BeaconProposer(eventBus, secretKeys, spec),
-      ShardProposer(eventBus, secretKeys, proposerEth1Engine, spec),
+      Eth2ChainProcessor(eventBus, store, processorEth1Engine, processorSpec),
+      BeaconProposer(eventBus, secretKeys, proposerSpec, executableDataProducer),
       BeaconAttester(eventBus, secretKeys, spec),
+      ShardProposer(eventBus, secretKeys, Eth1EngineClientStub(SimulationRandomness), spec),
       DelayedAttestationsPark(eventBus),
       terminator
     )
@@ -143,8 +137,7 @@ class Phase1Simulation(
     var debug: Boolean = false,
     var bls: BLSConfig = BLSConfig.BLS12381,
     var cache: CacheConfig = CacheConfig.NoOp,
-    var activeShards: ULong = 2uL,
-    var eth1ShardNumber: ULong = 0uL
+    var activeShards: ULong = 2uL
   ) {
 
     val slotsToRun: ULong
@@ -159,7 +152,6 @@ class Phase1Simulation(
           "    debug=$debug\n" +
           "    bls=$bls\n" +
           "    activeShards=$activeShards\n" +
-          "    eth1ShardNumber=${eth1ShardNumber.toLong()}\n" +
           ")"
     }
   }
@@ -184,11 +176,11 @@ private fun instantiateEth1Engine(engine: String, ctx: CoroutineContext): Eth1En
 }
 
 @Suppress("FunctionName")
-fun Phase1Simulation(
+fun ExecutableBeaconSimulator(
   scope: CoroutineScope,
-  userConfig: (Phase1Simulation.Config) -> Unit
-): Phase1Simulation {
-  val config = Phase1Simulation.Config()
+  userConfig: (ExecutableBeaconSimulation.Config) -> Unit
+): ExecutableBeaconSimulation {
+  val config = ExecutableBeaconSimulation.Config()
   userConfig(config)
-  return Phase1Simulation(scope, config)
+  return ExecutableBeaconSimulation(scope, config)
 }

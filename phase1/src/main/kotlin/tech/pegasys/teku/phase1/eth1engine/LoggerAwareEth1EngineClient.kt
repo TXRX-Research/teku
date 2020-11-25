@@ -18,10 +18,15 @@ class LoggerAwareEth1EngineClient(
     return response
   }
 
-  override fun eth2_produceBlock(parentHash: Bytes32): Eth1EngineClient.Response<Eth1BlockData> {
+  override fun eth2_produceBlock(parentHash: Bytes32): Eth1EngineClient.Response<Bytes> {
     logDebug { "$name: attempt to eth2_produceBlock(parent_hash=${printRoot(parentHash)})" }
     val response = delegate.eth2_produceBlock(parentHash)
-    log("$name: eth2_produceBlock(parent_hash=${printRoot(parentHash)}) ~> ${response.result}")
+    log(
+      "$name: eth2_produceBlock(parent_hash=${printRoot(parentHash)}) " +
+          "~> blockRLP=[(${response.result?.size()} bytes): ${
+            response.result?.slice(0, 8)?.toHexString()
+          }...])"
+    )
     return response
   }
 

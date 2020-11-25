@@ -10,8 +10,10 @@ import tech.pegasys.teku.phase1.onotole.phase1.Phase1Spec
 import tech.pegasys.teku.phase1.onotole.phase1.Root
 import tech.pegasys.teku.phase1.onotole.phase1.Slot
 import tech.pegasys.teku.phase1.simulation.BeaconHead
+import tech.pegasys.teku.phase1.simulation.EmptyDataProducer
 import tech.pegasys.teku.phase1.simulation.Eth2Actor
 import tech.pegasys.teku.phase1.simulation.Eth2Event
+import tech.pegasys.teku.phase1.simulation.ExecutableDataProducer
 import tech.pegasys.teku.phase1.simulation.HeadAtTheBeginningOfNewSlot
 import tech.pegasys.teku.phase1.simulation.NewBeaconBlock
 import tech.pegasys.teku.phase1.simulation.NewSlot
@@ -26,7 +28,8 @@ import tech.pegasys.teku.phase1.util.printRoot
 class BeaconProposer(
   eventBus: SendChannel<Eth2Event>,
   private val secretKeys: SecretKeyRegistry,
-  private val spec: Phase1Spec
+  private val spec: Phase1Spec,
+  private val executableDataProducer: ExecutableDataProducer = EmptyDataProducer
 ) : Eth2Actor(eventBus) {
 
   private var recentSlot = GENESIS_SLOT
@@ -78,6 +81,7 @@ class BeaconProposer(
   ) {
     val attestations = recentAttestations.map { Attestation(it) }
     val shardTransitions = recentAttestations.map { it.data.shard_transition }
+    val executableData = executableDataProducer.produce(recentSlot)
     val newBlock =
       produceBeaconBlock(
         headState,
@@ -86,7 +90,8 @@ class BeaconProposer(
         attestations,
         shardTransitions,
         secretKeys,
-        spec
+        spec,
+        executableData
       )
     logDebug { "Publishing ${NewBeaconBlock(newBlock)}..." }
     publish(NewBeaconBlock(newBlock))
