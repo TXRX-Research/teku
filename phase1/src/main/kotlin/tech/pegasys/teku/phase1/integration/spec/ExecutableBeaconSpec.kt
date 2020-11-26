@@ -31,20 +31,14 @@ class ExecutableBeaconSpec(
     val block_rlp = encodeEth1BlockWithRLP(eth1_block)
 
     val insert_block_response = eth1_engine.eth2_insertBlock(block_rlp)
-    if (insert_block_response.result != true) {
-      throw IllegalStateException(
-        "Failed to eth2_insertBlock($eth1_block), " +
-            "slot=${state.slot} reason: ${insert_block_response.reason}"
-      )
+    assert(insert_block_response.result == true) {
+      "Failed to eth2_insertBlock($eth1_block), slot=${state.slot} reason: ${insert_block_response.reason}"
     }
 
     // a hack to make old styled eth1-engine work
     val set_header_response = eth1_engine.eth2_setHead(eth1_block.hash)
-    if (set_header_response.result != true) {
-      throw IllegalStateException(
-        "Failed to eth2_setHead(hash=${printRoot(eth1_block.hash)}), " +
-            "reason ${set_header_response.reason}"
-      )
+    assert(insert_block_response.result == true) {
+      "Failed to eth2_setHead(hash=${printRoot(eth1_block.hash)}), reason ${set_header_response.reason}"
     }
   }
 }
