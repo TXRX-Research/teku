@@ -1,5 +1,6 @@
 package tech.pegasys.teku.phase1.integration.datastructures
 
+import org.apache.tuweni.units.bigints.UInt256
 import tech.pegasys.teku.phase1.integration.getBasicValue
 import tech.pegasys.teku.phase1.integration.ssz.SSZByteListImpl
 import tech.pegasys.teku.phase1.integration.ssz.SSZByteVectorImpl
@@ -14,7 +15,6 @@ import tech.pegasys.teku.phase1.onotole.ssz.SSZByteVector
 import tech.pegasys.teku.phase1.onotole.ssz.SSZList
 import tech.pegasys.teku.phase1.onotole.ssz.uint64
 import tech.pegasys.teku.phase1.util.printRoot
-import tech.pegasys.teku.ssz.backing.ListViewRead
 import tech.pegasys.teku.ssz.backing.VectorViewRead
 import tech.pegasys.teku.ssz.backing.tree.TreeNode
 import tech.pegasys.teku.ssz.backing.type.BasicViewTypes
@@ -28,6 +28,7 @@ import tech.pegasys.teku.ssz.backing.view.ViewUtils
 val MAX_TRANSACTIONS = 1uL shl 32
 val MAX_TRANSACTION_SIZE = 1uL shl 32
 val LOGS_BLOOM_SIZE = 256uL
+val MAX_BYTES_PER_TRANSACTION_PAYLOAD = 1uL shl 32
 
 class ExecutableData : AbstractImmutableContainer {
 
@@ -39,27 +40,16 @@ class ExecutableData : AbstractImmutableContainer {
     get() = getBasicValue(get(2))
   val gas_used: uint64
     get() = getBasicValue(get(3))
-  val transactions: SSZList<SSZByteList>
-    get() = SSZListImpl<SSZByteList, ListViewRead<BasicViews.ByteView>>(getAny(4)) {
-      SSZByteListImpl(it)
-    }
-  val receipts_root: Bytes32
+  val transactions: SSZList<Eth1Transaction>
+    get() = SSZListImpl<Eth1Transaction, Eth1Transaction>(getAny(4)) { it }
+  val receipt_root: Bytes32
     get() = getBasicValue(get(5))
   val logs_bloom: SSZByteVector
     get() = SSZByteVectorImpl(getAny<VectorViewRead<BasicViews.ByteView>>(6))
-
-  // Below fields are not in the spec and meant to be removed in the next version
-  // They are used to be able to communicate with old-styled eth1-engine
-  val tx_root: Bytes32
+  val block_hash: Bytes32
     get() = getBasicValue(get(7))
-  val parent_hash: Bytes32
-    get() = getBasicValue(get(8))
-  val timestamp: uint64
-    get() = getBasicValue(get(9))
-  val number: uint64
-    get() = getBasicValue(get(10))
   val difficulty: uint64
-    get() = getBasicValue(get(11))
+    get() = getBasicValue(get(8))
 
   constructor(
     type: ContainerViewType<out AbstractImmutableContainer>,
@@ -71,13 +61,10 @@ class ExecutableData : AbstractImmutableContainer {
     state_root: Bytes32,
     gas_limit: uint64,
     gas_used: uint64,
-    transactions: List<Bytes>,
-    receipts_root: Bytes32,
+    transactions: List<Eth1Transaction>,
+    receipt_root: Bytes32,
     logs_bloom: Bytes,
-    tx_root: Bytes32,
-    parent_hash: Bytes32,
-    timestamp: uint64,
-    number: uint64,
+    block_hash: Bytes32,
     difficulty: uint64
   ) : super(
     TYPE,
@@ -86,17 +73,10 @@ class ExecutableData : AbstractImmutableContainer {
       state_root,
       gas_limit,
       gas_used,
-      getListView(
-        ListViewType<BasicViews.ByteView>(BasicViewTypes.BYTE_TYPE, MAX_TRANSACTIONS.toLong()),
-        MAX_TRANSACTIONS,
-        transactions
-      ) { SSZByteListImpl(MAX_TRANSACTION_SIZE, it).view },
-      receipts_root,
+      getListView(Eth1Transaction.TYPE, MAX_TRANSACTIONS, transactions) { it },
+      receipt_root,
       logs_bloom,
-      tx_root,
-      parent_hash,
-      timestamp,
-      number,
+      block_hash,
       difficulty
     )
   )
@@ -111,19 +91,10 @@ class ExecutableData : AbstractImmutableContainer {
         BasicViewTypes.BYTES32_TYPE,
         BasicViewTypes.UINT64_TYPE,
         BasicViewTypes.UINT64_TYPE,
-        ListViewType<ListViewRead<BasicViews.ByteView>>(
-          ListViewType<BasicViews.ByteView>(
-            BasicViewTypes.BYTE_TYPE,
-            MAX_TRANSACTION_SIZE.toLong()
-          ),
-          MAX_TRANSACTIONS.toLong()
-        ),
+        ListViewType<Eth1Transaction>(Eth1Transaction.TYPE, MAX_TRANSACTIONS.toLong()),
         BasicViewTypes.BYTES32_TYPE,
         VectorViewType<BasicViews.ByteView>(BasicViewTypes.BYTE_TYPE, LOGS_BLOOM_SIZE.toLong()),
         BasicViewTypes.BYTES32_TYPE,
-        BasicViewTypes.BYTES32_TYPE,
-        BasicViewTypes.UINT64_TYPE,
-        BasicViewTypes.UINT64_TYPE,
         BasicViewTypes.UINT64_TYPE
       ),
       ::ExecutableData
@@ -137,13 +108,91 @@ class ExecutableData : AbstractImmutableContainer {
         "gas_limit=${gas_limit}, " +
         "gas_used=${gas_used}, " +
         "transactions=${transactions.size}, " +
-        "receipts_root=${printRoot(receipts_root)}, " +
+        "receipt_root=${printRoot(receipt_root)}, " +
         "logs_bloom=${
           ViewUtils.getAllBytes((logs_bloom as SSZByteVectorImpl).view).slice(0, 10)
         }, " +
-        "tx_root=${printRoot(tx_root)}, " +
-        "number=$number, " +
-        "parent_hash=${printRoot(parent_hash)}, " +
-        "timestamp=$timestamp)"
+        "block_hash=${printRoot(block_hash)}, " +
+        "difficulty=$difficulty)"
+  }
+}
+
+
+class Eth1Transaction : AbstractImmutableContainer {
+
+  val nonce: uint64
+    get() = getBasicValue(get(0))
+  val gas_price: UInt256
+    get() = getBasicValue(get(1))
+  val gas_limit: uint64
+    get() = getBasicValue(get(2))
+  val recipient: Bytes20
+    get() = getBasicValue(get(3))
+  val value: UInt256
+    get() = getBasicValue(get(4))
+  val input: SSZByteList
+    get() = SSZByteListImpl(getAny(5))
+  val v: UInt256
+    get() = getBasicValue(get(6))
+  val r: UInt256
+    get() = getBasicValue(get(7))
+  val s: UInt256
+    get() = getBasicValue(get(8))
+
+  constructor(
+    type: ContainerViewType<out AbstractImmutableContainer>,
+    backingNode: TreeNode
+  ) : super(type, backingNode)
+
+  constructor(
+    nonce: uint64,
+    gas_price: UInt256,
+    gas_limit: uint64,
+    recipient: Bytes20,
+    value: UInt256,
+    input: Bytes,
+    v: UInt256,
+    r: UInt256,
+    s: UInt256
+  ) : super(
+    TYPE,
+    *wrapValues(
+      nonce,
+      gas_price,
+      gas_limit,
+      recipient,
+      value,
+      getListView(
+        BasicViewTypes.BYTE_TYPE,
+        MAX_BYTES_PER_TRANSACTION_PAYLOAD,
+        input.toArray().toList()
+      ) { BasicViews.ByteView(it) },
+      v,
+      r,
+      s
+    )
+  )
+
+  constructor() : super(TYPE)
+
+  companion object {
+
+    val TYPE = ContainerViewType(
+      listOf(
+        BasicViewTypes.UINT64_TYPE,
+        BasicViewTypes.BYTES32_TYPE,
+        BasicViewTypes.UINT64_TYPE,
+        BasicViewTypes.BYTES32_TYPE,
+        BasicViewTypes.BYTES32_TYPE,
+        ListViewType<BasicViews.ByteView>(
+          BasicViewTypes.BYTE_TYPE,
+          MAX_BYTES_PER_TRANSACTION_PAYLOAD.toLong()
+        ),
+        BasicViewTypes.BYTES32_TYPE,
+        BasicViewTypes.BYTES32_TYPE,
+        BasicViewTypes.BYTES32_TYPE
+      ),
+      ::Eth1Transaction
+    )
   }
 }

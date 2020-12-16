@@ -861,7 +861,7 @@ open class Phase1Spec(internal val bls: BLS) {
     assert((block.slot > state.latest_block_header.slot))
     assert((block.proposer_index == get_beacon_proposer_index(state)))
     assert((block.parent_root == hash_tree_root(state.latest_block_header)))
-    state.latest_block_header = BeaconBlockHeader(slot = block.slot, proposer_index = block.proposer_index, parent_root = block.parent_root, state_root = Bytes32(), body_root = hash_tree_root(block.body))
+    state.latest_block_header = BeaconBlockHeader(slot = block.slot, proposer_index = block.proposer_index, parent_root = block.parent_root, state_root = Bytes32(), body_root = hash_tree_root(block.body), eth1_parent_hash = block.eth1_parent_hash)
     val proposer = state.validators[block.proposer_index]
     assert(!(proposer.slashed))
   }
@@ -982,7 +982,7 @@ open class Phase1Spec(internal val bls: BLS) {
     initiate_validator_exit(state, voluntary_exit.validator_index)
   }
 
-  fun get_forkchoice_store(anchor_state: BeaconState): Store {
+  fun get_forkchoice_store(anchor_state: BeaconState, eth1_genesis_hash: Bytes32 = Bytes32()): Store {
     var anchor_block_header = anchor_state.latest_block_header
     if ((anchor_block_header.state_root == Bytes32())) {
       anchor_block_header = anchor_block_header.copy(state_root = hash_tree_root(anchor_state))
@@ -1000,7 +1000,8 @@ open class Phase1Spec(internal val bls: BLS) {
         blocks = PyDict(anchor_root to anchor_block_header),
         block_states = PyDict(anchor_root to anchor_state.copy()),
         checkpoint_states = PyDict(justified_checkpoint to anchor_state.copy()),
-        shard_stores = range(get_active_shard_count(anchor_state)).map { shard -> Shard(shard) to get_forkchoice_shard_store(anchor_state, Shard(shard)) }.toPyDict())
+        shard_stores = range(get_active_shard_count(anchor_state)).map { shard -> Shard(shard) to get_forkchoice_shard_store(anchor_state, Shard(shard)) }.toPyDict(),
+        eth1_block_hashes = PyDict(anchor_root to eth1_genesis_hash))
   }
 
   fun get_slots_since_genesis(store: Store): pyint {
@@ -1155,7 +1156,8 @@ open class Phase1Spec(internal val bls: BLS) {
     assert((block.slot > finalized_slot))
     assert((get_ancestor(store, block.parent_root, finalized_slot) == store.finalized_checkpoint.root))
     val state = state_transition(pre_state, signed_block, true)
-    store.blocks[hash_tree_root(block)] = BeaconBlockHeader(slot = block.slot, proposer_index = block.proposer_index, parent_root = block.parent_root, state_root = block.state_root, body_root = hash_tree_root(block.body))
+    store.blocks[hash_tree_root(block)] = BeaconBlockHeader(slot = block.slot, proposer_index = block.proposer_index, parent_root = block.parent_root, state_root = block.state_root, body_root = hash_tree_root(block.body), eth1_parent_hash = block.eth1_parent_hash)
+    store.eth1_block_hashes[hash_tree_root(block)] = block.body.executable_data.block_hash
     store.block_states[hash_tree_root(block)] = state
     if ((state.current_justified_checkpoint.epoch > store.justified_checkpoint.epoch)) {
       if ((state.current_justified_checkpoint.epoch > store.best_justified_checkpoint.epoch)) {

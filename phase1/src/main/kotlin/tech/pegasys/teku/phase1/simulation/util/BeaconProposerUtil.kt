@@ -6,13 +6,14 @@ import tech.pegasys.teku.phase1.integration.datastructures.Attestation
 import tech.pegasys.teku.phase1.integration.datastructures.BeaconBlock
 import tech.pegasys.teku.phase1.integration.datastructures.BeaconBlockBody
 import tech.pegasys.teku.phase1.integration.datastructures.BeaconState
-import tech.pegasys.teku.phase1.integration.datastructures.ExecutableData
 import tech.pegasys.teku.phase1.integration.datastructures.ShardTransition
 import tech.pegasys.teku.phase1.integration.datastructures.SignedBeaconBlock
+import tech.pegasys.teku.phase1.onotole.deps.hash
 import tech.pegasys.teku.phase1.onotole.phase1.MAX_SHARDS
 import tech.pegasys.teku.phase1.onotole.phase1.Phase1Spec
 import tech.pegasys.teku.phase1.onotole.phase1.Root
 import tech.pegasys.teku.phase1.onotole.phase1.Slot
+import tech.pegasys.teku.phase1.simulation.ExecutableDataProducer
 import tech.pegasys.teku.phase1.util.logDebug
 
 fun produceBeaconBlock(
@@ -23,7 +24,8 @@ fun produceBeaconBlock(
   shardTransitions: List<ShardTransition>,
   secretKeys: SecretKeyRegistry,
   spec: Phase1Spec,
-  executableData: ExecutableData
+  executableDataProducer: ExecutableDataProducer,
+  eth1_parent_hash: Bytes32
 ): SignedBeaconBlock {
   val stateWithAdvancedSlot = state.copy()
   spec.process_slots(stateWithAdvancedSlot, slot)
@@ -37,7 +39,8 @@ fun produceBeaconBlock(
     proposerIndex,
     parentRoot,
     Bytes32.ZERO,
-    BeaconBlockBody()
+    BeaconBlockBody(),
+    eth1_parent_hash
   )
   val randaoReveal = spec.get_epoch_signature(stateWithAdvancedSlot, blockHeader, proposerSecretKey)
   val (shards, winningRoots) = spec.get_shard_winning_roots(stateWithAdvancedSlot, attestations)
@@ -51,6 +54,12 @@ fun produceBeaconBlock(
       ShardTransition()
     }
   }
+
+  val epoch = spec.get_current_epoch(stateWithAdvancedSlot)
+  val timestamp = spec.compute_time_at_slot(stateWithAdvancedSlot, slot)
+  val randaoMix = spec.xor(spec.get_randao_mix(stateWithAdvancedSlot, epoch), hash(randaoReveal))
+  val executableData = executableDataProducer.produce(eth1_parent_hash, slot, timestamp, randaoMix)
+
   val block = BeaconBlock(
     slot,
     proposerIndex,
@@ -63,13 +72,14 @@ fun produceBeaconBlock(
       attestations,
       shardTransitionVector,
       executableData
-    )
+    ),
+    eth1_parent_hash
   )
   logDebug { "ProposerUtil: new block created ${block.toStringFull()}" }
 
   val endState = spec.state_transition(state.copy(), SignedBeaconBlock(block), false)
   val blockWithStateRoot = block.copy(state_root = endState.applyChanges().hashTreeRoot())
-  val signature = spec.get_block_signature(state, blockWithStateRoot, proposerSecretKey)
+  val signature = spec.get_block_signature(endState, blockWithStateRoot, proposerSecretKey)
 
   return SignedBeaconBlock(blockWithStateRoot, signature)
 }

@@ -13,9 +13,9 @@ fun main(args: Array<String>) = runBlocking<Unit> {
   Security.addProvider(BouncyCastleProvider())
 
   val scope = CoroutineScope(coroutineContext + Dispatchers.Default)
-  val proposerEth1Engine = "stub"
-  val processorEth1Engine = "stub"
-  val debug = false
+  val proposerEth1Engine = "http://127.0.0.1:8545"
+  val processorEth1Engine = "http://127.0.0.1:8545"
+  val debug = true
   val bls = ExecutableBeaconSimulation.BLSConfig.BLS12381
   val noCache = false
 

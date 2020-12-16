@@ -103,12 +103,15 @@ class BeaconBlockHeader : AbstractImmutableContainer {
     get() = getBasicValue(get(3))
   val body_root: Root
     get() = getBasicValue(get(4))
+  val eth1_parent_hash: Bytes32
+    get() = getBasicValue(get(5))
 
   constructor(
     slot: Slot = Slot(),
     proposer_index: ValidatorIndex = ValidatorIndex(),
     parent_root: Root = Root(),
     state_root: Root = Root(),
+    eth1_parent_hash: Bytes32 = Bytes32(),
     body_root: Root
   ) : super(
     TYPE, *wrapValues(
@@ -116,7 +119,8 @@ class BeaconBlockHeader : AbstractImmutableContainer {
       proposer_index,
       parent_root,
       state_root,
-      body_root
+      body_root,
+      eth1_parent_hash
     )
   )
 
@@ -133,14 +137,16 @@ class BeaconBlockHeader : AbstractImmutableContainer {
     proposer_index: ValidatorIndex = this.proposer_index,
     parent_root: Root = this.parent_root,
     state_root: Root = this.state_root,
-    body_root: Root = this.body_root
-  ): BeaconBlockHeader = BeaconBlockHeader(slot, proposer_index, parent_root, state_root, body_root)
+    body_root: Root = this.body_root,
+    eth1_parent_hash: Bytes32 = this.eth1_parent_hash
+  ): BeaconBlockHeader = BeaconBlockHeader(slot, proposer_index, parent_root, state_root, eth1_parent_hash, body_root)
 
   companion object {
     val TYPE = ContainerViewType(
       listOf(
         BasicViewTypes.UINT64_TYPE,
         BasicViewTypes.UINT64_TYPE,
+        BasicViewTypes.BYTES32_TYPE,
         BasicViewTypes.BYTES32_TYPE,
         BasicViewTypes.BYTES32_TYPE,
         BasicViewTypes.BYTES32_TYPE
@@ -344,6 +350,7 @@ class BeaconBlockBody : AbstractImmutableContainer {
 
   fun toStringFull(): String {
     return "(\n" +
+        "  randao_reveal=${randao_reveal.wrappedBytes.toHexString().substring(0, 10)}\n" +
         "  eth1_data=$eth1_data\n" +
         "  executable_data=$executable_data\n" +
         "  attestations:\n    ${attestations.joinToString("\n    ") { it.toString() }}\n" +
@@ -363,20 +370,24 @@ class BeaconBlock : AbstractImmutableContainer {
     get() = (get(3) as Bytes32View).get()
   val body: BeaconBlockBody
     get() = getAny(4)
+  val eth1_parent_hash: Bytes32
+    get() = getBasicValue(get(5))
 
   constructor(
     slot: Slot,
     proposer_index: ValidatorIndex,
     parent_root: Root,
     state_root: Root,
-    body: BeaconBlockBody
+    body: BeaconBlockBody,
+    eth1_parent_hash: Bytes32 = Bytes32()
   ) : super(
     TYPE,
     UInt64View(slot.toUInt64()),
     UInt64View(proposer_index.toUInt64()),
     Bytes32View(parent_root),
     Bytes32View(state_root),
-    body
+    body,
+    Bytes32View(eth1_parent_hash)
   )
 
   constructor(state_root: Root) : this(
@@ -401,7 +412,8 @@ class BeaconBlock : AbstractImmutableContainer {
         BasicViewTypes.UINT64_TYPE,
         BasicViewTypes.BYTES32_TYPE,
         BasicViewTypes.BYTES32_TYPE,
-        BeaconBlockBody.TYPE
+        BeaconBlockBody.TYPE,
+        BasicViewTypes.BYTES32_TYPE
       ), ::BeaconBlock
     )
   }
@@ -411,8 +423,9 @@ class BeaconBlock : AbstractImmutableContainer {
     proposer_index: ValidatorIndex = this.proposer_index,
     parent_root: Root = this.parent_root,
     state_root: Root = this.state_root,
-    body: BeaconBlockBody = this.body
-  ): BeaconBlock = BeaconBlock(slot, proposer_index, parent_root, state_root, body)
+    body: BeaconBlockBody = this.body,
+    eth1_parent_hash: Bytes32 = this.eth1_parent_hash
+  ): BeaconBlock = BeaconBlock(slot, proposer_index, parent_root, state_root, body, eth1_parent_hash)
 
   override fun toString(): String {
     return "BeaconBlock(" +

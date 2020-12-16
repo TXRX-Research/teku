@@ -3,12 +3,14 @@ package tech.pegasys.teku.phase1.eth1engine.stub
 import tech.pegasys.teku.phase1.eth1engine.Eth1Block
 import tech.pegasys.teku.phase1.eth1engine.Eth1BlockHeader
 import tech.pegasys.teku.phase1.eth1engine.Eth1EngineClient
+import tech.pegasys.teku.phase1.eth1engine.ExecutableDataDTO
 import tech.pegasys.teku.phase1.eth1engine.decodeEth1BlockRLP
 import tech.pegasys.teku.phase1.eth1engine.encodeEth1BlockWithRLP
 import tech.pegasys.teku.phase1.integration.datastructures.LOGS_BLOOM_SIZE
 import tech.pegasys.teku.phase1.onotole.ssz.Bytes
 import tech.pegasys.teku.phase1.onotole.ssz.Bytes20
 import tech.pegasys.teku.phase1.onotole.ssz.Bytes32
+import tech.pegasys.teku.phase1.onotole.ssz.uint64
 import tech.pegasys.teku.phase1.util.printRoot
 import java.util.*
 import kotlin.collections.HashMap
@@ -33,7 +35,7 @@ class Eth1EngineClientStub(private val rnd: Random) :
         timestamp = 0uL,
         gasLimit = 0uL,
         gasUsed = 0uL
-    )
+      )
     )
     val genesisRLP = encodeEth1BlockWithRLP(genesis)
     headBlockHash = genesis.hash
@@ -56,20 +58,32 @@ class Eth1EngineClientStub(private val rnd: Random) :
     val parentBlockRLP = blocks[parentHash]!!
     val number = decodeEth1BlockRLP(parentBlockRLP).header.number + 1uL
 
-    val block = Eth1Block(Eth1BlockHeader(
-      parentHash = parentHash,
-      coinbase = Bytes20.ZERO,
-      stateRoot = stateRoot,
-      receiptsRoot = receiptsRoot,
-      logsBloom = Bytes.random(LOGS_BLOOM_SIZE.toInt()),
-      number = number,
-      timestamp = (System.currentTimeMillis() / 1000).toULong(),
-      gasLimit = GAS_LIMIT,
-      gasUsed = 0uL
-    ))
+    val block = Eth1Block(
+      Eth1BlockHeader(
+        parentHash = parentHash,
+        coinbase = Bytes20.ZERO,
+        stateRoot = stateRoot,
+        receiptsRoot = receiptsRoot,
+        logsBloom = Bytes.random(LOGS_BLOOM_SIZE.toInt()),
+        number = number,
+        timestamp = (System.currentTimeMillis() / 1000).toULong(),
+        gasLimit = GAS_LIMIT,
+        gasUsed = 0uL
+      )
+    )
     val blockRLP = encodeEth1BlockWithRLP(block)
 
     return Eth1EngineClient.Response(blockRLP)
+  }
+
+  override fun eth2_produceBlock(
+    parentHash: Bytes32,
+    randaoMix: Bytes32,
+    slot: uint64,
+    timestamp: uint64,
+    recentBeaconBlockRoots: Array<Bytes32>
+  ): Eth1EngineClient.Response<ExecutableDataDTO> {
+    TODO("Not yet implemented")
   }
 
   override fun eth2_validateBlock(blockRLP: Bytes): Eth1EngineClient.Response<Boolean> {
@@ -91,6 +105,17 @@ class Eth1EngineClientStub(private val rnd: Random) :
     val blockHash = block.hash
     blocks[blockHash] = blockRLP
     return Eth1EngineClient.Response(true)
+  }
+
+  override fun eth2_insertBlock(
+    parentHash: Bytes32,
+    randaoMix: Bytes32,
+    slot: uint64,
+    timestamp: uint64,
+    recentBeaconBlockRoots: Array<Bytes32>,
+    executableData: ExecutableDataDTO
+  ): Eth1EngineClient.Response<Boolean> {
+    TODO("Not yet implemented")
   }
 
   override fun eth2_setHead(blockHash: Bytes32): Eth1EngineClient.Response<Boolean> {

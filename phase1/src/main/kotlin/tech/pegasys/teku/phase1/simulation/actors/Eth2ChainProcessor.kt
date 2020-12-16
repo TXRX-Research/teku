@@ -93,7 +93,7 @@ class Eth2ChainProcessor(
   private suspend fun publishBeaconHead(eventCtor: (BeaconHead) -> Eth2Event) {
     val headRoot = spec.get_head(store)
     val headState = store.block_states[headRoot]!!
-    publish(eventCtor(BeaconHead(headRoot, headState)))
+    publish(eventCtor(BeaconHead(headRoot, headState, store.eth1_block_hashes[headRoot]!!)))
   }
 
   private suspend fun onNewShardBlocks(blocks: List<SignedShardBlock>) {

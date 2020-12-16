@@ -2,6 +2,7 @@ package tech.pegasys.teku.phase1.integration
 
 import com.google.common.primitives.UnsignedLong
 import org.apache.tuweni.bytes.Bytes48
+import org.apache.tuweni.units.bigints.UInt256
 import tech.pegasys.teku.phase1.integration.ssz.SSZAbstractCollection
 import tech.pegasys.teku.phase1.onotole.phase1.BLSPubkey
 import tech.pegasys.teku.phase1.onotole.phase1.BLSSignature
@@ -78,6 +79,7 @@ val UInt8Type = object : ViewType {
 inline fun <reified T> wrapBasicValue(value: Any): T {
   return when (value) {
     is uint8 -> UInt8View(value)
+    is UInt256 -> BasicViews.Bytes32View(value.toBytes())
     is uint64 -> BasicViews.UInt64View(value.toUInt64())
     is boolean -> BasicViews.BitView(value)
     is BLSSignature -> ViewUtils.createVectorFromBytes(value.wrappedBytes)
@@ -96,6 +98,7 @@ inline fun <reified T> getBasicValue(view: ViewRead): T {
   return when (T::class) {
     uint8::class -> (view as UInt8View).get()
     uint64::class -> (view as BasicViews.UInt64View).get().toUInt64()
+    UInt256::class -> UInt256.fromBytes((view as BasicViews.Bytes32View).get())
     boolean::class -> (view as BasicViews.BitView).get()
     BLSSignature::class -> Bytes96(ViewUtils.getAllBytes(view as VectorViewRead<BasicViews.ByteView>))
     BLSPubkey::class -> Bytes48.wrap(ViewUtils.getAllBytes(view as VectorViewRead<BasicViews.ByteView>))

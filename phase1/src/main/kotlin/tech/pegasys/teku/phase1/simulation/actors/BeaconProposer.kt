@@ -2,6 +2,7 @@ package tech.pegasys.teku.phase1.simulation.actors
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.SendChannel
+import org.apache.tuweni.bytes.Bytes32
 import tech.pegasys.teku.phase1.integration.datastructures.Attestation
 import tech.pegasys.teku.phase1.integration.datastructures.BeaconState
 import tech.pegasys.teku.phase1.integration.datastructures.FullAttestation
@@ -67,7 +68,12 @@ class BeaconProposer(
   private suspend fun proposeIfReady() {
     if (isReadyToPropose()) {
       logDebug { "Proposing a block atop of head(root=${printRoot(recentHead!!.root)})..." }
-      proposeBlock(recentHead!!.root, recentHead!!.state, recentAttestations!!)
+      proposeBlock(
+        recentHead!!.root,
+        recentHead!!.state,
+        recentAttestations!!,
+        recentHead!!.eth1_block_hash
+      )
     }
   }
 
@@ -77,11 +83,11 @@ class BeaconProposer(
   private suspend fun proposeBlock(
     headRoot: Root,
     headState: BeaconState,
-    recentAttestations: List<FullAttestation>
+    recentAttestations: List<FullAttestation>,
+    eth1_block_hash: Bytes32
   ) {
     val attestations = recentAttestations.map { Attestation(it) }
     val shardTransitions = recentAttestations.map { it.data.shard_transition }
-    val executableData = executableDataProducer.produce(recentSlot)
     val newBlock =
       produceBeaconBlock(
         headState,
@@ -91,7 +97,8 @@ class BeaconProposer(
         shardTransitions,
         secretKeys,
         spec,
-        executableData
+        executableDataProducer,
+        eth1_block_hash
       )
     logDebug { "Publishing ${NewBeaconBlock(newBlock)}..." }
     publish(NewBeaconBlock(newBlock))

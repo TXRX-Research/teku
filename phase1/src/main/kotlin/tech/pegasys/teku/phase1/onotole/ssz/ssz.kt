@@ -39,11 +39,13 @@ typealias Bytes32 = TuweniBytes32
 typealias Bytes48 = TuweniBytes48
 
 data class Bytes96(val wrappedBytes: Bytes) {
+
   override fun toString(): String {
     return wrappedBytes.toString()
   }
 
   companion object {
+
     fun leftPad(bytes: Bytes): Bytes96 {
       require(bytes.size() <= 96)
       if (bytes.size() == 96) {
@@ -58,6 +60,7 @@ data class Bytes96(val wrappedBytes: Bytes) {
 data class Bytes20(val wrappedBytes: Bytes) {
 
   companion object {
+
     val ZERO = Bytes20(Bytes.wrap(ByteArray(20)))
 
     fun leftPad(bytes: Bytes): Bytes20 {
@@ -94,44 +97,53 @@ fun Bytes96(): Bytes96 = Bytes96(TuweniBytes.concatenate(Bytes48.ZERO, Bytes48.Z
 fun <K, V> SSZDict() = mutableMapOf<K, V>()
 
 interface SSZCollection<T : Any> : Sequence<T> {
+
   operator fun get(index: ULong): T
   override operator fun get(index: Int): T = get(index.toULong())
   fun hashTreeRoot(): Root
 }
 
 interface SSZMutableCollection<T : Any> : SSZCollection<T> {
+
   operator fun set(index: ULong, item: T): T
   operator fun set(index: Int, item: T): T = set(index.toULong(), item)
 }
 
 interface SSZList<T : Any> : SSZCollection<T> {
+
   val maxSize: ULong
   fun updated(mutator: (SSZMutableList<T>) -> Unit): SSZList<T>
 }
 
 interface SSZMutableList<T : Any> : SSZList<T>, SSZMutableCollection<T> {
+
   fun append(item: T)
   fun clear()
   fun replaceAll(elements: Sequence<T>)
 }
 
 interface SSZBitlist : SSZList<Boolean> {
+
   infix fun or(other: SSZBitlist): SSZBitlist
   fun set(index: uint64): SSZBitlist
   fun bitsSet(): List<uint64>
 }
 
 interface SSZByteList : SSZList<Byte> {
+
   fun toBytes(): Bytes
 }
 
 interface SSZVector<T : Any> : SSZCollection<T> {
+
   fun updated(mutator: (SSZMutableVector<T>) -> Unit): SSZVector<T>
 }
 
 interface SSZByteVector : SSZVector<Byte> {
+
   fun toBytes(): Bytes
 }
+
 interface SSZMutableVector<T : Any> : SSZVector<T>, SSZMutableCollection<T>
 interface SSZBitvector : SSZVector<Boolean>
 interface SSZMutableBitvector : SSZMutableVector<Boolean>
@@ -146,18 +158,21 @@ fun int_to_bytes(n: uint64, length: pyint): pybytes {
 }
 
 interface TreeNode {
+
   fun get_left(): TreeNode
   fun get_right(): TreeNode
   fun merkle_root(): Bytes32
 }
 
 class LeafNodeDelegate(private val delegate: LeafNode) : TreeNode {
+
   override fun get_left(): TreeNode = throw UnsupportedOperationException()
   override fun get_right(): TreeNode = throw UnsupportedOperationException()
   override fun merkle_root(): Bytes32 = delegate.root
 }
 
 class BranchNodeDelegate(private val delegate: BranchNode) : TreeNode {
+
   override fun get_left(): TreeNode = buildNodeDelegate(delegate.left())
   override fun get_right(): TreeNode = buildNodeDelegate(delegate.right())
   override fun merkle_root(): Bytes32 = delegate.hashTreeRoot()

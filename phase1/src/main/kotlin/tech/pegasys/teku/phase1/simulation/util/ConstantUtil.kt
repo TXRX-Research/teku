@@ -8,6 +8,7 @@ import tech.pegasys.teku.phase1.onotole.phase1.INITIAL_ACTIVE_SHARDS
 import tech.pegasys.teku.phase1.onotole.phase1.MIN_GENESIS_ACTIVE_VALIDATOR_COUNT
 import tech.pegasys.teku.phase1.onotole.phase1.MIN_GENESIS_TIME
 import tech.pegasys.teku.phase1.onotole.phase1.PHASE_1_FORK_SLOT
+import tech.pegasys.teku.phase1.onotole.phase1.SECONDS_PER_SLOT
 import tech.pegasys.teku.phase1.onotole.phase1.SHARD_COMMITTEE_PERIOD
 import tech.pegasys.teku.phase1.onotole.phase1.SLOTS_PER_EPOCH
 import tech.pegasys.teku.phase1.onotole.phase1.SLOTS_PER_HISTORICAL_ROOT
@@ -30,6 +31,8 @@ fun setConstants(constantSetName: String, config: ConstantsConfig) {
   SHARD_COMMITTEE_PERIOD = 16uL
   MIN_GENESIS_TIME = 0uL
   PHASE_1_FORK_SLOT = GENESIS_SLOT
+
+  SECONDS_PER_SLOT = 3uL
 }
 
 data class ConstantsConfig(

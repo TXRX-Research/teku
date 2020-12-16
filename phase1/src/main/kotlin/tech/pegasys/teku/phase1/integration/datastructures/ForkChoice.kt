@@ -4,6 +4,7 @@ import tech.pegasys.teku.phase1.onotole.phase1.Epoch
 import tech.pegasys.teku.phase1.onotole.phase1.Root
 import tech.pegasys.teku.phase1.onotole.phase1.Shard
 import tech.pegasys.teku.phase1.onotole.phase1.ValidatorIndex
+import tech.pegasys.teku.phase1.onotole.ssz.Bytes32
 import tech.pegasys.teku.phase1.onotole.ssz.SSZDict
 import tech.pegasys.teku.phase1.onotole.ssz.uint64
 
@@ -17,7 +18,8 @@ data class Store(
   var block_states: SSZDict<Root, BeaconState> = SSZDict(),
   var checkpoint_states: SSZDict<Checkpoint, BeaconState> = SSZDict(),
   var latest_messages: SSZDict<ValidatorIndex, LatestMessage> = SSZDict(),
-  var shard_stores: SSZDict<Shard, ShardStore> = SSZDict()
+  var shard_stores: SSZDict<Shard, ShardStore> = SSZDict(),
+  var eth1_block_hashes: SSZDict<Root, Bytes32> = SSZDict()
 )
 
 data class ShardStore(

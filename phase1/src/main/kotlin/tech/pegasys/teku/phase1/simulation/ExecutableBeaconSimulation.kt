@@ -75,10 +75,6 @@ class ExecutableBeaconSimulation(
     val blsKeyPairs =
       MockStartValidatorKeyPairFactory().generateKeyPairs(0, config.registrySize.toInt())
 
-    log("Initializing genesis state and store...")
-    val genesisState = getGenesisState(blsKeyPairs, spec)
-    val store = getGenesisStore(genesisState, spec)
-    val secretKeys = SecretKeyRegistry(blsKeyPairs)
     val proposerEth1Engine = instantiateEth1Engine(
       config.proposerEth1Engine,
       scope.coroutineContext
@@ -88,6 +84,15 @@ class ExecutableBeaconSimulation(
       config.processorEth1Engine,
       scope.coroutineContext
     ).withLogger("ProcessorEth1Engine")
+
+    val eth1GenesisBlockHash = proposerEth1Engine.eth_getHeadBlockHash().result!!
+
+    log("Initializing genesis state and store...")
+    val preGenesisState = getGenesisState(blsKeyPairs, spec)
+    preGenesisState.genesis_time = (System.currentTimeMillis() / 1000).toULong()
+    val genesisState = preGenesisState.applyChanges()
+    val store = getGenesisStore(genesisState, spec, eth1GenesisBlockHash)
+    val secretKeys = SecretKeyRegistry(blsKeyPairs)
 
     val proposerSpec = ExecutableBeaconSpec(proposerEth1Engine, bls, cache)
     val processorSpec = ExecutableBeaconSpec(processorEth1Engine, bls, cache)
