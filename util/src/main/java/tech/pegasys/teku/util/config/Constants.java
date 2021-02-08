@@ -175,8 +175,8 @@ public class Constants {
   public static final long GENESIS_DATA_RETRY_DELAY_SECONDS = 10; // in sec
 
   // Execution
-  public static final long MAX_BYTES_PER_TRANSACTION_PAYLOAD = 1L << 32;
-  public static final long MAX_ETH1_TRANSACTIONS = 1L << 32;
+  public static final long MAX_BYTES_PER_TRANSACTION_PAYLOAD = 1L << 16;
+  public static final long MAX_ETH1_TRANSACTIONS = 1L << 12;
   public static final int BYTES_PER_LOGS_BLOOM = 256;
   public static final int BLOCK_ROOTS_FOR_EVM_SIZE = 256;
 

@@ -16,82 +16,85 @@ package tech.pegasys.teku.datastructures.blocks.exec;
 import static tech.pegasys.teku.util.config.Constants.MAX_BYTES_PER_TRANSACTION_PAYLOAD;
 
 import com.google.common.base.MoreObjects;
-import java.util.List;
 import org.apache.tuweni.bytes.Bytes;
-import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.units.bigints.UInt256;
-import tech.pegasys.teku.datastructures.util.Merkleizable;
+import tech.pegasys.teku.datastructures.util.SpecDependent;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.ssz.SSZTypes.Bytes20;
-import tech.pegasys.teku.ssz.SSZTypes.SSZContainer;
-import tech.pegasys.teku.ssz.SSZTypes.SSZList;
 import tech.pegasys.teku.ssz.backing.ListViewRead;
-import tech.pegasys.teku.ssz.backing.ListViewWrite;
+import tech.pegasys.teku.ssz.backing.VectorViewRead;
+import tech.pegasys.teku.ssz.backing.containers.Container9;
+import tech.pegasys.teku.ssz.backing.containers.ContainerType9;
 import tech.pegasys.teku.ssz.backing.tree.TreeNode;
 import tech.pegasys.teku.ssz.backing.type.BasicViewTypes;
-import tech.pegasys.teku.ssz.backing.type.ContainerViewType;
 import tech.pegasys.teku.ssz.backing.type.ListViewType;
 import tech.pegasys.teku.ssz.backing.type.VectorViewType;
-import tech.pegasys.teku.ssz.backing.view.AbstractImmutableContainer;
 import tech.pegasys.teku.ssz.backing.view.BasicViews.ByteView;
 import tech.pegasys.teku.ssz.backing.view.BasicViews.UInt256View;
 import tech.pegasys.teku.ssz.backing.view.BasicViews.UInt64View;
 import tech.pegasys.teku.ssz.backing.view.ViewUtils;
-import tech.pegasys.teku.ssz.sos.SimpleOffsetSerializable;
 
-public class Eth1Transaction extends AbstractImmutableContainer
-    implements Merkleizable, SimpleOffsetSerializable, SSZContainer {
+public class Eth1Transaction
+    extends Container9<
+        Eth1Transaction,
+        UInt64View,
+        UInt256View,
+        UInt64View,
+        VectorViewRead<ByteView>,
+        UInt256View,
+        ListViewRead<ByteView>,
+        UInt256View,
+        UInt256View,
+        UInt256View> {
 
-  public static final ContainerViewType<Eth1Transaction> TYPE =
-      ContainerViewType.create(
-          List.of(
-              BasicViewTypes.UINT64_TYPE,
-              BasicViewTypes.UINT256_TYPE,
-              BasicViewTypes.UINT64_TYPE,
-              new VectorViewType<ByteView>(BasicViewTypes.BYTE_TYPE, Bytes20.SIZE),
-              BasicViewTypes.UINT256_TYPE,
-              new ListViewType<ByteView>(
-                  BasicViewTypes.BYTE_TYPE, MAX_BYTES_PER_TRANSACTION_PAYLOAD),
-              BasicViewTypes.UINT256_TYPE,
-              BasicViewTypes.UINT256_TYPE,
-              BasicViewTypes.UINT256_TYPE),
-          Eth1Transaction::new);
+  public static class Eth1TransactionType
+      extends ContainerType9<
+          Eth1Transaction,
+          UInt64View,
+          UInt256View,
+          UInt64View,
+          VectorViewRead<ByteView>,
+          UInt256View,
+          ListViewRead<ByteView>,
+          UInt256View,
+          UInt256View,
+          UInt256View> {
 
-  @SuppressWarnings("unused")
-  private final UInt64 nonce = null;
+    public Eth1TransactionType() {
+      super(
+          "Eth1TransactionType",
+          namedType("nonce", BasicViewTypes.UINT64_TYPE),
+          namedType("gas_price", BasicViewTypes.UINT256_TYPE),
+          namedType("gas_limit", BasicViewTypes.UINT64_TYPE),
+          namedType("recipient", new VectorViewType<>(BasicViewTypes.BYTE_TYPE, Bytes20.SIZE)),
+          namedType("value", BasicViewTypes.UINT256_TYPE),
+          namedType(
+              "input",
+              new ListViewType<>(BasicViewTypes.BYTE_TYPE, MAX_BYTES_PER_TRANSACTION_PAYLOAD)),
+          namedType("v", BasicViewTypes.UINT256_TYPE),
+          namedType("r", BasicViewTypes.UINT256_TYPE),
+          namedType("s", BasicViewTypes.UINT256_TYPE));
+    }
 
-  @SuppressWarnings("unused")
-  private final UInt256 gas_price = null;
+    public ListViewType<ByteView> getInputType() {
+      return (ListViewType<ByteView>) getFieldType5();
+    }
 
-  @SuppressWarnings("unused")
-  private final UInt64 gas_limit = null;
-
-  @SuppressWarnings("unused")
-  private final Bytes20 recipient = null;
-
-  @SuppressWarnings("unused")
-  private final UInt256 value = null;
-
-  @SuppressWarnings("unused")
-  private final SSZList<Byte> input =
-      SSZList.createMutable(Byte.class, MAX_BYTES_PER_TRANSACTION_PAYLOAD);
-
-  @SuppressWarnings("unused")
-  private final UInt256 v = null;
-
-  @SuppressWarnings("unused")
-  private final UInt256 r = null;
-
-  @SuppressWarnings("unused")
-  private final UInt256 s = null;
-
-  public Eth1Transaction() {
-    super(TYPE);
+    @Override
+    public Eth1Transaction createFromBackingNode(TreeNode node) {
+      return new Eth1Transaction(this, node);
+    }
   }
 
-  public Eth1Transaction(
-      ContainerViewType<? extends AbstractImmutableContainer> type, TreeNode backingNode) {
+  public Eth1Transaction(Eth1TransactionType type, TreeNode backingNode) {
     super(type, backingNode);
+  }
+
+  public static final SpecDependent<Eth1TransactionType> TYPE =
+      SpecDependent.of(Eth1TransactionType::new);
+
+  public Eth1Transaction() {
+    super(TYPE.get());
   }
 
   public Eth1Transaction(
@@ -104,96 +107,67 @@ public class Eth1Transaction extends AbstractImmutableContainer
       UInt256 v,
       UInt256 r,
       UInt256 s) {
-    super(
-        TYPE,
-        new UInt64View(nonce),
-        new UInt256View(gas_price),
-        new UInt64View(gas_limit),
-        ViewUtils.createVectorFromBytes(recipient.getWrappedBytes()),
-        new UInt256View(value),
-        ViewUtils.createListFromBytes(input, MAX_BYTES_PER_TRANSACTION_PAYLOAD),
-        new UInt256View(v),
-        new UInt256View(r),
-        new UInt256View(s));
+    this(TYPE.get(), nonce, gas_price, gas_limit, recipient, value, input, v, r, s);
   }
 
   public Eth1Transaction(
+      Eth1TransactionType type,
       UInt64 nonce,
       UInt256 gas_price,
       UInt64 gas_limit,
       Bytes20 recipient,
       UInt256 value,
-      SSZList<Byte> input,
+      Bytes input,
       UInt256 v,
       UInt256 r,
       UInt256 s) {
     super(
-        TYPE,
+        type,
         new UInt64View(nonce),
         new UInt256View(gas_price),
         new UInt64View(gas_limit),
         ViewUtils.createVectorFromBytes(recipient.getWrappedBytes()),
         new UInt256View(value),
-        createInputView(input),
+        ViewUtils.createListFromBytes(type.getInputType(), input),
         new UInt256View(v),
         new UInt256View(r),
         new UInt256View(s));
   }
 
-  private static ListViewRead<ByteView> createInputView(SSZList<Byte> list) {
-    ListViewType<ByteView> type =
-        new ListViewType<>(BasicViewTypes.BYTE_TYPE, MAX_BYTES_PER_TRANSACTION_PAYLOAD);
-    ListViewWrite<ByteView> view = type.getDefault().createWritableCopy();
-    for (int i = 0; i < list.size(); i++) {
-      view.set(i, new ByteView(list.get(i)));
-    }
-    return view.commitChanges();
-  }
-
-  @Override
-  public int getSSZFieldCount() {
-    return 0;
-  }
-
   public UInt64 getNonce() {
-    return ((UInt64View) get(0)).get();
+    return getField0().get();
   }
 
   public UInt256 getGas_price() {
-    return ((UInt256View) get(1)).get();
+    return getField1().get();
   }
 
   public UInt64 getGas_limit() {
-    return ((UInt64View) get(2)).get();
+    return getField2().get();
   }
 
   public Bytes20 getRecipient() {
-    return new Bytes20(ViewUtils.getAllBytes(getAny(3)));
+    return new Bytes20(ViewUtils.getAllBytes(getField3()));
   }
 
   public UInt256 getValue() {
-    return ((UInt256View) get(4)).get();
+    return getField4().get();
   }
 
   public Bytes getInput() {
-    return ViewUtils.getListBytes(getAny(5));
+    return ViewUtils.getListBytes(getField5());
   }
 
   public UInt256 getV() {
-    return ((UInt256View) get(6)).get();
+    return getField6().get();
   }
 
   public UInt256 getR() {
-    return ((UInt256View) get(7)).get();
+    return getField7().get();
   }
 
   public UInt256 getS() {
-    return ((UInt256View) get(8)).get();
-  }
-
-  @Override
-  public Bytes32 hash_tree_root() {
-    return hashTreeRoot();
+    return getField8().get();
   }
 
   @Override

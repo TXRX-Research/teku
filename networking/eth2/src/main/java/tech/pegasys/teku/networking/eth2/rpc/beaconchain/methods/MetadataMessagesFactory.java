@@ -24,14 +24,14 @@ import tech.pegasys.teku.util.config.Constants;
 public class MetadataMessagesFactory implements ValueObserver<Iterable<Integer>> {
 
   private final AtomicLong seqNumberGenerator = new AtomicLong();
-  private volatile MetadataMessage currentMessage = MetadataMessage.createDefault();
+  private volatile MetadataMessage currentMessage = MetadataMessage.DEFAULT;
 
   @Override
   public void onValueChanged(Iterable<Integer> subnetIds) {
     currentMessage =
         new MetadataMessage(
             UInt64.valueOf(seqNumberGenerator.incrementAndGet()),
-            new Bitvector(subnetIds, Constants.ATTESTATION_SUBNET_COUNT));
+            new Bitvector(Constants.ATTESTATION_SUBNET_COUNT, subnetIds));
   }
 
   public MetadataMessage createMetadataMessage() {

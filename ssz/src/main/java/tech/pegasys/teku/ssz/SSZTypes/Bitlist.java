@@ -21,10 +21,55 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.IntStream;
+import javax.annotation.Nullable;
 import org.apache.tuweni.bytes.Bytes;
-import org.apache.tuweni.bytes.MutableBytes;
 
 public class Bitlist {
+
+  public static int sszSerializationLength(final int size) {
+    return (size / 8) + 1;
+  }
+
+  public static Bitlist fromSszBytes(Bytes bytes, long maxSize) {
+    int bitlistSize = sszGetLengthAndValidate(bytes);
+    BitSet bitSet = BitSet.valueOf(bytes.toArrayUnsafe()).get(0, bitlistSize);
+    return new Bitlist(bitlistSize, bitSet, maxSize);
+  }
+
+  public static Bytes sszTruncateLeadingBit(Bytes bytes, int length) {
+    Bytes bytesWithoutLast = bytes.slice(0, bytes.size() - 1);
+    if (length % 8 == 0) {
+      return bytesWithoutLast;
+    } else {
+      int lastByte = 0xFF & bytes.get(bytes.size() - 1);
+      int leadingBit = 1 << (length % 8);
+      int lastByteWithoutLeadingBit = lastByte ^ leadingBit;
+      return Bytes.concatenate(bytesWithoutLast, Bytes.of(lastByteWithoutLeadingBit));
+    }
+  }
+
+  public static int sszGetLengthAndValidate(Bytes bytes) {
+    int numBytes = bytes.size();
+    checkArgument(numBytes > 0, "Bitlist must contain at least one byte");
+    checkArgument(bytes.get(numBytes - 1) != 0, "Bitlist data must contain end marker bit");
+    int lastByte = 0xFF & bytes.get(bytes.size() - 1);
+    int leadingBitIndex = Integer.bitCount(Integer.highestOneBit(lastByte) - 1);
+    return leadingBitIndex + 8 * (numBytes - 1);
+  }
+
+  public static Bitlist nullableOr(
+      @Nullable Bitlist bitlist1OrNull, @Nullable Bitlist bitlist2OrNull) {
+    checkArgument(
+        bitlist1OrNull != null || bitlist2OrNull != null,
+        "At least one argument should be non-null");
+    if (bitlist1OrNull == null) {
+      return bitlist2OrNull;
+    } else if (bitlist2OrNull == null) {
+      return bitlist1OrNull;
+    } else {
+      return bitlist1OrNull.or(bitlist2OrNull);
+    }
+  }
 
   private final BitSet data;
   private final int size;
@@ -36,10 +81,14 @@ public class Bitlist {
     this.maxSize = maxSize;
   }
 
-  public Bitlist(Bitlist bitlist) {
-    this.size = bitlist.size;
-    this.data = (BitSet) bitlist.data.clone();
-    this.maxSize = bitlist.getMaxSize();
+  public Bitlist(int size, long maxSize, int... bitIndexes) {
+    this.size = size;
+    this.data = new BitSet(size);
+    this.maxSize = maxSize;
+    for (int bitIndex : bitIndexes) {
+      checkElementIndex(bitIndex, size);
+      data.set(bitIndex);
+    }
   }
 
   private Bitlist(int size, BitSet data, long maxSize) {
@@ -48,15 +97,23 @@ public class Bitlist {
     this.maxSize = maxSize;
   }
 
-  public void setBit(int i) {
-    checkElementIndex(i, size);
-    data.set(i);
-  }
-
-  public void setBits(int... indexes) {
-    for (int i : indexes) {
-      setBit(i);
+  /**
+   * Returns new instance of this Bitlist with set bits from the other Bitlist
+   *
+   * @throws IllegalArgumentException if the size of the other Bitlist is greater than the size of
+   *     this Bitlist
+   */
+  public Bitlist or(Bitlist other) {
+    if (other.getCurrentSize() > getCurrentSize()) {
+      throw new IllegalArgumentException(
+          "Argument bitfield size is greater: "
+              + other.getCurrentSize()
+              + " > "
+              + getCurrentSize());
     }
+    BitSet newData = (BitSet) this.data.clone();
+    newData.or(other.data);
+    return new Bitlist(size, newData, maxSize);
   }
 
   public boolean getBit(int i) {
@@ -88,18 +145,6 @@ public class Bitlist {
     return data.stream();
   }
 
-  /** Sets all bits in this bitlist which are set in the [other] list */
-  public void setAllBits(Bitlist other) {
-    if (other.getCurrentSize() > getCurrentSize()) {
-      throw new IllegalArgumentException(
-          "Argument bitfield size is greater: "
-              + other.getCurrentSize()
-              + " > "
-              + getCurrentSize());
-    }
-    data.or(other.data);
-  }
-
   public long getMaxSize() {
     return maxSize;
   }
@@ -115,64 +160,6 @@ public class Bitlist {
     IntStream.range(0, len).forEach(i -> array[i / 8] |= ((data.get(i) ? 1 : 0) << (i % 8)));
     array[len / 8] |= 1 << (len % 8);
     return Bytes.wrap(array);
-  }
-
-  public static int sszSerializationLength(final int size) {
-    return (size / 8) + 1;
-  }
-
-  public static Bitlist fromSszBytes(Bytes bytes, long maxSize) {
-    int bitlistSize = sszGetLengthAndValidate(bytes);
-    BitSet byteArray = new BitSet(bitlistSize);
-
-    for (int i = bitlistSize - 1; i >= 0; i--) {
-      if (((bytes.get(i / 8) >>> (i % 8)) & 0x01) == 1) {
-        byteArray.set(i);
-      }
-    }
-
-    return new Bitlist(bitlistSize, byteArray, maxSize);
-  }
-
-  public static Bytes sszTruncateLeadingBit(Bytes bytes, int length) {
-    Bytes bytesWithoutLast = bytes.slice(0, bytes.size() - 1);
-    if (length % 8 == 0) {
-      return bytesWithoutLast;
-    } else {
-      int lastByte = 0xFF & bytes.get(bytes.size() - 1);
-      int leadingBit = 1 << (length % 8);
-      int lastByteWithoutLeadingBit = lastByte ^ leadingBit;
-      return Bytes.concatenate(bytesWithoutLast, Bytes.of(lastByteWithoutLeadingBit));
-    }
-  }
-
-  public static Bytes sszAppendLeadingBit(Bytes bytes, int length) {
-    checkArgument(length <= bytes.size() * 8 && length > (bytes.size() - 1) * 8);
-    if (length % 8 == 0) {
-      return Bytes.wrap(bytes, Bytes.of(1));
-    } else {
-      int lastByte = 0xFF & bytes.get(bytes.size() - 1);
-      int leadingBit = 1 << (length % 8);
-      checkArgument((-leadingBit & lastByte) == 0, "Bits higher than length should be 0");
-      int lastByteWithLeadingBit = lastByte ^ leadingBit;
-      // workaround for Bytes bug. See BitlistViewTest.tuweniBytesIssue() test
-      MutableBytes resultBytes = bytes.mutableCopy();
-      resultBytes.set(bytes.size() - 1, (byte) lastByteWithLeadingBit);
-      return resultBytes;
-    }
-  }
-
-  public static int sszGetLengthAndValidate(Bytes bytes) {
-    int numBytes = bytes.size();
-    checkArgument(numBytes > 0, "Bitlist must contain at least one byte");
-    checkArgument(bytes.get(numBytes - 1) != 0, "Bitlist data must contain end marker bit");
-    int lastByte = 0xFF & bytes.get(bytes.size() - 1);
-    int leadingBitIndex = Integer.bitCount(Integer.highestOneBit(lastByte) - 1);
-    return leadingBitIndex + 8 * (numBytes - 1);
-  }
-
-  public Bitlist copy() {
-    return new Bitlist(this);
   }
 
   @Override

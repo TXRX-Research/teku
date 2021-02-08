@@ -4,7 +4,7 @@
  [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/ConsenSys/teku/blob/master/LICENSE)
  [![Discord](https://img.shields.io/badge/Chat-on%20Discord-blue)](https://discord.gg/7hPv2T6)
 
-Teku is a Java implementation of the Ethereum 2.0 Beacon Chain. Teku is changing rapidly hence we recommend building from the latest master. See the [Changelog](CHANGELOG.md) for known issues and breaking changes.
+Teku is a Java implementation of the Ethereum 2.0 Beacon Chain. See the [Changelog](https://github.com/ConsenSys/teku/releases) for details of the latest releases and upcoming breaking changes.
 
 ## Useful links 
 
@@ -13,7 +13,7 @@ Teku is a Java implementation of the Ethereum 2.0 Beacon Chain. Teku is changing
 * [Teku REST API reference documentation](https://consensys.github.io/teku/)
 * [Teku issues](https://github.com/ConsenSys/teku/issues)
 * [Contribution guidelines](CONTRIBUTING.md)
-* [Teku Changelog](CHANGELOG.md)
+* [Teku Changelog](https://github.com/ConsenSys/teku/releases)
 
 ## Teku users 
 
@@ -26,6 +26,18 @@ the #teku channel on [Discord](https://discord.gg/7hPv2T6) if you've got questio
 
 * [Contribution Guidelines](CONTRIBUTING.md)
 * [Coding Conventions](https://github.com/hyperledger/besu/blob/master/CODING-CONVENTIONS.md)
+
+## Binary Releases
+
+Binary releases are available from the [releases page](https://github.com/ConsenSys/teku/releases).
+Binary builds that track the latest changes on the master branch are available on 
+[Dockerhub](https://hub.docker.com/r/consensys/teku) using the `develop` version or as binary
+downloads ([tar.gz format](https://artifacts.consensys.net/public/teku/raw/names/teku.tar.gz/versions/develop/teku-develop.tar.gz) 
+or [zip format](https://artifacts.consensys.net/public/teku/raw/names/teku.zip/versions/develop/teku-develop.zip)).
+
+We recommend only using release versions for MainNet, but `develop` builds are useful for testing 
+the latest changes on testnets.
+
 
 ## Build Instructions
 

@@ -44,7 +44,7 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.ssz.SSZTypes.Bitlist;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.util.config.Constants;
-import tech.pegasys.teku.util.config.ValidatorPerformanceTrackingMode;
+import tech.pegasys.teku.validator.api.ValidatorPerformanceTrackingMode;
 import tech.pegasys.teku.validator.coordinator.ActiveValidatorTracker;
 
 public class DefaultPerformanceTracker implements PerformanceTracker {
@@ -207,18 +207,16 @@ public class DefaultPerformanceTracker implements PerformanceTracker {
         new HashMap<>();
     for (UInt64 slot : attestationsIncludedOnChain.keySet()) {
       for (Attestation attestation : attestationsIncludedOnChain.get(slot)) {
-        Bytes32 attestationDataHash = attestation.getData().hash_tree_root();
+        Bytes32 attestationDataHash = attestation.getData().hashTreeRoot();
         NavigableMap<UInt64, Bitlist> slotToBitlists =
             slotAndBitlistsByAttestationDataHash.computeIfAbsent(
                 attestationDataHash, __ -> new TreeMap<>());
-        Bitlist bitlistToInsert =
-            slotToBitlists.computeIfAbsent(slot, __ -> attestation.getAggregation_bits().copy());
-        bitlistToInsert.setAllBits(attestation.getAggregation_bits());
+        slotToBitlists.merge(slot, attestation.getAggregation_bits(), Bitlist::nullableOr);
       }
     }
 
     for (Attestation sentAttestation : producedAttestations) {
-      Bytes32 sentAttestationDataHash = sentAttestation.getData().hash_tree_root();
+      Bytes32 sentAttestationDataHash = sentAttestation.getData().hashTreeRoot();
       UInt64 sentAttestationSlot = sentAttestation.getData().getSlot();
       if (!slotAndBitlistsByAttestationDataHash.containsKey(sentAttestationDataHash)) {
         continue;

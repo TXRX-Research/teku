@@ -14,38 +14,34 @@
 package tech.pegasys.teku.datastructures.networking.libp2p.rpc;
 
 import java.util.Collections;
-import java.util.List;
-import org.apache.tuweni.bytes.Bytes;
-import tech.pegasys.teku.ssz.SSZTypes.SSZContainer;
-import tech.pegasys.teku.ssz.sos.SimpleOffsetSerializable;
+import tech.pegasys.teku.ssz.backing.tree.TreeNode;
+import tech.pegasys.teku.ssz.backing.type.AbstractDelegateType;
+import tech.pegasys.teku.ssz.backing.type.BasicViewTypes;
+import tech.pegasys.teku.ssz.backing.type.ListViewType;
+import tech.pegasys.teku.ssz.backing.view.BasicViews.ByteView;
+import tech.pegasys.teku.ssz.backing.view.ListViewReadImpl;
+import tech.pegasys.teku.ssz.backing.view.ViewUtils;
 
-public class EmptyMessage implements RpcRequest, SimpleOffsetSerializable, SSZContainer {
+public class EmptyMessage extends ListViewReadImpl<ByteView> implements RpcRequest {
+  private static final ListViewType<ByteView> LIST_VIEW_TYPE =
+      new ListViewType<>(BasicViewTypes.BYTE_TYPE, 0);
+
+  public static class EmptyMessageType extends AbstractDelegateType<EmptyMessage> {
+    private EmptyMessageType() {
+      super(LIST_VIEW_TYPE);
+    }
+
+    @Override
+    public EmptyMessage createFromBackingNode(TreeNode node) {
+      return EMPTY_MESSAGE;
+    }
+  }
+
+  public static final EmptyMessageType TYPE = new EmptyMessageType();
   public static final EmptyMessage EMPTY_MESSAGE = new EmptyMessage();
 
-  @Override
-  public int getSSZFieldCount() {
-    return 0;
-  }
-
-  @Override
-  public List<Bytes> get_fixed_parts() {
-    return Collections.emptyList();
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) {
-      return true;
-    }
-    if (o == null || getClass() != o.getClass()) {
-      return false;
-    }
-    return true;
-  }
-
-  @Override
-  public int hashCode() {
-    return 0;
+  private EmptyMessage() {
+    super(ViewUtils.toListView(LIST_VIEW_TYPE, Collections.emptyList()));
   }
 
   @Override

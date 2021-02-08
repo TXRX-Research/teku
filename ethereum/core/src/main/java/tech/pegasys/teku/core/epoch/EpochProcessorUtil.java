@@ -92,7 +92,7 @@ public final class EpochProcessorUtil {
         Checkpoint newCheckpoint =
             new Checkpoint(previous_epoch, get_block_root(state, previous_epoch));
         state.setCurrent_justified_checkpoint(newCheckpoint);
-        justificationBits.setBit(1);
+        justificationBits = justificationBits.withBit(1);
       }
 
       if (totalBalances
@@ -102,7 +102,7 @@ public final class EpochProcessorUtil {
         Checkpoint newCheckpoint =
             new Checkpoint(current_epoch, get_block_root(state, current_epoch));
         state.setCurrent_justified_checkpoint(newCheckpoint);
-        justificationBits.setBit(0);
+        justificationBits = justificationBits.withBit(0);
       }
 
       state.setJustification_bits(justificationBits);
@@ -331,7 +331,7 @@ public final class EpochProcessorUtil {
     if (next_epoch.mod(SLOTS_PER_HISTORICAL_ROOT / SLOTS_PER_EPOCH).equals(UInt64.ZERO)) {
       HistoricalBatch historical_batch =
           new HistoricalBatch(state.getBlock_roots(), state.getState_roots());
-      state.getHistorical_roots().add(historical_batch.hash_tree_root());
+      state.getHistorical_roots().add(historical_batch.hashTreeRoot());
     }
 
     // Rotate current/previous epoch attestations

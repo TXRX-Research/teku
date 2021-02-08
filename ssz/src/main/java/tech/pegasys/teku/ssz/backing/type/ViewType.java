@@ -13,21 +13,18 @@
 
 package tech.pegasys.teku.ssz.backing.type;
 
-import java.util.Optional;
-import tech.pegasys.teku.ssz.backing.Utils;
+import org.apache.tuweni.bytes.Bytes;
 import tech.pegasys.teku.ssz.backing.ViewRead;
 import tech.pegasys.teku.ssz.backing.tree.TreeNode;
+import tech.pegasys.teku.ssz.sos.SSZDeserializeException;
 import tech.pegasys.teku.ssz.sos.SszReader;
+import tech.pegasys.teku.ssz.sos.SszWriter;
 
 /**
  * Base class for any SSZ type like Vector, List, Container, basic types
  * (https://github.com/ethereum/eth2.0-specs/blob/dev/ssz/simple-serialize.md#typing)
  */
-public interface ViewType<V extends ViewRead> extends SSZType {
-
-  static Optional<ViewType<?>> getType(Class<?> clazz) {
-    return Utils.getSszType(clazz);
-  }
+public interface ViewType<V extends ViewRead> extends SszType {
 
   /**
    * Creates a default backing binary tree for this type E.g. if the type is basic then normally
@@ -45,7 +42,7 @@ public interface ViewType<V extends ViewRead> extends SSZType {
   V createFromBackingNode(TreeNode node);
 
   /** Creates a default immutable View */
-  default ViewRead getDefault() {
+  default V getDefault() {
     return createFromBackingNode(getDefaultTree());
   }
 
@@ -62,7 +59,7 @@ public interface ViewType<V extends ViewRead> extends SSZType {
    * For example in `Bitvector(512)` the bit value at index `300` is stored at the second leaf node
    * and it's 'internal index' in this node would be `45`
    */
-  default ViewRead createFromBackingNode(TreeNode node, int internalIndex) {
+  default V createFromBackingNode(TreeNode node, int internalIndex) {
     return createFromBackingNode(node);
   }
 
@@ -75,7 +72,19 @@ public interface ViewType<V extends ViewRead> extends SSZType {
     return newValue.getBackingNode();
   }
 
-  default V sszDeserialize(SszReader reader) {
+  default Bytes sszSerialize(V view) {
+    return sszSerializeTree(view.getBackingNode());
+  }
+
+  default int sszSerialize(V view, SszWriter writer) {
+    return sszSerializeTree(view.getBackingNode(), writer);
+  }
+
+  default V sszDeserialize(SszReader reader) throws SSZDeserializeException {
     return createFromBackingNode(sszDeserializeTree(reader));
+  }
+
+  default V sszDeserialize(Bytes ssz) throws SSZDeserializeException {
+    return sszDeserialize(SszReader.fromBytes(ssz));
   }
 }

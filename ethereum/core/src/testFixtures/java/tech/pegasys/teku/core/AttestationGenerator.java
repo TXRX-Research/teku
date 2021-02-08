@@ -17,9 +17,7 @@ import static tech.pegasys.teku.datastructures.util.BeaconStateUtil.compute_epoc
 import static tech.pegasys.teku.infrastructure.async.SyncAsyncRunner.SYNC_RUNNER;
 
 import com.google.common.base.Preconditions;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -33,6 +31,7 @@ import java.util.stream.StreamSupport;
 import tech.pegasys.teku.bls.BLS;
 import tech.pegasys.teku.bls.BLSKeyPair;
 import tech.pegasys.teku.bls.BLSSignature;
+import tech.pegasys.teku.bls.BLSTestUtil;
 import tech.pegasys.teku.core.exceptions.EpochProcessingException;
 import tech.pegasys.teku.core.exceptions.SlotProcessingException;
 import tech.pegasys.teku.core.signatures.LocalSigner;
@@ -50,7 +49,7 @@ import tech.pegasys.teku.util.config.Constants;
 
 public class AttestationGenerator {
   private final List<BLSKeyPair> validatorKeys;
-  private final BLSKeyPair randomKeyPair = BLSKeyPair.random(12345);
+  private final BLSKeyPair randomKeyPair = BLSTestUtil.randomKeyPair(12345);
 
   public AttestationGenerator(final List<BLSKeyPair> validatorKeys) {
     this.validatorKeys = validatorKeys;
@@ -63,26 +62,6 @@ public class AttestationGenerator {
   public static AttestationData diffSlotAttestationData(UInt64 slot, AttestationData data) {
     return new AttestationData(
         slot, data.getIndex(), data.getBeacon_block_root(), data.getSource(), data.getTarget());
-  }
-
-  public static Attestation withNewSingleAttesterBit(Attestation oldAttestation) {
-    Attestation attestation = new Attestation(oldAttestation);
-    Bitlist newBitlist =
-        new Bitlist(
-            attestation.getAggregation_bits().getCurrentSize(),
-            attestation.getAggregation_bits().getMaxSize());
-    List<Integer> unsetBits = new ArrayList<>();
-    for (int i = 0; i < attestation.getAggregation_bits().getCurrentSize(); i++) {
-      if (!attestation.getAggregation_bits().getBit(i)) {
-        unsetBits.add(i);
-      }
-    }
-
-    Collections.shuffle(unsetBits);
-    newBitlist.setBit(unsetBits.get(0));
-
-    attestation.setAggregation_bits(newBitlist);
-    return attestation;
   }
 
   /**
@@ -114,8 +93,13 @@ public class AttestationGenerator {
             .mapToInt(a -> a.getAggregation_bits().getCurrentSize())
             .max()
             .getAsInt();
-    Bitlist targetBitlist = new Bitlist(targetBitlistSize, Constants.MAX_VALIDATORS_PER_COMMITTEE);
-    srcAttestations.forEach(a -> targetBitlist.setAllBits(a.getAggregation_bits()));
+    Bitlist targetBitlist =
+        srcAttestations.stream()
+            .map(Attestation::getAggregation_bits)
+            .reduce(
+                new Bitlist(targetBitlistSize, Constants.MAX_VALIDATORS_PER_COMMITTEE),
+                Bitlist::or,
+                Bitlist::or);
     BLSSignature targetSig =
         BLS.aggregate(
             srcAttestations.stream()

@@ -16,6 +16,7 @@ package tech.pegasys.teku.cli.options;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.URL;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -56,11 +57,11 @@ public class Eth2NetworkOptionsTest extends AbstractBeaconNodeCommandTest {
         .isEqualTo(eth2NetworkConfig.getEth1DepositContractAddress());
 
     // WS config
-    assertThat(tekuConfig.weakSubjectivity().getWeakSubjectivityStateResource())
+    assertThat(tekuConfig.eth2NetworkConfiguration().getInitialState())
         .isEqualTo(eth2NetworkConfig.getInitialState());
 
     // p2p config
-    assertThat(tekuConfig.beaconChain().p2pConfig().getP2pDiscoveryBootnodes())
+    assertThat(tekuConfig.discovery().getBootnodes())
         .isEqualTo(eth2NetworkConfig.getDiscoveryBootnodes());
 
     // Rest api
@@ -94,8 +95,8 @@ public class Eth2NetworkOptionsTest extends AbstractBeaconNodeCommandTest {
   public void overrideDefaultBootnodesWithEmptyList() {
     beaconNodeCommand.parse(new String[] {"--network", "pyrmont", "--p2p-discovery-bootnodes"});
 
-    final P2PConfig config = getResultingTekuConfiguration().beaconChain().p2pConfig();
-    assertThat(config.getP2pDiscoveryBootnodes()).isEmpty();
+    final List<String> bootnodes = getResultingTekuConfiguration().discovery().getBootnodes();
+    assertThat(bootnodes).isEmpty();
   }
 
   @Test
@@ -133,5 +134,47 @@ public class Eth2NetworkOptionsTest extends AbstractBeaconNodeCommandTest {
         .contains(
             "-n, --network=<NETWORK>    Represents which network to use.\n"
                 + "                               Default: mainnet");
+  }
+
+  @Test
+  public void initialState_shouldAcceptValue() {
+    final String state = "state.ssz";
+    final TekuConfiguration config = getTekuConfigurationFromArguments("--initial-state", state);
+    assertThat(config.eth2NetworkConfiguration().getInitialState()).contains(state);
+  }
+
+  @Test
+  public void initialState_shouldDefaultToNetworkValue() {
+    final String network = "medalla";
+    final Eth2NetworkConfiguration networkConfig =
+        Eth2NetworkConfiguration.builder(network).build();
+    assertThat(networkConfig.getInitialState()).isPresent();
+
+    final TekuConfiguration config = getTekuConfigurationFromArguments("--network", network);
+    assertThat(config.eth2NetworkConfiguration().getInitialState())
+        .isEqualTo(networkConfig.getInitialState());
+    assertThat(config.eth2NetworkConfiguration().isUsingCustomInitialState()).isFalse();
+  }
+
+  @Test
+  public void initialState_shouldOverrideNetworkValue() {
+    final String state = "state.ssz";
+    final String network = "medalla";
+    final Eth2NetworkConfiguration networkConfig =
+        Eth2NetworkConfiguration.builder(network).build();
+    assertThat(networkConfig.getInitialState()).isPresent();
+
+    final TekuConfiguration config =
+        getTekuConfigurationFromArguments("--initial-state", state, "--network", network);
+    assertThat(config.eth2NetworkConfiguration().getInitialState()).contains(state);
+    assertThat(config.eth2NetworkConfiguration().isUsingCustomInitialState()).isTrue();
+  }
+
+  @Test
+  public void initialState_shouldDefault() {
+    final TekuConfiguration config = getTekuConfigurationFromArguments();
+    final Optional<String> defaultState = config.eth2NetworkConfiguration().getInitialState();
+    assertThat(config.eth2NetworkConfiguration().getInitialState()).isEqualTo(defaultState);
+    assertThat(config.eth2NetworkConfiguration().isUsingCustomInitialState()).isFalse();
   }
 }

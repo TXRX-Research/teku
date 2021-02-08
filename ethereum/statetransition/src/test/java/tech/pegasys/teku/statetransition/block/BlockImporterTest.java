@@ -35,7 +35,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.bls.BLSKeyGenerator;
 import tech.pegasys.teku.bls.BLSKeyPair;
-import tech.pegasys.teku.bls.BLSSignature;
+import tech.pegasys.teku.bls.BLSTestUtil;
 import tech.pegasys.teku.core.AttestationGenerator;
 import tech.pegasys.teku.core.ForkChoiceAttestationValidator;
 import tech.pegasys.teku.core.ForkChoiceBlockTasks;
@@ -185,9 +185,11 @@ public class BlockImporterTest {
         AttestationGenerator.groupAndAggregateAttestations(attestations);
 
     // make one attestation signature invalid
-    aggregatedAttestations
-        .get(aggregatedAttestations.size() / 2)
-        .setAggregate_signature(BLSSignature.random(1));
+    int invalidAttIdx = aggregatedAttestations.size() / 2;
+    Attestation att = aggregatedAttestations.get(invalidAttIdx);
+    Attestation invalidAtt =
+        new Attestation(att.getAggregation_bits(), att.getData(), BLSTestUtil.randomSignature(1));
+    aggregatedAttestations.set(invalidAttIdx, invalidAtt);
 
     UInt64 currentSlotFinal = currentSlot.plus(UInt64.ONE);
 
@@ -263,7 +265,7 @@ public class BlockImporterTest {
         new BeaconBlock(
             block.getSlot(),
             block.getMessage().getProposerIndex(),
-            block.getMessage().hash_tree_root(),
+            block.getMessage().hashTreeRoot(),
             block.getMessage().getStateRoot(),
             block.getMessage().getBody());
     final Signer signer = localChain.getSigner(block.getMessage().getProposerIndex().intValue());
@@ -335,8 +337,7 @@ public class BlockImporterTest {
   public void importBlock_invalidStateTransition() throws Exception {
     final SignedBeaconBlock block = otherChain.createBlockAtSlot(UInt64.ONE);
     SignedBeaconBlock newBlock =
-        new SignedBeaconBlock(
-            new BeaconBlock(block.getMessage(), Bytes32.ZERO), block.getSignature());
+        new SignedBeaconBlock(block.getMessage().withStateRoot(Bytes32.ZERO), block.getSignature());
     localChain.setSlot(block.getSlot());
 
     final BlockImportResult result = blockImporter.importBlock(newBlock).get();

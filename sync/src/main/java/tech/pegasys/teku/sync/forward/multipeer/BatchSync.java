@@ -14,6 +14,9 @@
 package tech.pegasys.teku.sync.forward.multipeer;
 
 import static com.google.common.base.Preconditions.checkState;
+import static java.util.stream.Collectors.joining;
+import static tech.pegasys.teku.infrastructure.exceptions.ExceptionUtil.exceptionHandlingConsumer;
+import static tech.pegasys.teku.infrastructure.exceptions.ExceptionUtil.exceptionHandlingRunnable;
 
 import com.google.common.annotations.VisibleForTesting;
 import java.util.Collection;
@@ -21,9 +24,13 @@ import java.util.NavigableSet;
 import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import tech.pegasys.teku.datastructures.blocks.BeaconBlockSummary;
 import tech.pegasys.teku.datastructures.blocks.SignedBeaconBlock;
+import tech.pegasys.teku.datastructures.blocks.SlotAndBlockRoot;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.async.eventthread.EventThread;
+import tech.pegasys.teku.infrastructure.logging.LogFormatter;
+import tech.pegasys.teku.infrastructure.time.TimeProvider;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.storage.client.RecentChainData;
 import tech.pegasys.teku.sync.forward.multipeer.batches.Batch;
@@ -41,6 +48,7 @@ public class BatchSync implements Sync {
   private final BatchImporter batchImporter;
   private final BatchDataRequester batchDataRequester;
   private final MultipeerCommonAncestorFinder commonAncestorFinder;
+  private final TimeProvider timeProvider;
 
   private final BatchChain activeBatches;
 
@@ -52,19 +60,29 @@ public class BatchSync implements Sync {
   private TargetChain targetChain;
   private SafeFuture<SyncResult> syncResult = SafeFuture.completedFuture(SyncResult.COMPLETE);
 
+  /**
+   * Records the epoch seconds that the last import started or if no import has started for the
+   * current sync, the time the sync started. This is used by {@link SyncStallDetector} to check if
+   * the sync is making progress.
+   */
+  private UInt64 lastImportTimerStartPointSeconds;
+
   private BatchSync(
       final EventThread eventThread,
       final RecentChainData recentChainData,
       final BatchChain activeBatches,
       final BatchImporter batchImporter,
       final BatchDataRequester batchDataRequester,
-      final MultipeerCommonAncestorFinder commonAncestorFinder) {
+      final MultipeerCommonAncestorFinder commonAncestorFinder,
+      final TimeProvider timeProvider) {
     this.eventThread = eventThread;
     this.recentChainData = recentChainData;
     this.activeBatches = activeBatches;
     this.batchImporter = batchImporter;
     this.batchDataRequester = batchDataRequester;
     this.commonAncestorFinder = commonAncestorFinder;
+    this.timeProvider = timeProvider;
+    this.lastImportTimerStartPointSeconds = timeProvider.getTimeInSeconds();
   }
 
   public static BatchSync create(
@@ -73,7 +91,8 @@ public class BatchSync implements Sync {
       final BatchImporter batchImporter,
       final BatchFactory batchFactory,
       final UInt64 batchSize,
-      final MultipeerCommonAncestorFinder commonAncestorFinder) {
+      final MultipeerCommonAncestorFinder commonAncestorFinder,
+      final TimeProvider timeProvider) {
     final BatchChain activeBatches = new BatchChain();
     final BatchDataRequester batchDataRequester =
         new BatchDataRequester(
@@ -84,7 +103,8 @@ public class BatchSync implements Sync {
         activeBatches,
         batchImporter,
         batchDataRequester,
-        commonAncestorFinder);
+        commonAncestorFinder,
+        timeProvider);
   }
 
   /**
@@ -97,7 +117,8 @@ public class BatchSync implements Sync {
   @Override
   public SafeFuture<SyncResult> syncToChain(final TargetChain targetChain) {
     final SafeFuture<SyncResult> result = new SafeFuture<>();
-    eventThread.execute(() -> switchSyncTarget(targetChain, result));
+    eventThread.execute(
+        exceptionHandlingRunnable(() -> switchSyncTarget(targetChain, result), result));
     return result;
   }
 
@@ -105,12 +126,17 @@ public class BatchSync implements Sync {
       final TargetChain targetChain, final SafeFuture<SyncResult> syncResult) {
     LOG.debug("Switching to sync target {}", targetChain.getChainHead());
     eventThread.checkOnEventThread();
+    // If we're starting a sync after the previous has completed, track the import start time
+    // If we're just switching targets, we should still be able to keep imports running
+    final boolean firstChain = this.syncResult.isDone();
+    if (firstChain) {
+      this.lastImportTimerStartPointSeconds = timeProvider.getTimeInSeconds();
+    }
     // Cancel the existing sync
     this.syncResult.complete(SyncResult.TARGET_CHANGED);
-    final boolean firstChain = this.targetChain == null;
     this.targetChain = targetChain;
     if (firstChain) {
-      // Only set the common ancestor if we haven't previously sync'd a chain
+      // Only set the common ancestor if we aren't currently syncing a chain
       // Otherwise we'll optimistically assume the new chain extends the current one and only reset
       // the common ancestor if we later find out that's not the case
       this.commonAncestorSlot = getCommonAncestorSlot();
@@ -121,7 +147,7 @@ public class BatchSync implements Sync {
 
   private SafeFuture<UInt64> getCommonAncestorSlot() {
     final SafeFuture<UInt64> commonAncestor = commonAncestorFinder.findCommonAncestor(targetChain);
-    commonAncestor.thenRunAsync(this::progressSync, eventThread).reportExceptions();
+    commonAncestor.thenRunAsync(this::progressSync, eventThread).propagateExceptionTo(syncResult);
     return commonAncestor;
   }
 
@@ -275,11 +301,12 @@ public class BatchSync implements Sync {
         .firstImportableBatch()
         .ifPresent(
             batch -> {
+              lastImportTimerStartPointSeconds = timeProvider.getTimeInSeconds();
               importingBatch = Optional.of(batch);
               batchImporter
                   .importBatch(batch)
                   .thenAcceptAsync(result -> onImportComplete(result, batch), eventThread)
-                  .reportExceptions();
+                  .propagateExceptionTo(syncResult);
             });
   }
 
@@ -368,6 +395,9 @@ public class BatchSync implements Sync {
     }
     if (targetChain.getPeers().isEmpty()) {
       activeBatches.removeAll();
+      LOG.debug(
+          "Unable to sync to target chain {} because it has no remaining peers",
+          () -> formatBlock(targetChain.getChainHead()));
       syncResult.complete(SyncResult.FAILED);
       return;
     }
@@ -383,14 +413,74 @@ public class BatchSync implements Sync {
   }
 
   private void fillRetrievingQueue() {
-    if (commonAncestorSlot.isDone() && !commonAncestorSlot.isCompletedExceptionally()) {
+    if (commonAncestorSlot.isCompletedNormally()) {
       batchDataRequester.fillRetrievingQueue(
-          targetChain, commonAncestorSlot.join(), this::onBatchReceivedBlocks);
+          targetChain,
+          commonAncestorSlot.join(),
+          exceptionHandlingConsumer(this::onBatchReceivedBlocks, syncResult));
     }
   }
 
   @VisibleForTesting
   boolean isActiveBatch(final Batch batch) {
     return activeBatches.contains(batch);
+  }
+
+  public UInt64 getLastImportTimerStartPointSeconds() {
+    eventThread.checkOnEventThread();
+    return lastImportTimerStartPointSeconds;
+  }
+
+  Optional<Batch> getImportingBatch() {
+    eventThread.checkOnEventThread();
+    return importingBatch;
+  }
+
+  public void abort() {
+    eventThread.checkOnEventThread();
+    LOG.warn("Aborting sync {}", this::describeState);
+    importingBatch = Optional.empty();
+    activeBatches.removeAll();
+    switchingBranches = false;
+    commonAncestorSlot = null;
+    targetChain = null;
+    syncResult.complete(SyncResult.FAILED);
+  }
+
+  private String describeState() {
+    return String.format(
+        "Target: %s Switching branches: %s%n"
+            + "Importing batch: %s%n"
+            + "Common ancestor slot: %s%n"
+            + "Active batches: %s%n"
+            + "Peers on chain: %s",
+        formatBlock(targetChain.getChainHead()),
+        switchingBranches,
+        importingBatch.map(this::formatBatch).orElse("<none>"),
+        commonAncestorSlot.isCompletedNormally() ? commonAncestorSlot.join() : commonAncestorSlot,
+        activeBatches.stream().map(this::formatBatch).collect(joining("\n  ", "\n  ", "")),
+        targetChain.getPeers().stream().map(Object::toString).collect(joining("\n  ", "\n  ", "")));
+  }
+
+  private String formatBatch(final Batch batch) {
+    return String.format(
+        "{Batch from %s to %s, %d blocks from %s (%s) to %s, confirmed %s, complete %s, source %s}",
+        batch.getFirstSlot(),
+        batch.getLastSlot(),
+        batch.getBlocks().size(),
+        batch.getFirstBlock().map(this::formatBlock).orElse("<none>"),
+        batch.isFirstBlockConfirmed() ? "confirmed" : "unconfirmed",
+        batch.getLastBlock().map(this::formatBlock).orElse("<none>"),
+        batch.isConfirmed(),
+        batch.isComplete(),
+        batch.getSource());
+  }
+
+  private String formatBlock(final SlotAndBlockRoot block) {
+    return LogFormatter.formatBlock(block.getSlot(), block.getBlockRoot());
+  }
+
+  private String formatBlock(final BeaconBlockSummary block) {
+    return LogFormatter.formatBlock(block.getSlot(), block.getRoot());
   }
 }

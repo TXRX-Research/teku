@@ -19,20 +19,29 @@ import static com.google.common.base.Preconditions.checkState;
 import java.nio.file.Path;
 import java.util.Optional;
 import tech.pegasys.teku.infrastructure.metrics.StubMetricsSystem;
+import tech.pegasys.teku.networks.ConstantsLoader;
+import tech.pegasys.teku.spec.SpecConfiguration;
+import tech.pegasys.teku.spec.SpecProvider;
+import tech.pegasys.teku.spec.constants.SpecConstants;
 import tech.pegasys.teku.storage.server.Database;
 import tech.pegasys.teku.storage.server.DatabaseVersion;
+import tech.pegasys.teku.storage.server.StateStorageMode;
 import tech.pegasys.teku.storage.server.rocksdb.RocksDbConfiguration;
 import tech.pegasys.teku.storage.server.rocksdb.RocksDbDatabase;
 import tech.pegasys.teku.storage.server.rocksdb.schema.V4SchemaHot;
 import tech.pegasys.teku.storage.server.rocksdb.schema.V6SchemaFinalized;
 import tech.pegasys.teku.storage.store.StoreConfig;
-import tech.pegasys.teku.util.config.StateStorageMode;
 
 public class FileBackedStorageSystemBuilder {
   // Optional
   private DatabaseVersion version = DatabaseVersion.DEFAULT_VERSION;
   private StateStorageMode storageMode = StateStorageMode.ARCHIVE;
   private StoreConfig storeConfig = StoreConfig.createDefault();
+
+  private final SpecConstants networkConstants = ConstantsLoader.loadConstants("minimal");
+  private final SpecConfiguration networkConfig =
+      SpecConfiguration.builder().constants(networkConstants).build();
+  private SpecProvider specProvider = SpecProvider.create(networkConfig);
 
   // Version-dependent fields
   private Path dataDir;
@@ -84,6 +93,11 @@ public class FileBackedStorageSystemBuilder {
   public FileBackedStorageSystemBuilder version(final DatabaseVersion version) {
     checkNotNull(version);
     this.version = version;
+    return this;
+  }
+
+  public FileBackedStorageSystemBuilder specProvider(final SpecProvider specProvider) {
+    this.specProvider = specProvider;
     return this;
   }
 
@@ -142,7 +156,8 @@ public class FileBackedStorageSystemBuilder {
         V4SchemaHot.INSTANCE,
         V6SchemaFinalized.INSTANCE,
         storageMode,
-        stateStorageFrequency);
+        stateStorageFrequency,
+        specProvider);
   }
 
   private Database createV5Database() {
@@ -151,7 +166,8 @@ public class FileBackedStorageSystemBuilder {
         RocksDbConfiguration.v5HotDefaults().withDatabaseDir(hotDir),
         RocksDbConfiguration.v5ArchiveDefaults().withDatabaseDir(archiveDir),
         storageMode,
-        stateStorageFrequency);
+        stateStorageFrequency,
+        specProvider);
   }
 
   private Database createV4Database() {
@@ -160,6 +176,7 @@ public class FileBackedStorageSystemBuilder {
         RocksDbConfiguration.v4Settings(hotDir),
         RocksDbConfiguration.v4Settings(archiveDir),
         storageMode,
-        stateStorageFrequency);
+        stateStorageFrequency,
+        specProvider);
   }
 }

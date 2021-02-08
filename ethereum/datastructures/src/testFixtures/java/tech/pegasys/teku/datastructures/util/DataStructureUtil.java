@@ -21,10 +21,10 @@ import static tech.pegasys.teku.util.config.Constants.DOMAIN_DEPOSIT;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
@@ -34,6 +34,7 @@ import tech.pegasys.teku.bls.BLS;
 import tech.pegasys.teku.bls.BLSKeyPair;
 import tech.pegasys.teku.bls.BLSPublicKey;
 import tech.pegasys.teku.bls.BLSSignature;
+import tech.pegasys.teku.bls.BLSTestUtil;
 import tech.pegasys.teku.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.datastructures.blocks.BeaconBlockAndState;
 import tech.pegasys.teku.datastructures.blocks.BeaconBlockBody;
@@ -84,7 +85,7 @@ import tech.pegasys.teku.util.config.Constants;
 public final class DataStructureUtil {
 
   private int seed;
-  private Supplier<BLSPublicKey> pubKeyGenerator = () -> BLSPublicKey.random(nextSeed());
+  private Supplier<BLSPublicKey> pubKeyGenerator = () -> BLSTestUtil.randomPublicKey(nextSeed());
 
   public DataStructureUtil() {
     this(92892824);
@@ -133,7 +134,7 @@ public final class DataStructureUtil {
   }
 
   public BLSSignature randomSignature() {
-    return BLSSignature.random(nextSeed());
+    return BLSTestUtil.randomSignature(nextSeed());
   }
 
   public <T> SSZList<T> randomSSZList(
@@ -172,27 +173,15 @@ public final class DataStructureUtil {
   }
 
   public Bitlist randomBitlist(int n) {
-    Bitlist bitlist = new Bitlist(n, n);
     Random random = new Random(nextSeed());
-
-    for (int i = 0; i < n; i++) {
-      if (random.nextBoolean()) {
-        bitlist.setBit(i);
-      }
-    }
-    return bitlist;
+    int[] bits = IntStream.range(0, n).sequential().filter(__ -> random.nextBoolean()).toArray();
+    return new Bitlist(n, n, bits);
   }
 
   public Bitvector randomBitvector(int n) {
-    BitSet bitSet = new BitSet(n);
     Random random = new Random(nextSeed());
-
-    for (int i = 0; i < n; i++) {
-      if (random.nextBoolean()) {
-        bitSet.set(i);
-      }
-    }
-    return new Bitvector(bitSet, n);
+    int[] bits = IntStream.range(0, n).sequential().filter(__ -> random.nextBoolean()).toArray();
+    return new Bitvector(n, bits);
   }
 
   public BLSPublicKey randomPublicKey() {
@@ -305,7 +294,7 @@ public final class DataStructureUtil {
       final long nextSlot = parentBlock.getSlot().plus(UInt64.ONE).longValue();
       final Bytes32 parentRoot = parentBlock.getRoot();
       final BeaconState state = randomBeaconState(UInt64.valueOf(nextSlot));
-      final Bytes32 stateRoot = state.hash_tree_root();
+      final Bytes32 stateRoot = state.hashTreeRoot();
       final SignedBeaconBlock block =
           signedBlock(randomBeaconBlock(nextSlot, parentRoot, stateRoot, full));
       blocks.add(new SignedBlockAndState(block, state));
@@ -342,7 +331,7 @@ public final class DataStructureUtil {
 
   public SignedBeaconBlock randomSignedBeaconBlock(UInt64 slotNum, BeaconState state) {
     final BeaconBlockBody body = randomBeaconBlockBody();
-    final Bytes32 stateRoot = state.hash_tree_root();
+    final Bytes32 stateRoot = state.hashTreeRoot();
 
     final BeaconBlock block =
         new BeaconBlock(slotNum, randomUInt64(), randomBytes32(), stateRoot, body);
@@ -388,8 +377,7 @@ public final class DataStructureUtil {
     final BeaconBlockBody body = randomBeaconBlockBody();
     final UInt64 proposer_index = randomUInt64();
     final BeaconBlockHeader latestHeader =
-        new BeaconBlockHeader(
-            slot, proposer_index, parentRoot, Bytes32.ZERO, body.hash_tree_root());
+        new BeaconBlockHeader(slot, proposer_index, parentRoot, Bytes32.ZERO, body.hashTreeRoot());
 
     final BeaconState matchingState = state.updated(s -> s.setLatest_block_header(latestHeader));
     final BeaconBlock block =
@@ -482,7 +470,7 @@ public final class DataStructureUtil {
   }
 
   public DepositData randomDepositData() {
-    BLSKeyPair keyPair = BLSKeyPair.random(nextSeed());
+    BLSKeyPair keyPair = BLSTestUtil.randomKeyPair(nextSeed());
     BLSPublicKey pubkey = keyPair.getPublicKey();
     Bytes32 withdrawal_credentials = randomBytes32();
 
@@ -547,7 +535,11 @@ public final class DataStructureUtil {
 
   public tech.pegasys.teku.pow.event.Deposit randomDepositEvent(UInt64 index) {
     return new tech.pegasys.teku.pow.event.Deposit(
-        BLSPublicKey.random(nextSeed()), randomBytes32(), randomSignature(), randomUInt64(), index);
+        BLSTestUtil.randomPublicKey(nextSeed()),
+        randomBytes32(),
+        randomSignature(),
+        randomUInt64(),
+        index);
   }
 
   public tech.pegasys.teku.pow.event.Deposit randomDepositEvent() {
@@ -578,7 +570,7 @@ public final class DataStructureUtil {
     final DepositGenerator depositGenerator = new DepositGenerator();
 
     for (int i = 0; i < numDeposits; i++) {
-      BLSKeyPair keypair = BLSKeyPair.random(i);
+      BLSKeyPair keypair = BLSTestUtil.randomKeyPair(i);
       DepositData depositData =
           depositGenerator.createDepositData(
               keypair, Constants.MAX_EFFECTIVE_BALANCE, keypair.getPublicKey());
@@ -592,7 +584,7 @@ public final class DataStructureUtil {
   }
 
   public Validator randomValidator() {
-    return Validator.create(
+    return new Validator(
         randomPublicKeyBytes(),
         randomBytes32(),
         Constants.MAX_EFFECTIVE_BALANCE,
@@ -661,7 +653,7 @@ public final class DataStructureUtil {
     final SignedBeaconBlock signedAnchorBlock =
         new SignedBeaconBlock(anchorBlock, BLSSignature.empty());
 
-    final Bytes32 anchorRoot = anchorBlock.hash_tree_root();
+    final Bytes32 anchorRoot = anchorBlock.hashTreeRoot();
     final UInt64 anchorEpoch = BeaconStateUtil.get_current_epoch(anchorState);
     final Checkpoint anchorCheckpoint = new Checkpoint(anchorEpoch, anchorRoot);
 

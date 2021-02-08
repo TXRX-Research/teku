@@ -242,7 +242,7 @@ public class PendingPoolTest {
 
   private Checkpoint finalizedCheckpoint(SignedBeaconBlock block) {
     final UInt64 epoch = compute_epoch_at_slot(block.getSlot()).plus(UInt64.ONE);
-    final Bytes32 root = block.getMessage().hash_tree_root();
+    final Bytes32 root = block.getMessage().hashTreeRoot();
 
     return new Checkpoint(epoch, root);
   }
@@ -329,6 +329,30 @@ public class PendingPoolTest {
   }
 
   @Test
+  void getAllRequiredBlockRoots_shouldExcludeRootsForAlreadyPendingItems() {
+    final SignedBeaconBlock blockA =
+        dataStructureUtil.randomSignedBeaconBlock(currentSlot.longValue());
+    final Bytes32 parentRoot = blockA.getParentRoot();
+    final SignedBeaconBlock blockB =
+        dataStructureUtil.randomSignedBeaconBlock(currentSlot.longValue(), parentRoot);
+    // Should not be included as blockB is already present
+    final SignedBeaconBlock blockC =
+        dataStructureUtil.randomSignedBeaconBlock(
+            currentSlot.longValue() + 1, blockB.getParentRoot());
+    final SignedBeaconBlock blockD =
+        dataStructureUtil.randomSignedBeaconBlock(currentSlot.longValue() + 1);
+
+    pendingPool.add(blockA);
+    pendingPool.add(blockB);
+    pendingPool.add(blockC);
+    pendingPool.add(blockD);
+    assertThat(pendingPool.size()).isEqualTo(4);
+
+    assertThat(pendingPool.getAllRequiredBlockRoots())
+        .containsExactlyInAnyOrder(parentRoot, blockD.getParentRoot());
+  }
+
+  @Test
   public void getItemsDependingOn_includeIndirect() {
     final int chainDepth = 2;
     final int descendentChainCount = 2;
@@ -345,7 +369,7 @@ public class PendingPoolTest {
             depth == 0 ? directDescendents : indirectDescendents;
         blockSet.add(block);
 
-        parentRoot = block.getMessage().hash_tree_root();
+        parentRoot = block.getMessage().hashTreeRoot();
       }
     }
 
@@ -377,7 +401,7 @@ public class PendingPoolTest {
             depth == 0 ? directDescendents : indirectDescendents;
         blockSet.add(block);
 
-        parentRoot = block.getMessage().hash_tree_root();
+        parentRoot = block.getMessage().hashTreeRoot();
       }
     }
 

@@ -29,6 +29,7 @@ import tech.pegasys.teku.benchmarks.gen.BlockIO.Reader;
 import tech.pegasys.teku.benchmarks.gen.BlsKeyPairIO;
 import tech.pegasys.teku.bls.BLSKeyPair;
 import tech.pegasys.teku.bls.BLSPublicKey;
+import tech.pegasys.teku.bls.BLSTestUtil;
 import tech.pegasys.teku.core.ForkChoiceAttestationValidator;
 import tech.pegasys.teku.core.ForkChoiceBlockTasks;
 import tech.pegasys.teku.core.StateTransition;
@@ -36,11 +37,9 @@ import tech.pegasys.teku.core.results.BlockImportResult;
 import tech.pegasys.teku.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.datastructures.interop.InteropStartupUtil;
 import tech.pegasys.teku.datastructures.state.BeaconState;
-import tech.pegasys.teku.datastructures.state.BeaconStateImpl;
 import tech.pegasys.teku.datastructures.state.Validator;
 import tech.pegasys.teku.datastructures.util.BeaconStateUtil;
 import tech.pegasys.teku.datastructures.util.DataStructureUtil;
-import tech.pegasys.teku.datastructures.util.SimpleOffsetSerializer;
 import tech.pegasys.teku.statetransition.BeaconChainUtil;
 import tech.pegasys.teku.statetransition.block.BlockImporter;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoice;
@@ -214,7 +213,7 @@ public class ProfilingRun {
   @Disabled
   @Test
   void runSszDeserialize() {
-    BLSPublicKey publicKey = BLSPublicKey.random(1);
+    BLSPublicKey publicKey = BLSTestUtil.randomPublicKey(1);
     System.out.println("Generating state...");
     BeaconState beaconState =
         new DataStructureUtil(1).withPubKeyGenerator(() -> publicKey).randomBeaconState(100_000);
@@ -222,11 +221,12 @@ public class ProfilingRun {
     Bytes bytes = beaconState.sszSerialize();
 
     System.out.println("Deserializing...");
+
     while (true) {
       long s = System.currentTimeMillis();
       long sum = 0;
       for (int i = 0; i < 1; i++) {
-        BeaconStateImpl state = SimpleOffsetSerializer.deserialize(bytes, BeaconStateImpl.class);
+        BeaconState state = BeaconState.getSszType().sszDeserialize(bytes);
         blackHole.accept(state);
         for (Validator validator : state.getValidators()) {
           sum += validator.getEffective_balance().longValue();

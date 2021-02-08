@@ -124,7 +124,7 @@ public class BlockManager extends Service implements SlotEventsChannel, BlockImp
   }
 
   private void notifyReceivedBlockSubscribers(SignedBeaconBlock signedBeaconBlock) {
-    receivedBlockSubscribers.forEach(s -> s.accept(signedBeaconBlock.getRoot()));
+    receivedBlockSubscribers.forEach(s -> s.accept(signedBeaconBlock));
   }
 
   @Subscribe
@@ -206,7 +206,7 @@ public class BlockManager extends Service implements SlotEventsChannel, BlockImp
 
     blocksToDrop.forEach(
         blockToDrop -> {
-          invalidBlockRoots.add(blockToDrop.getMessage().hash_tree_root());
+          invalidBlockRoots.add(blockToDrop.getMessage().hashTreeRoot());
           pendingBlocks.remove(blockToDrop);
         });
   }

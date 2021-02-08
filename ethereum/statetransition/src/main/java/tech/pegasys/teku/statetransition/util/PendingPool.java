@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
@@ -101,7 +102,7 @@ public class PendingPool<T> implements SlotEventsChannel, FinalizedCheckpointCha
         historicalBlockTolerance,
         futureBlockTolerance,
         maxItems,
-        block -> block.getMessage().hash_tree_root(),
+        block -> block.getMessage().hashTreeRoot(),
         block -> Collections.singleton(block.getParentRoot()),
         SignedBeaconBlock::getSlot);
   }
@@ -190,6 +191,17 @@ public class PendingPool<T> implements SlotEventsChannel, FinalizedCheckpointCha
 
   public synchronized boolean contains(final Bytes32 itemRoot) {
     return pendingItems.containsKey(itemRoot);
+  }
+
+  public synchronized Optional<T> get(final Bytes32 itemRoot) {
+    return Optional.ofNullable(pendingItems.get(itemRoot));
+  }
+
+  public synchronized Set<Bytes32> getAllRequiredBlockRoots() {
+    return pendingItemsByRequiredBlockRoot.keySet().stream()
+        // Filter out items we already have but can't import yet
+        .filter(root -> !pendingItems.containsKey(root))
+        .collect(Collectors.toSet());
   }
 
   /**

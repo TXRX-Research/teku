@@ -39,6 +39,7 @@ public class Eth2NetworkConfiguration {
   private final SpecConfiguration specConfig;
   private final String constants;
   private final Optional<String> initialState;
+  private final boolean usingCustomInitialState;
   private final int startupTargetPeerCount;
   private final int startupTimeoutSeconds;
   private final List<String> discoveryBootnodes;
@@ -49,6 +50,7 @@ public class Eth2NetworkConfiguration {
       final SpecConfiguration specConfig,
       final String constants,
       final Optional<String> initialState,
+      final boolean usingCustomInitialState,
       final int startupTargetPeerCount,
       final int startupTimeoutSeconds,
       final List<String> discoveryBootnodes,
@@ -57,6 +59,7 @@ public class Eth2NetworkConfiguration {
     this.specConfig = specConfig;
     this.constants = constants;
     this.initialState = initialState;
+    this.usingCustomInitialState = usingCustomInitialState;
     this.startupTargetPeerCount = startupTargetPeerCount;
     this.startupTimeoutSeconds = startupTimeoutSeconds;
     this.discoveryBootnodes = discoveryBootnodes;
@@ -89,6 +92,10 @@ public class Eth2NetworkConfiguration {
     return initialState;
   }
 
+  public boolean isUsingCustomInitialState() {
+    return usingCustomInitialState;
+  }
+
   public Integer getStartupTargetPeerCount() {
     return startupTargetPeerCount;
   }
@@ -117,6 +124,7 @@ public class Eth2NetworkConfiguration {
   public static class Builder {
     private String constants;
     private Optional<String> initialState = Optional.empty();
+    private boolean usingCustomInitialState = false;
     private int startupTargetPeerCount = DEFAULT_STARTUP_TARGET_PEER_COUNT;
     private int startupTimeoutSeconds = DEFAULT_STARTUP_TIMEOUT_SECONDS;
     private List<String> discoveryBootnodes = new ArrayList<>();
@@ -134,6 +142,7 @@ public class Eth2NetworkConfiguration {
           specConfig,
           constants,
           initialState,
+          usingCustomInitialState,
           startupTargetPeerCount,
           startupTimeoutSeconds,
           discoveryBootnodes,
@@ -148,6 +157,7 @@ public class Eth2NetworkConfiguration {
 
     public Builder initialState(final String initialState) {
       this.initialState = Optional.of(initialState);
+      this.usingCustomInitialState = true;
       return this;
     }
 
@@ -248,8 +258,8 @@ public class Eth2NetworkConfiguration {
               "enr:-Ku4QEWzdnVtXc2Q0ZVigfCGggOVB2Vc1ZCPEc6j21NIFLODSJbvNaef1g4PxhPwl_3kax86YPheFUSLXPRs98vvYsoBh2F0dG5ldHOIAAAAAAAAAACEZXRoMpC1MD8qAAAAAP__________gmlkgnY0gmlwhDZBrP2Jc2VjcDI1NmsxoQM6jr8Rb1ktLEsVcKAPa08wCsKUmvoQ8khiOl_SLozf9IN1ZHCCIyg",
 
               // Nimbus
-              "enr:-LK4QLU5_AeUzZEtpK8grqPo4EmX4el3ochu8vNNoXX1PrBjYfn8ksjeQ1eFtbL7ywMau9k_7BBQGmO26DHWgngkBCgBh2F0dG5ldHOI__________-EZXRoMpC1MD8qAAAAAP__________gmlkgnY0gmlwhAN7_O-Jc2VjcDI1NmsxoQKH1zg2Fge8Q6Zf-rLFbjGEtgvVbmDXqFVLxqquJcguFIN0Y3CCI4yDdWRwgiOM",
-              "enr:-LK4QLjSKc09WkFZ5Pa1UF3KPkt3ieTZ6B7F6iDL_chyniP5NVDl10aGIu-pL9mbwZ47GM3RN63eGHPsw-MTLSYcz74Bh2F0dG5ldHOI__________-EZXRoMpC1MD8qAAAAAP__________gmlkgnY0gmlwhDQ7fI6Jc2VjcDI1NmsxoQJDU6zzDlUDgUqFSzoIuP9bWu097k2d7X4eHoJTGhbphoN0Y3CCI4yDdWRwgiOM");
+              "enr:-LK4QA8FfhaAjlb_BXsXxSfiysR7R52Nhi9JBt4F8SPssu8hdE1BXQQEtVDC3qStCW60LSO7hEsVHv5zm8_6Vnjhcn0Bh2F0dG5ldHOIAAAAAAAAAACEZXRoMpC1MD8qAAAAAP__________gmlkgnY0gmlwhAN4aBKJc2VjcDI1NmsxoQJerDhsJ-KxZ8sHySMOCmTO6sHM3iCFQ6VMvLTe948MyYN0Y3CCI4yDdWRwgiOM",
+              "enr:-LK4QKWrXTpV9T78hNG6s8AM6IO4XH9kFT91uZtFg1GcsJ6dKovDOr1jtAAFPnS2lvNltkOGA9k29BUN7lFh_sjuc9QBh2F0dG5ldHOIAAAAAAAAAACEZXRoMpC1MD8qAAAAAP__________gmlkgnY0gmlwhANAdd-Jc2VjcDI1NmsxoQLQa6ai7y9PMN5hpLe5HmiJSlYzMuzP7ZhwRiwHvqNXdoN0Y3CCI4yDdWRwgiOM");
     }
 
     public Builder applyMedallaNetworkDefaults() {

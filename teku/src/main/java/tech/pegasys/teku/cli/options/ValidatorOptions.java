@@ -20,8 +20,8 @@ import picocli.CommandLine;
 import picocli.CommandLine.Option;
 import tech.pegasys.teku.cli.converter.GraffitiConverter;
 import tech.pegasys.teku.config.TekuConfiguration;
-import tech.pegasys.teku.util.config.ValidatorPerformanceTrackingMode;
 import tech.pegasys.teku.validator.api.FileBackedGraffitiProvider;
+import tech.pegasys.teku.validator.api.ValidatorPerformanceTrackingMode;
 
 public class ValidatorOptions {
 
@@ -41,7 +41,7 @@ public class ValidatorOptions {
       names = {"--validators-graffiti-file"},
       paramLabel = "<GRAFFITI FILE>",
       description =
-          "File to load graffiti value to include during block creation. Value gets converted to bytes and padded to Bytes32.  If file reading fails during block creation, teku will fall back to any value supplied via --graffiti.",
+          "File to load graffiti value to include during block creation. Value gets converted to bytes and padded to Bytes32.  If file reading fails during block creation, teku will fall back to any value supplied via --validators-graffiti.",
       arity = "1")
   private Path graffitiFile;
 
@@ -85,7 +85,7 @@ public class ValidatorOptions {
       hidden = true,
       fallbackValue = "true",
       arity = "0..1")
-  private boolean useDependentRoots = false;
+  private boolean useDependentRoots = true;
 
   public void configure(TekuConfiguration.Builder builder) {
     if (validatorPerformanceTrackingEnabled != null) {

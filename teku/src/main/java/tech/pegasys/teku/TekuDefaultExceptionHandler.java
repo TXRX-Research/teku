@@ -25,11 +25,12 @@ import java.util.concurrent.RejectedExecutionException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import tech.pegasys.teku.infrastructure.events.ChannelExceptionHandler;
+import tech.pegasys.teku.infrastructure.exceptions.ExceptionUtil;
 import tech.pegasys.teku.infrastructure.logging.StatusLogger;
 import tech.pegasys.teku.pow.exception.InvalidDepositEventsException;
 import tech.pegasys.teku.service.serviceutils.FatalServiceFailureException;
+import tech.pegasys.teku.storage.server.DatabaseStorageException;
 import tech.pegasys.teku.storage.server.ShuttingDownException;
-import tech.pegasys.teku.util.exceptions.ExceptionUtil;
 
 public final class TekuDefaultExceptionHandler
     implements SubscriberExceptionHandler, ChannelExceptionHandler, UncaughtExceptionHandler {
@@ -90,6 +91,11 @@ public final class TekuDefaultExceptionHandler
     if (fatalServiceError.isPresent()) {
       final String failedService = fatalServiceError.get().getService().getSimpleName();
       statusLog.fatalError(failedService, exception);
+      System.exit(2);
+    } else if (ExceptionUtil.getCause(exception, DatabaseStorageException.class)
+        .filter(DatabaseStorageException::isUnrecoverable)
+        .isPresent()) {
+      statusLog.fatalError(subscriberDescription, exception);
       System.exit(2);
     } else if (exception instanceof OutOfMemoryError) {
       statusLog.fatalError(subscriberDescription, exception);

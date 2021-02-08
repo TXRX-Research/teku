@@ -15,6 +15,7 @@ package tech.pegasys.teku.sync.forward.multipeer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import tech.pegasys.teku.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.infrastructure.async.AsyncRunnerFactory;
 import tech.pegasys.teku.infrastructure.async.OrderedAsyncRunner;
@@ -26,6 +27,7 @@ import tech.pegasys.teku.networking.eth2.peers.Eth2Peer;
 import tech.pegasys.teku.networking.p2p.network.P2PNetwork;
 import tech.pegasys.teku.service.serviceutils.Service;
 import tech.pegasys.teku.statetransition.block.BlockImporter;
+import tech.pegasys.teku.statetransition.util.PendingPool;
 import tech.pegasys.teku.storage.client.RecentChainData;
 import tech.pegasys.teku.sync.events.SyncingStatus;
 import tech.pegasys.teku.sync.forward.ForwardSyncService;
@@ -38,6 +40,7 @@ import tech.pegasys.teku.util.config.Constants;
 
 public class MultipeerSyncService extends Service implements ForwardSyncService {
   private static final Logger LOG = LogManager.getLogger();
+  private final SyncStallDetector syncStallDetector;
   private final EventThread eventThread;
   private final RecentChainData recentChainData;
   private final PeerChainTracker peerChainTracker;
@@ -47,11 +50,13 @@ public class MultipeerSyncService extends Service implements ForwardSyncService 
       final EventThread eventThread,
       final RecentChainData recentChainData,
       final PeerChainTracker peerChainTracker,
-      final SyncController syncController) {
+      final SyncController syncController,
+      final SyncStallDetector syncStallDetector) {
     this.eventThread = eventThread;
     this.recentChainData = recentChainData;
     this.peerChainTracker = peerChainTracker;
     this.syncController = syncController;
+    this.syncStallDetector = syncStallDetector;
   }
 
   public static MultipeerSyncService create(
@@ -59,6 +64,7 @@ public class MultipeerSyncService extends Service implements ForwardSyncService 
       final AsyncRunner asyncRunner,
       final TimeProvider timeProvider,
       final RecentChainData recentChainData,
+      final PendingPool<SignedBeaconBlock> pendingBlocks,
       final P2PNetwork<Eth2Peer> p2pNetwork,
       final BlockImporter blockImporter) {
     LOG.info("Using multipeer sync");
@@ -73,14 +79,19 @@ public class MultipeerSyncService extends Service implements ForwardSyncService 
             new BatchImporter(blockImporter, asyncRunner),
             new BatchFactory(eventThread, new PeerScoringConflictResolutionStrategy()),
             Constants.SYNC_BATCH_SIZE,
-            MultipeerCommonAncestorFinder.create(recentChainData, eventThread));
+            MultipeerCommonAncestorFinder.create(recentChainData, eventThread),
+            timeProvider);
     final SyncController syncController =
         new SyncController(
             eventThread,
             new OrderedAsyncRunner(asyncRunner),
             recentChainData,
-            new ChainSelector(recentChainData, finalizedTargetChains),
-            new ChainSelector(recentChainData, nonfinalizedTargetChains),
+            new SyncTargetSelector(
+                recentChainData,
+                pendingBlocks,
+                finalizedTargetChains,
+                nonfinalizedTargetChains,
+                Constants.SLOTS_PER_EPOCH),
             batchSync);
     final PeerChainTracker peerChainTracker =
         new PeerChainTracker(
@@ -90,7 +101,11 @@ public class MultipeerSyncService extends Service implements ForwardSyncService 
             finalizedTargetChains,
             nonfinalizedTargetChains);
     peerChainTracker.subscribeToTargetChainUpdates(syncController::onTargetChainsUpdated);
-    return new MultipeerSyncService(eventThread, recentChainData, peerChainTracker, syncController);
+    final SyncStallDetector syncStallDetector =
+        new SyncStallDetector(
+            eventThread, asyncRunner, timeProvider, syncController, batchSync, recentChainData);
+    return new MultipeerSyncService(
+        eventThread, recentChainData, peerChainTracker, syncController, syncStallDetector);
   }
 
   @Override
@@ -102,6 +117,7 @@ public class MultipeerSyncService extends Service implements ForwardSyncService 
         () -> {
           eventThread.start();
           peerChainTracker.start();
+          syncStallDetector.start().reportExceptions();
         });
     return SafeFuture.COMPLETE;
   }
@@ -110,7 +126,7 @@ public class MultipeerSyncService extends Service implements ForwardSyncService 
   protected SafeFuture<?> doStop() {
     peerChainTracker.stop();
     eventThread.stop();
-    return SafeFuture.COMPLETE;
+    return syncStallDetector.stop();
   }
 
   @Override

@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import tech.pegasys.teku.benchmarks.gen.BlockIO.Writer;
 import tech.pegasys.teku.bls.BLSKeyPair;
+import tech.pegasys.teku.bls.BLSTestUtil;
 import tech.pegasys.teku.core.AttestationGenerator;
 import tech.pegasys.teku.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.datastructures.blocks.StateAndBlockSummary;
@@ -91,7 +92,7 @@ public class Generator {
           final StateAndBlockSummary postState =
               localStorage
                   .getStore()
-                  .retrieveStateAndBlockSummary(block.getMessage().hash_tree_root())
+                  .retrieveStateAndBlockSummary(block.getMessage().hashTreeRoot())
                   .join()
                   .orElseThrow();
 
@@ -125,7 +126,7 @@ public class Generator {
     File outFile = new File("bls-key-pairs-" + limitK + "k-seed-" + randomSeed + ".txt");
     Iterator<BLSKeyPair> keyPairIterator =
         IntStream.range(randomSeed, randomSeed + Integer.MAX_VALUE)
-            .mapToObj(BLSKeyPair::random)
+            .mapToObj(BLSTestUtil::randomKeyPair)
             .iterator();
 
     System.out.println("Generating keypairs...");

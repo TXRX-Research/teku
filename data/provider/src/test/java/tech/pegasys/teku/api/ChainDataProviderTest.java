@@ -57,10 +57,10 @@ import tech.pegasys.teku.ssz.SSZTypes.Bytes4;
 import tech.pegasys.teku.storage.client.ChainDataUnavailableException;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.storage.client.RecentChainData;
+import tech.pegasys.teku.storage.server.StateStorageMode;
 import tech.pegasys.teku.storage.storageSystem.InMemoryStorageSystemBuilder;
 import tech.pegasys.teku.storage.storageSystem.StorageSystem;
 import tech.pegasys.teku.util.config.Constants;
-import tech.pegasys.teku.util.config.StateStorageMode;
 
 public class ChainDataProviderTest {
   private final StorageSystem storageSystem =
@@ -141,7 +141,7 @@ public class ChainDataProviderTest {
     SafeFuture<Optional<BeaconState>> future = provider.getBeaconState("head");
     final Optional<BeaconState> maybeState = future.get();
     assertThat(maybeState.get().asInternalBeaconState().hashTreeRoot())
-        .isEqualTo(beaconStateInternal.hash_tree_root());
+        .isEqualTo(beaconStateInternal.hashTreeRoot());
   }
 
   @Test
@@ -259,7 +259,7 @@ public class ChainDataProviderTest {
         combinedChainDataClient.getStateAtSlotExact(ZERO).get();
     final Optional<Root> maybeStateRoot = provider.getStateRoot("genesis").get();
     assertThat(maybeStateRoot).isPresent();
-    assertThat(maybeStateRoot.orElseThrow().root).isEqualTo(state.orElseThrow().hash_tree_root());
+    assertThat(maybeStateRoot.orElseThrow().root).isEqualTo(state.orElseThrow().hashTreeRoot());
   }
 
   @Test

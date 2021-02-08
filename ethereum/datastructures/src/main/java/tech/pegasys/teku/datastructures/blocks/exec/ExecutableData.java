@@ -21,90 +21,94 @@ import java.util.List;
 import java.util.function.Function;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
-import tech.pegasys.teku.datastructures.util.Merkleizable;
+import tech.pegasys.teku.datastructures.util.SpecDependent;
 import tech.pegasys.teku.infrastructure.logging.LogFormatter;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.ssz.SSZTypes.Bytes20;
 import tech.pegasys.teku.ssz.SSZTypes.SSZBackingList;
-import tech.pegasys.teku.ssz.SSZTypes.SSZContainer;
 import tech.pegasys.teku.ssz.SSZTypes.SSZList;
-import tech.pegasys.teku.ssz.SSZTypes.SSZVector;
 import tech.pegasys.teku.ssz.backing.ListViewRead;
-import tech.pegasys.teku.ssz.backing.ListViewWrite;
 import tech.pegasys.teku.ssz.backing.VectorViewRead;
-import tech.pegasys.teku.ssz.backing.VectorViewWrite;
+import tech.pegasys.teku.ssz.backing.containers.Container10;
+import tech.pegasys.teku.ssz.backing.containers.ContainerType10;
 import tech.pegasys.teku.ssz.backing.tree.TreeNode;
 import tech.pegasys.teku.ssz.backing.type.BasicViewTypes;
-import tech.pegasys.teku.ssz.backing.type.ContainerViewType;
 import tech.pegasys.teku.ssz.backing.type.ListViewType;
 import tech.pegasys.teku.ssz.backing.type.VectorViewType;
-import tech.pegasys.teku.ssz.backing.view.AbstractImmutableContainer;
 import tech.pegasys.teku.ssz.backing.view.BasicViews.ByteView;
 import tech.pegasys.teku.ssz.backing.view.BasicViews.Bytes32View;
 import tech.pegasys.teku.ssz.backing.view.BasicViews.UInt64View;
 import tech.pegasys.teku.ssz.backing.view.ViewUtils;
-import tech.pegasys.teku.ssz.sos.SimpleOffsetSerializable;
 
-public class ExecutableData extends AbstractImmutableContainer
-    implements Merkleizable, SimpleOffsetSerializable, SSZContainer {
+public class ExecutableData
+    extends Container10<
+        ExecutableData,
+        Bytes32View,
+        Bytes32View,
+        VectorViewRead<ByteView>,
+        Bytes32View,
+        UInt64View,
+        UInt64View,
+        Bytes32View,
+        VectorViewRead<ByteView>,
+        UInt64View,
+        ListViewRead<Eth1Transaction>> {
 
-  public static final ContainerViewType<ExecutableData> TYPE =
-      ContainerViewType.create(
-          List.of(
-              BasicViewTypes.BYTES32_TYPE,
-              BasicViewTypes.BYTES32_TYPE,
-              new VectorViewType<ByteView>(BasicViewTypes.BYTE_TYPE, Bytes20.SIZE),
-              BasicViewTypes.BYTES32_TYPE,
-              BasicViewTypes.UINT64_TYPE,
-              BasicViewTypes.UINT64_TYPE,
-              BasicViewTypes.BYTES32_TYPE,
-              new VectorViewType<ByteView>(BasicViewTypes.BYTE_TYPE, BYTES_PER_LOGS_BLOOM),
-              BasicViewTypes.UINT64_TYPE,
-              new ListViewType<Eth1Transaction>(Eth1Transaction.TYPE, MAX_ETH1_TRANSACTIONS)),
-          ExecutableData::new);
+  public static class ExecutableDataType
+      extends ContainerType10<
+          ExecutableData,
+          Bytes32View,
+          Bytes32View,
+          VectorViewRead<ByteView>,
+          Bytes32View,
+          UInt64View,
+          UInt64View,
+          Bytes32View,
+          VectorViewRead<ByteView>,
+          UInt64View,
+          ListViewRead<Eth1Transaction>> {
 
-  @SuppressWarnings("unused")
-  private final Bytes32 parent_hash = null;
+    public ExecutableDataType() {
+      super(
+          "ExecutableData",
+          namedType("parent_hash", BasicViewTypes.BYTES32_TYPE),
+          namedType("block_hash", BasicViewTypes.BYTES32_TYPE),
+          namedType("coinbase", new VectorViewType<>(BasicViewTypes.BYTE_TYPE, Bytes20.SIZE)),
+          namedType("state_root", BasicViewTypes.BYTES32_TYPE),
+          namedType("gas_limit", BasicViewTypes.UINT64_TYPE),
+          namedType("gas_used", BasicViewTypes.UINT64_TYPE),
+          namedType("receipt_root", BasicViewTypes.BYTES32_TYPE),
+          namedType(
+              "logs_bloom", new VectorViewType<>(BasicViewTypes.BYTE_TYPE, BYTES_PER_LOGS_BLOOM)),
+          namedType("difficulty", BasicViewTypes.UINT64_TYPE),
+          namedType(
+              "transactions",
+              new ListViewType<>(Eth1Transaction.TYPE.get(), MAX_ETH1_TRANSACTIONS)));
+    }
 
-  @SuppressWarnings("unused")
-  private final Bytes32 block_hash = null;
+    public ListViewType<Eth1Transaction> getTransactionsType() {
+      return (ListViewType<Eth1Transaction>) getFieldType9();
+    }
 
-  @SuppressWarnings("unused")
-  private final Bytes20 coinbase = null;
-
-  @SuppressWarnings("unused")
-  private final Bytes32 state_root = null;
-
-  @SuppressWarnings("unused")
-  private final UInt64 gas_limit = null;
-
-  @SuppressWarnings("unused")
-  private final UInt64 gas_used = null;
-
-  @SuppressWarnings("unused")
-  private final Bytes32 receipt_root = null;
-
-  @SuppressWarnings("unused")
-  private final SSZVector<Byte> logs_bloom =
-      SSZVector.createMutable(Byte.class, BYTES_PER_LOGS_BLOOM);
-
-  @SuppressWarnings("unused")
-  private final UInt64 difficulty = null;
-
-  @SuppressWarnings("unused")
-  private final SSZList<Eth1Transaction> transactions =
-      SSZList.createMutable(Eth1Transaction.class, MAX_ETH1_TRANSACTIONS);
-
-  public ExecutableData() {
-    super(TYPE);
+    @Override
+    public ExecutableData createFromBackingNode(TreeNode node) {
+      return new ExecutableData(this, node);
+    }
   }
 
-  public ExecutableData(
-      ContainerViewType<? extends AbstractImmutableContainer> type, TreeNode backingNode) {
+  private ExecutableData(ExecutableDataType type, TreeNode backingNode) {
     super(type, backingNode);
   }
 
+  public static final SpecDependent<ExecutableDataType> TYPE =
+      SpecDependent.of(ExecutableDataType::new);
+
+  public ExecutableData() {
+    super(TYPE.get());
+  }
+
   public ExecutableData(
+      ExecutableDataType type,
       Bytes32 parent_hash,
       Bytes32 block_hash,
       Bytes20 coinbase,
@@ -112,11 +116,11 @@ public class ExecutableData extends AbstractImmutableContainer
       UInt64 gas_limit,
       UInt64 gas_used,
       Bytes32 receipt_root,
-      SSZVector<Byte> logs_bloom,
+      Bytes logs_bloom,
       UInt64 difficulty,
-      SSZList<Eth1Transaction> transactions) {
+      Iterable<Eth1Transaction> transactions) {
     super(
-        TYPE,
+        type,
         new Bytes32View(parent_hash),
         new Bytes32View(block_hash),
         ViewUtils.createVectorFromBytes(coinbase.getWrappedBytes()),
@@ -124,9 +128,9 @@ public class ExecutableData extends AbstractImmutableContainer
         new UInt64View(gas_limit),
         new UInt64View(gas_used),
         new Bytes32View(receipt_root),
-        createLogsBloomView(logs_bloom),
+        ViewUtils.createVectorFromBytes(logs_bloom),
         new UInt64View(difficulty),
-        createTransactionListView(transactions));
+        ViewUtils.toListView(type.getTransactionsType(), transactions));
   }
 
   public ExecutableData(
@@ -140,44 +144,18 @@ public class ExecutableData extends AbstractImmutableContainer
       Bytes logs_bloom,
       UInt64 difficulty,
       List<Eth1Transaction> transactions) {
-    super(
-        TYPE,
-        new Bytes32View(parent_hash),
-        new Bytes32View(block_hash),
-        ViewUtils.createVectorFromBytes(coinbase.getWrappedBytes()),
-        new Bytes32View(state_root),
-        new UInt64View(gas_limit),
-        new UInt64View(gas_used),
-        new Bytes32View(receipt_root),
-        ViewUtils.createVectorFromBytes(logs_bloom),
-        new UInt64View(difficulty),
-        createTransactionListView(transactions));
-  }
-
-  private static VectorViewRead<ByteView> createLogsBloomView(SSZVector<Byte> vector) {
-    VectorViewType<ByteView> type = new VectorViewType<>(BasicViewTypes.BYTE_TYPE, vector.size());
-    VectorViewWrite<ByteView> ret = type.getDefault().createWritableCopy();
-    for (int i = 0; i < ret.size(); i++) {
-      ret.set(i, new ByteView(vector.get(i)));
-    }
-
-    return ret.commitChanges();
-  }
-
-  private static ListViewRead<Eth1Transaction> createTransactionListView(
-      Iterable<Eth1Transaction> transactions) {
-    ListViewWrite<Eth1Transaction> mutableListView =
-        new ListViewType<Eth1Transaction>(Eth1Transaction.TYPE, MAX_ETH1_TRANSACTIONS)
-            .getDefault()
-            .createWritableCopy();
-    transactions.forEach(mutableListView::append);
-
-    return mutableListView.commitChanges();
-  }
-
-  @Override
-  public int getSSZFieldCount() {
-    return 0;
+    this(
+        TYPE.get(),
+        parent_hash,
+        block_hash,
+        coinbase,
+        state_root,
+        gas_limit,
+        gas_used,
+        receipt_root,
+        logs_bloom,
+        difficulty,
+        transactions);
   }
 
   public Bytes32 getParent_hash() {
@@ -219,11 +197,6 @@ public class ExecutableData extends AbstractImmutableContainer
   public SSZList<Eth1Transaction> getTransactions() {
     return new SSZBackingList<>(
         Eth1Transaction.class, getAny(9), Function.identity(), Function.identity());
-  }
-
-  @Override
-  public Bytes32 hash_tree_root() {
-    return hashTreeRoot();
   }
 
   @Override

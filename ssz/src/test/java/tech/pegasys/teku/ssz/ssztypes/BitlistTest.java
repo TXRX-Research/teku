@@ -13,14 +13,15 @@
 
 package tech.pegasys.teku.ssz.ssztypes;
 
+import static com.google.common.base.Preconditions.checkArgument;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.apache.tuweni.bytes.Bytes;
+import org.apache.tuweni.bytes.MutableBytes;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -131,14 +132,7 @@ class BitlistTest {
 
   @Test
   void serializationTest2() {
-    Bitlist bitlist = new Bitlist(9, BITLIST_MAX_SIZE);
-    bitlist.setBit(0);
-    bitlist.setBit(3);
-    bitlist.setBit(4);
-    bitlist.setBit(5);
-    bitlist.setBit(6);
-    bitlist.setBit(7);
-    bitlist.setBit(8);
+    Bitlist bitlist = new Bitlist(9, BITLIST_MAX_SIZE, 0, 3, 4, 5, 6, 7, 8);
 
     Bytes bitlistSerialized = bitlist.serialize();
     Assertions.assertEquals(Bytes.fromHexString("0xf903"), bitlistSerialized);
@@ -146,14 +140,7 @@ class BitlistTest {
 
   @Test
   void deserializationTest2() {
-    Bitlist bitlist = new Bitlist(9, BITLIST_MAX_SIZE);
-    bitlist.setBit(0);
-    bitlist.setBit(3);
-    bitlist.setBit(4);
-    bitlist.setBit(5);
-    bitlist.setBit(6);
-    bitlist.setBit(7);
-    bitlist.setBit(8);
+    Bitlist bitlist = new Bitlist(9, BITLIST_MAX_SIZE, 0, 3, 4, 5, 6, 7, 8);
 
     Bitlist newBitlist = Bitlist.fromSszBytes(Bytes.fromHexString("0xf903"), BITLIST_MAX_SIZE);
     Assertions.assertEquals(bitlist, newBitlist);
@@ -174,9 +161,7 @@ class BitlistTest {
   }
 
   private static Bitlist create(int... bits) {
-    Bitlist bitlist = new Bitlist(18, BITLIST_MAX_SIZE);
-    IntStream.of(bits).forEach(bitlist::setBit);
-    return bitlist;
+    return new Bitlist(18, BITLIST_MAX_SIZE, bits);
   }
 
   private static Bitlist createBitlist() {
@@ -212,7 +197,7 @@ class BitlistTest {
   void testSszMethods(Bytes bitlistSsz) {
     int length = Bitlist.sszGetLengthAndValidate(bitlistSsz);
     Bytes truncBytes = Bitlist.sszTruncateLeadingBit(bitlistSsz, length);
-    Bytes bitlistSsz1 = Bitlist.sszAppendLeadingBit(truncBytes, length);
+    Bytes bitlistSsz1 = sszAppendLeadingBit(truncBytes, length);
     assertThat(bitlistSsz1).isEqualTo(bitlistSsz);
 
     Bitlist bitlist = Bitlist.fromSszBytes(bitlistSsz, length);
@@ -234,5 +219,21 @@ class BitlistTest {
         .isInstanceOf(IllegalArgumentException.class);
     assertThatThrownBy(() -> Bitlist.fromSszBytes(bitlistSsz, 1024))
         .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  public static Bytes sszAppendLeadingBit(Bytes bytes, int length) {
+    checkArgument(length <= bytes.size() * 8 && length > (bytes.size() - 1) * 8);
+    if (length % 8 == 0) {
+      return Bytes.wrap(bytes, Bytes.of(1));
+    } else {
+      int lastByte = 0xFF & bytes.get(bytes.size() - 1);
+      int leadingBit = 1 << (length % 8);
+      checkArgument((-leadingBit & lastByte) == 0, "Bits higher than length should be 0");
+      int lastByteWithLeadingBit = lastByte ^ leadingBit;
+      // workaround for Bytes bug. See BitlistViewTest.tuweniBytesIssue() test
+      MutableBytes resultBytes = bytes.mutableCopy();
+      resultBytes.set(bytes.size() - 1, (byte) lastByteWithLeadingBit);
+      return resultBytes;
+    }
   }
 }

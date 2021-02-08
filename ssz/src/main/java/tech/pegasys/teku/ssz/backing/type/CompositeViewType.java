@@ -14,12 +14,12 @@
 package tech.pegasys.teku.ssz.backing.type;
 
 import tech.pegasys.teku.ssz.backing.CompositeViewRead;
-import tech.pegasys.teku.ssz.backing.Utils;
 import tech.pegasys.teku.ssz.backing.ViewRead;
 import tech.pegasys.teku.ssz.backing.tree.TreeNode;
+import tech.pegasys.teku.ssz.backing.tree.TreeUtil;
 
 /** Abstract type of {@link CompositeViewRead} views */
-public interface CompositeViewType<V extends ViewRead> extends ViewType<V> {
+public interface CompositeViewType<ViewT extends ViewRead> extends ViewType<ViewT> {
 
   /**
    * Returns the maximum number of elements in views of this type. For views with fixed number of
@@ -62,12 +62,12 @@ public interface CompositeViewType<V extends ViewRead> extends ViewType<V> {
 
   /** Returns the backed binary tree depth to store maxLength elements */
   default int treeDepth() {
-    return Long.bitCount(Utils.nextPowerOf2(maxChunks()) - 1);
+    return Long.bitCount(treeWidth() - 1);
   }
 
   /** Returns the backed binary tree width to store maxLength elements */
   default long treeWidth() {
-    return Utils.nextPowerOf2(maxChunks());
+    return TreeUtil.nextPowerOf2(maxChunks());
   }
 
   /**

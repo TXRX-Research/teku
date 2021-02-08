@@ -144,14 +144,17 @@ dependencyManagement {
 
     dependency 'io.prometheus:simpleclient:0.9.0'
 
-    dependency 'org.hyperledger.besu.internal:metrics-core:1.5.4'
-    dependency 'org.hyperledger.besu:plugin-api:1.5.4'
+    dependency 'org.hyperledger.besu.internal:metrics-core:20.10.4'
+    dependency 'org.hyperledger.besu:plugin-api:20.10.4'
 
     dependency "org.testcontainers:testcontainers:1.15.0-rc2"
     dependency "org.testcontainers:junit-jupiter:1.15.0-rc2"
 
-    dependency 'tech.pegasys.discovery:discovery:0.4.2-dev-874de92f'
+    dependency 'tech.pegasys.discovery:discovery:0.4.2-dev-c8f2d6d9'
 
     dependency 'tech.pegasys.signers.internal:bls-keystore:1.0.13'
+
+    dependency 'org.jupnp:org.jupnp.support:2.5.2'
+    dependency 'org.jupnp:org.jupnp:2.5.2'
   }
 }

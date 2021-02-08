@@ -28,7 +28,7 @@ import tech.pegasys.teku.datastructures.state.Checkpoint;
 import tech.pegasys.teku.datastructures.state.CheckpointState;
 import tech.pegasys.teku.infrastructure.async.SafeFuture;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
-import tech.pegasys.teku.util.config.StateStorageMode;
+import tech.pegasys.teku.storage.server.StateStorageMode;
 
 public class CombinedChainDataClientTest_archiveMode extends AbstractCombinedChainDataClientTest {
   @Override
@@ -104,7 +104,7 @@ public class CombinedChainDataClientTest_archiveMode extends AbstractCombinedCha
     chainUpdater.addNewBestBlock();
 
     Optional<BeaconState> result =
-        client.getStateByStateRoot(finalizedBlock.getState().hash_tree_root()).get();
+        client.getStateByStateRoot(finalizedBlock.getState().hashTreeRoot()).get();
     assertThat(result.isPresent()).isTrue();
     assertThat(result.get()).isEqualTo(finalizedBlock.getState());
   }
@@ -130,7 +130,7 @@ public class CombinedChainDataClientTest_archiveMode extends AbstractCombinedCha
     assertThat(skippedSlot).isEqualTo(skippedSlotState.getSlot());
 
     Optional<BeaconState> result =
-        client.getStateByStateRoot(skippedSlotState.hash_tree_root()).get();
+        client.getStateByStateRoot(skippedSlotState.hashTreeRoot()).get();
     assertThat(result.isPresent()).isTrue();
     assertThat(result.get()).isEqualTo(skippedSlotState);
   }

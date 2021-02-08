@@ -23,6 +23,7 @@ import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Warmup;
 import org.openjdk.jmh.infra.Blackhole;
 import tech.pegasys.teku.bls.BLSPublicKey;
+import tech.pegasys.teku.bls.BLSTestUtil;
 import tech.pegasys.teku.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.datastructures.util.DataStructureUtil;
 import tech.pegasys.teku.util.config.Constants;
@@ -33,7 +34,7 @@ import tech.pegasys.teku.util.config.Constants;
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
 public class BeaconBlockBenchmark {
 
-  private static final BLSPublicKey pubkey = BLSPublicKey.random(0);
+  private static final BLSPublicKey pubkey = BLSTestUtil.randomPublicKey(0);
   private static final DataStructureUtil dataStructureUtil =
       new DataStructureUtil(0).withPubKeyGenerator(() -> pubkey);
   private static final BeaconBlock fullBeaconBlock =
@@ -47,11 +48,11 @@ public class BeaconBlockBenchmark {
 
   @Benchmark
   public void hashFullBlocks(Blackhole bh) {
-    bh.consume(fullBeaconBlock.hash_tree_root());
+    bh.consume(fullBeaconBlock.hashTreeRoot());
   }
 
   @Benchmark
   public void hashSparseBlocks(Blackhole bh) {
-    bh.consume(sparseBeaconBlock.hash_tree_root());
+    bh.consume(sparseBeaconBlock.hashTreeRoot());
   }
 }
