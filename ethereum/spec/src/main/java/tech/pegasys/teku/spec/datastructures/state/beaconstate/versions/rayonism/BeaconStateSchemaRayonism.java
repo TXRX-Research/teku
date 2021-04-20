@@ -18,12 +18,17 @@ import static com.google.common.base.Preconditions.checkArgument;
 import com.google.common.annotations.VisibleForTesting;
 import java.util.List;
 import tech.pegasys.teku.spec.config.SpecConfig;
+import tech.pegasys.teku.spec.config.SpecConfigRayonism;
 import tech.pegasys.teku.spec.datastructures.execution.ExecutionPayloadHeader;
+import tech.pegasys.teku.spec.datastructures.sharding.DataCommitment;
+import tech.pegasys.teku.spec.datastructures.sharding.PendingShardHeader;
 import tech.pegasys.teku.spec.datastructures.state.PendingAttestation;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateSchema;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.AbstractBeaconStateSchema;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.BeaconStateFields;
 import tech.pegasys.teku.ssz.schema.SszListSchema;
+import tech.pegasys.teku.ssz.schema.SszPrimitiveSchemas;
+import tech.pegasys.teku.ssz.schema.SszVectorSchema;
 import tech.pegasys.teku.ssz.sos.SszField;
 import tech.pegasys.teku.ssz.tree.TreeNode;
 
@@ -33,10 +38,15 @@ public class BeaconStateSchemaRayonism
   private static final int PREVIOUS_EPOCH_ATTESTATIONS_FIELD_INDEX = 15;
   private static final int CURRENT_EPOCH_ATTESTATIONS_FIELD_INDEX = 16;
   private static final int LATEST_EXECUTION_PAYLOAD_HEADER_FIELD_INDEX = 21;
+  private static final int PREVIOUS_EPOCH_PENDING_SHARD_HEADERS_FIELD_INDEX = 22;
+  private static final int CURRENT_EPOCH_PENDING_SHARD_HEADERS_FIELD_INDEX = 23;
+  private static final int GRANDPARENT_EPOCH_CONFIRMED_COMMITMENTS_FIELD_INDEX = 24;
+  private static final int SHARD_GASPRICE_FIELD_INDEX = 25;
+  private static final int CURRENT_EPOCH_START_SHARD_FIELD_INDEX = 26;
 
   @VisibleForTesting
   BeaconStateSchemaRayonism(final SpecConfig specConfig) {
-    super("BeaconStateMerge", getUniqueFields(specConfig), specConfig);
+    super("BeaconStateRayonism", getUniqueFields(specConfig), specConfig);
   }
 
   public static BeaconStateSchemaRayonism create(final SpecConfig specConfig) {
@@ -65,10 +75,48 @@ public class BeaconStateSchemaRayonism
             LATEST_EXECUTION_PAYLOAD_HEADER_FIELD_INDEX,
             BeaconStateFields.LATEST_EXECUTION_PAYLOAD_HEADER.name(),
             () -> ExecutionPayloadHeader.SSZ_SCHEMA);
+
+    SpecConfigRayonism specConfigRayonism = specConfig.toVersionRayonism().orElseThrow();
+    int maxPendingShardHeaders = specConfigRayonism.getMaxShards() *
+        specConfigRayonism.getMaxShardHeadersPerShard() * specConfig.getSlotsPerEpoch();
+
+    final SszField previousEpochPendingShardHeadersField =
+        new SszField(
+            PREVIOUS_EPOCH_PENDING_SHARD_HEADERS_FIELD_INDEX,
+            BeaconStateFields.PREVIOUS_EPOCH_PENDING_SHARD_HEADERS.name(),
+            SszListSchema.create(PendingShardHeader.SSZ_SCHEMA, maxPendingShardHeaders));
+    final SszField currentEpochPendingShardHeadersField =
+        new SszField(
+            CURRENT_EPOCH_PENDING_SHARD_HEADERS_FIELD_INDEX,
+            BeaconStateFields.CURRENT_EPOCH_PENDING_SHARD_HEADERS.name(),
+            SszListSchema.create(PendingShardHeader.SSZ_SCHEMA, maxPendingShardHeaders));
+    final SszField grandparentEpochConfirmedCommitmentsField =
+        new SszField(
+            GRANDPARENT_EPOCH_CONFIRMED_COMMITMENTS_FIELD_INDEX,
+            BeaconStateFields.GRANDPARENT_EPOCH_CONFIRMED_COMMITMENTS.name(),
+            SszVectorSchema.create(
+                SszVectorSchema.create(DataCommitment.SSZ_SCHEMA, specConfig.getSlotsPerEpoch()),
+                specConfigRayonism.getMaxShards()));
+    final SszField shardGaspriceField =
+        new SszField(
+            SHARD_GASPRICE_FIELD_INDEX,
+            BeaconStateFields.SHARD_GASPRICE.name(),
+            SszPrimitiveSchemas.UINT64_SCHEMA);
+    final SszField currentEpochStartShardField =
+        new SszField(
+            CURRENT_EPOCH_START_SHARD_FIELD_INDEX,
+            BeaconStateFields.CURRENT_EPOCH_START_SHARD.name(),
+            SszPrimitiveSchemas.UINT64_SCHEMA);
+
     return List.of(
         previousEpochAttestationsField,
         currentEpochAttestationsField,
-        latestExecutionPayloadHeaderField);
+        latestExecutionPayloadHeaderField,
+        previousEpochPendingShardHeadersField,
+        currentEpochPendingShardHeadersField,
+        grandparentEpochConfirmedCommitmentsField,
+        shardGaspriceField,
+        currentEpochStartShardField);
   }
 
   public static BeaconStateSchemaRayonism required(final BeaconStateSchema<?, ?> schema) {

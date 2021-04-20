@@ -62,7 +62,13 @@ public enum BeaconStateFields {
   CURRENT_SYNC_COMMITTEE,
   NEXT_SYNC_COMMITTEE,
   // Merge fields
-  LATEST_EXECUTION_PAYLOAD_HEADER;
+  LATEST_EXECUTION_PAYLOAD_HEADER,
+  // Merge fields
+  PREVIOUS_EPOCH_PENDING_SHARD_HEADERS,
+  CURRENT_EPOCH_PENDING_SHARD_HEADERS,
+  GRANDPARENT_EPOCH_CONFIRMED_COMMITMENTS,
+  SHARD_GASPRICE,
+  CURRENT_EPOCH_START_SHARD;
 
   public static void copyCommonFieldsFromSource(
       final MutableBeaconState state, final BeaconState source) {

@@ -14,11 +14,17 @@
 package tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.rayonism;
 
 import java.util.Optional;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.execution.ExecutionPayloadHeader;
+import tech.pegasys.teku.spec.datastructures.sharding.DataCommitment;
+import tech.pegasys.teku.spec.datastructures.sharding.PendingShardHeader;
 import tech.pegasys.teku.spec.datastructures.state.PendingAttestation;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.MutableBeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.BeaconStateFields;
 import tech.pegasys.teku.ssz.SszMutableList;
+import tech.pegasys.teku.ssz.SszMutableVector;
+import tech.pegasys.teku.ssz.SszVector;
+import tech.pegasys.teku.ssz.primitive.SszUInt64;
 
 public interface MutableBeaconStateRayonism extends MutableBeaconState, BeaconStateRayonism {
 
@@ -51,6 +57,40 @@ public interface MutableBeaconStateRayonism extends MutableBeaconState, BeaconSt
     final int fieldIndex =
         getSchema().getFieldIndex(BeaconStateFields.LATEST_EXECUTION_PAYLOAD_HEADER.name());
     set(fieldIndex, executionPayloadHeader);
+  }
+
+  // Sharding
+  @Override
+  default SszMutableList<PendingShardHeader> getPrevious_epoch_pending_shard_headers() {
+    final int fieldIndex =
+        getSchema().getFieldIndex(BeaconStateFields.PREVIOUS_EPOCH_PENDING_SHARD_HEADERS.name());
+    return getAnyByRef(fieldIndex);
+  }
+
+  @Override
+  default SszMutableList<PendingShardHeader> getCurrent_epoch_pending_shard_headers() {
+    final int fieldIndex =
+        getSchema().getFieldIndex(BeaconStateFields.CURRENT_EPOCH_PENDING_SHARD_HEADERS.name());
+    return getAnyByRef(fieldIndex);
+  }
+
+  @Override
+  default SszMutableVector<SszVector<DataCommitment>> getGrandparent_epoch_confirmed_commitments() {
+    final int fieldIndex =
+        getSchema().getFieldIndex(BeaconStateFields.GRANDPARENT_EPOCH_CONFIRMED_COMMITMENTS.name());
+    return getAnyByRef(fieldIndex);
+  }
+
+  default void setShard_gasprice(UInt64 shardPrice) {
+    final int fieldIndex =
+        getSchema().getFieldIndex(BeaconStateFields.SHARD_GASPRICE.name());
+    set(fieldIndex, SszUInt64.of(shardPrice));
+  }
+
+  default void setCurrent_epoch_start_shard(UInt64 currentEpochStartShard) {
+    final int fieldIndex =
+        getSchema().getFieldIndex(BeaconStateFields.CURRENT_EPOCH_START_SHARD.name());
+    set(fieldIndex, SszUInt64.of(currentEpochStartShard));
   }
 
   @Override

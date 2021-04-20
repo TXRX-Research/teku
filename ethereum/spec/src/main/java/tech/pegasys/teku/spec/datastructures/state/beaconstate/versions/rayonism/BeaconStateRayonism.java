@@ -14,11 +14,16 @@
 package tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.rayonism;
 
 import java.util.Optional;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.execution.ExecutionPayloadHeader;
+import tech.pegasys.teku.spec.datastructures.sharding.DataCommitment;
+import tech.pegasys.teku.spec.datastructures.sharding.PendingShardHeader;
 import tech.pegasys.teku.spec.datastructures.state.PendingAttestation;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.BeaconStateFields;
 import tech.pegasys.teku.ssz.SszList;
+import tech.pegasys.teku.ssz.SszVector;
+import tech.pegasys.teku.ssz.primitive.SszUInt64;
 
 public interface BeaconStateRayonism extends BeaconState {
 
@@ -54,6 +59,37 @@ public interface BeaconStateRayonism extends BeaconState {
     final int fieldIndex =
         getSchema().getFieldIndex(BeaconStateFields.LATEST_EXECUTION_PAYLOAD_HEADER.name());
     return getAny(fieldIndex);
+  }
+
+  // Sharding
+  default SszList<PendingShardHeader> getPrevious_epoch_pending_shard_headers() {
+    final int fieldIndex =
+        getSchema().getFieldIndex(BeaconStateFields.PREVIOUS_EPOCH_PENDING_SHARD_HEADERS.name());
+    return getAny(fieldIndex);
+  }
+
+  default SszList<PendingShardHeader> getCurrent_epoch_pending_shard_headers() {
+    final int fieldIndex =
+        getSchema().getFieldIndex(BeaconStateFields.CURRENT_EPOCH_PENDING_SHARD_HEADERS.name());
+    return getAny(fieldIndex);
+  }
+
+  default SszVector<SszVector<DataCommitment>> getGrandparent_epoch_confirmed_commitments() {
+    final int fieldIndex =
+        getSchema().getFieldIndex(BeaconStateFields.GRANDPARENT_EPOCH_CONFIRMED_COMMITMENTS.name());
+    return getAny(fieldIndex);
+  }
+
+  default UInt64 getShard_gasprice() {
+    final int fieldIndex =
+        getSchema().getFieldIndex(BeaconStateFields.SHARD_GASPRICE.name());
+    return ((SszUInt64) get(fieldIndex)).get();
+  }
+
+  default UInt64 getCurrent_epoch_start_shard() {
+    final int fieldIndex =
+        getSchema().getFieldIndex(BeaconStateFields.CURRENT_EPOCH_START_SHARD.name());
+    return ((SszUInt64) get(fieldIndex)).get();
   }
 
   @Override
