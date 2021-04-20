@@ -70,7 +70,5 @@ public abstract class AbstractBeaconState<TMutable extends MutableBeaconState>
     return new SoftRefIntCache<>(super::createCache);
   }
 
-  protected abstract void describeCustomFields(ToStringHelper stringBuilder);
-
   protected abstract TMutable createWritableCopyPriv();
 }

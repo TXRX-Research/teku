@@ -86,11 +86,4 @@ public abstract class AbstractMutableBeaconState<
   public boolean equals(Object obj) {
     return BeaconStateInvariants.equals(this, obj);
   }
-
-  @Override
-  public String toString() {
-    return BeaconStateInvariants.toString(this, this::addCustomFields);
-  }
-
-  protected abstract void addCustomFields(ToStringHelper stringBuilder);
 }

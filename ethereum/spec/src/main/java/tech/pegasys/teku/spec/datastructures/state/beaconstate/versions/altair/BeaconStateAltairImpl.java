@@ -59,18 +59,4 @@ class BeaconStateAltairImpl extends AbstractBeaconState<MutableBeaconStateAltair
   protected MutableBeaconStateAltair createWritableCopyPriv() {
     return new MutableBeaconStateAltairImpl(this);
   }
-
-  @Override
-  protected void describeCustomFields(ToStringHelper stringBuilder) {
-    describeCustomFields(stringBuilder, this);
-  }
-
-  static void describeCustomFields(ToStringHelper stringBuilder, final BeaconStateAltair state) {
-    stringBuilder
-        .add("previous_epoch_participation", state.getPreviousEpochParticipation())
-        .add("current_epoch_participation", state.getCurrentEpochParticipation())
-        .add("inactivity_scores", state.getInactivityScores())
-        .add("current_sync_committee", state.getCurrentSyncCommittee())
-        .add("next_sync_committee", state.getNextSyncCommittee());
-  }
 }

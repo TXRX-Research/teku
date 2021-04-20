@@ -57,9 +57,4 @@ class MutableBeaconStateAltairImpl extends AbstractMutableBeaconState<BeaconStat
           throws E1, E2, E3 {
     throw new UnsupportedOperationException();
   }
-
-  @Override
-  protected void addCustomFields(ToStringHelper stringBuilder) {
-    BeaconStateAltairImpl.describeCustomFields(stringBuilder, this);
-  }
 }

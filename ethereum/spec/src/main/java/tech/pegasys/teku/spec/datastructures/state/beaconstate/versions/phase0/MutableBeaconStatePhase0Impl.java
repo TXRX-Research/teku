@@ -57,9 +57,4 @@ class MutableBeaconStatePhase0Impl extends AbstractMutableBeaconState<BeaconStat
           throws E1, E2, E3 {
     throw new UnsupportedOperationException();
   }
-
-  @Override
-  protected void addCustomFields(ToStringHelper stringBuilder) {
-    BeaconStatePhase0Impl.describeCustomFields(stringBuilder, this);
-  }
 }

@@ -13,6 +13,8 @@
 
 package tech.pegasys.teku.ssz.impl;
 
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import tech.pegasys.teku.ssz.SszContainer;
 import tech.pegasys.teku.ssz.SszData;
 import tech.pegasys.teku.ssz.SszMutableContainer;
@@ -57,5 +59,15 @@ public class SszMutableContainerImpl extends AbstractSszMutableComposite<SszData
       throw new IndexOutOfBoundsException(
           "Invalid index " + index + " for container with size " + size());
     }
+  }
+
+  @Override
+  public String toString() {
+    return this.getSchema().getContainerName()
+        + "{"
+        + IntStream.range(0, this.getSchema().getFieldsCount())
+        .mapToObj(idx -> this.getSchema().getFieldNames().get(idx) + "=" + get(idx))
+        .collect(Collectors.joining(", "))
+        + "}";
   }
 }

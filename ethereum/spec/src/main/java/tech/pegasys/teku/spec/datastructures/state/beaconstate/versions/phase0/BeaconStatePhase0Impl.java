@@ -59,15 +59,4 @@ class BeaconStatePhase0Impl extends AbstractBeaconState<MutableBeaconStatePhase0
   protected MutableBeaconStatePhase0 createWritableCopyPriv() {
     return new MutableBeaconStatePhase0Impl(this);
   }
-
-  @Override
-  protected void describeCustomFields(ToStringHelper stringBuilder) {
-    describeCustomFields(stringBuilder, this);
-  }
-
-  static void describeCustomFields(ToStringHelper stringBuilder, final BeaconStatePhase0 state) {
-    stringBuilder
-        .add("previous_epoch_attestations", state.getPrevious_epoch_attestations())
-        .add("current_epoch_attestations", state.getCurrent_epoch_attestations());
-  }
 }

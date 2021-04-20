@@ -58,13 +58,4 @@ class BeaconStateRayonismImpl extends AbstractBeaconState<MutableBeaconStateRayo
   protected MutableBeaconStateRayonism createWritableCopyPriv() {
     return new MutableBeaconStateRayonismImpl(this);
   }
-
-  @Override
-  protected void describeCustomFields(ToStringHelper stringBuilder) {
-    describeCustomFields(stringBuilder, this);
-  }
-
-  static void describeCustomFields(ToStringHelper stringBuilder, final BeaconStateRayonism state) {
-    stringBuilder.add("execution_payload_header", state.getLatest_execution_payload_header());
-  }
 }
