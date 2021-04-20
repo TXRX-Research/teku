@@ -125,7 +125,7 @@ public class BeaconBlockBody {
                       .collect(schema.getVoluntaryExitsSchema().collector()));
           if (execution_payload != null) {
             schema
-                .toVersionMerge()
+                .toVersionRayonism()
                 .ifPresent(
                     schemaMerge ->
                         builder.executionPayload(execution_payload::asInternalExecutionPayload));
