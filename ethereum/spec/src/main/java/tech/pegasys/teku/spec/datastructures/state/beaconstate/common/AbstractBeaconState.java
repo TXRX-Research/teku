@@ -61,16 +61,6 @@ public abstract class AbstractBeaconState<TMutable extends MutableBeaconState>
   }
 
   @Override
-  public int hashCode() {
-    return BeaconStateInvariants.hashCode(this);
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    return BeaconStateInvariants.equals(this, obj);
-  }
-
-  @Override
   public TransitionCaches getTransitionCaches() {
     return transitionCaches;
   }
@@ -78,11 +68,6 @@ public abstract class AbstractBeaconState<TMutable extends MutableBeaconState>
   @Override
   protected IntCache<SszData> createCache() {
     return new SoftRefIntCache<>(super::createCache);
-  }
-
-  @Override
-  public String toString() {
-    return BeaconStateInvariants.toString(this, this::describeCustomFields);
   }
 
   protected abstract void describeCustomFields(ToStringHelper stringBuilder);
