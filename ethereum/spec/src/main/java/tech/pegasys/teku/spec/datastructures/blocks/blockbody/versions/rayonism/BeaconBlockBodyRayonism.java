@@ -148,7 +148,7 @@ public class BeaconBlockBodyRayonism
   }
 
   @Override
-  public Optional<BeaconBlockBodyRayonism> toVersionMerge() {
+  public Optional<BeaconBlockBodyRayonism> toVersionRayonism() {
     return Optional.of(this);
   }
 }
