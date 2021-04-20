@@ -59,6 +59,6 @@ public class StateTransitionRayonism extends StateTransition {
       throws BlockProcessingException {
     super.processBlock(state, block, indexedAttestationCache);
     blockProcessorRayonism.processExecutionPayload(
-        state.toMutableVersionMerge().orElseThrow(), block.getBody());
+        state.toMutableVersionRayonism().orElseThrow(), block.getBody());
   }
 }
