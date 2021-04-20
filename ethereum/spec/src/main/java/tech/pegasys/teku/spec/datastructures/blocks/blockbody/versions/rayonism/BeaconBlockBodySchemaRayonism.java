@@ -27,27 +27,31 @@ import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.Deposit;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.SignedVoluntaryExit;
+import tech.pegasys.teku.spec.datastructures.sharding.ShardProposerSlashing;
+import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.type.SszSignature;
 import tech.pegasys.teku.spec.datastructures.type.SszSignatureSchema;
 import tech.pegasys.teku.ssz.SszList;
-import tech.pegasys.teku.ssz.containers.ContainerSchema9;
+import tech.pegasys.teku.ssz.containers.ContainerSchema11;
 import tech.pegasys.teku.ssz.primitive.SszBytes32;
 import tech.pegasys.teku.ssz.schema.SszListSchema;
 import tech.pegasys.teku.ssz.schema.SszPrimitiveSchemas;
 import tech.pegasys.teku.ssz.tree.TreeNode;
 
 public class BeaconBlockBodySchemaRayonism
-    extends ContainerSchema9<
+    extends ContainerSchema11<
     BeaconBlockBodyRayonism,
-        SszSignature,
-        Eth1Data,
-        SszBytes32,
-        SszList<ProposerSlashing>,
-        SszList<AttesterSlashing>,
-        SszList<Attestation>,
-        SszList<Deposit>,
-        SszList<SignedVoluntaryExit>,
-        ExecutionPayload>
+    SszSignature,
+    Eth1Data,
+    SszBytes32,
+    SszList<ProposerSlashing>,
+    SszList<AttesterSlashing>,
+    SszList<Attestation>,
+    SszList<Deposit>,
+    SszList<SignedVoluntaryExit>,
+    ExecutionPayload,
+    SszList<ShardProposerSlashing>,
+    SszList<SignedShardBlobHeader>>
     implements BeaconBlockBodySchema<BeaconBlockBodyRayonism> {
 
   private BeaconBlockBodySchemaRayonism(
@@ -59,7 +63,9 @@ public class BeaconBlockBodySchemaRayonism
       NamedSchema<SszList<Attestation>> attestationsSchema,
       NamedSchema<SszList<Deposit>> depositsSchema,
       NamedSchema<SszList<SignedVoluntaryExit>> voluntaryExitsSchema,
-      NamedSchema<ExecutionPayload> executionPayloadSchema) {
+      NamedSchema<ExecutionPayload> executionPayloadSchema,
+      NamedSchema<SszList<ShardProposerSlashing>> shardProposerSlashingsSchema,
+      NamedSchema<SszList<SignedShardBlobHeader>> shardHeadersSchema) {
     super(
         "BeaconBlockBody",
         randaoRevealSchema,
@@ -70,7 +76,9 @@ public class BeaconBlockBodySchemaRayonism
         attestationsSchema,
         depositsSchema,
         voluntaryExitsSchema,
-        executionPayloadSchema);
+        executionPayloadSchema,
+        shardProposerSlashingsSchema,
+        shardHeadersSchema);
   }
 
   public static BeaconBlockBodySchemaRayonism create(final SpecConfig specConfig) {
@@ -82,7 +90,10 @@ public class BeaconBlockBodySchemaRayonism
                 config.getMaxAttesterSlashings(),
                 config.getMaxAttestations(),
                 config.getMaxDeposits(),
-                config.getMaxVoluntaryExits()));
+                config.getMaxVoluntaryExits(),
+                config.getMaxShardProposerSlashings(),
+                config.getMaxShards(),
+                config.getMaxShardHeadersPerShard()));
   }
 
   private static BeaconBlockBodySchemaRayonism create(
@@ -90,7 +101,11 @@ public class BeaconBlockBodySchemaRayonism
       final long maxAttesterSlashings,
       final long maxAttestations,
       final long maxDeposits,
-      final long maxVoluntaryExits) {
+      final long maxVoluntaryExits,
+      final long maxShardProposerSlashings,
+      final long maxShards,
+      final long maxShardHeadersPerShard) {
+
     return new BeaconBlockBodySchemaRayonism(
         namedSchema(BlockBodyFields.RANDAO_REVEAL.name(), SszSignatureSchema.INSTANCE),
         namedSchema(BlockBodyFields.ETH1_DATA.name(), Eth1Data.SSZ_SCHEMA),
@@ -109,13 +124,21 @@ public class BeaconBlockBodySchemaRayonism
         namedSchema(
             BlockBodyFields.VOLUNTARY_EXITS.name(),
             SszListSchema.create(SignedVoluntaryExit.SSZ_SCHEMA, maxVoluntaryExits)),
-        namedSchema(BlockBodyFields.EXECUTION_PAYLOAD.name(), ExecutionPayload.SSZ_SCHEMA));
+        namedSchema(BlockBodyFields.EXECUTION_PAYLOAD.name(), ExecutionPayload.SSZ_SCHEMA),
+        namedSchema(
+            BlockBodyFields.SHARD_PROPOSER_SLASHINGS.name(),
+            SszListSchema.create(ShardProposerSlashing.SSZ_SCHEMA, maxShardProposerSlashings)),
+        namedSchema(
+            BlockBodyFields.SHARD_HEADERS.name(),
+            SszListSchema
+                .create(SignedShardBlobHeader.SSZ_SCHEMA, maxShards * maxShardHeadersPerShard)));
   }
 
   @Override
   public BeaconBlockBodyRayonism createBlockBody(
       final Consumer<BeaconBlockBodyBuilder> builderConsumer) {
-    final BeaconBlockBodyBuilderRayonism builder = new BeaconBlockBodyBuilderRayonism().schema(this);
+    final BeaconBlockBodyBuilderRayonism builder = new BeaconBlockBodyBuilderRayonism()
+        .schema(this);
     builderConsumer.accept(builder);
     return builder.build();
   }

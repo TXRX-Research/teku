@@ -26,25 +26,32 @@ import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.Deposit;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.SignedVoluntaryExit;
+import tech.pegasys.teku.spec.datastructures.sharding.ShardProposerSlashing;
+import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.type.SszSignature;
 import tech.pegasys.teku.ssz.SszList;
+import tech.pegasys.teku.ssz.containers.Container11;
 import tech.pegasys.teku.ssz.containers.Container9;
 import tech.pegasys.teku.ssz.primitive.SszBytes32;
 import tech.pegasys.teku.ssz.tree.TreeNode;
 
-/** A Beacon block body */
+/**
+ * A Beacon block body
+ */
 public class BeaconBlockBodyRayonism
-    extends Container9<
+    extends Container11<
     BeaconBlockBodyRayonism,
-        SszSignature,
-        Eth1Data,
-        SszBytes32,
-        SszList<ProposerSlashing>,
-        SszList<AttesterSlashing>,
-        SszList<Attestation>,
-        SszList<Deposit>,
-        SszList<SignedVoluntaryExit>,
-        ExecutionPayload>
+    SszSignature,
+    Eth1Data,
+    SszBytes32,
+    SszList<ProposerSlashing>,
+    SszList<AttesterSlashing>,
+    SszList<Attestation>,
+    SszList<Deposit>,
+    SszList<SignedVoluntaryExit>,
+    ExecutionPayload,
+    SszList<ShardProposerSlashing>,
+    SszList<SignedShardBlobHeader>>
     implements BeaconBlockBody {
 
   BeaconBlockBodyRayonism(BeaconBlockBodySchemaRayonism type) {
@@ -65,7 +72,9 @@ public class BeaconBlockBodyRayonism
       SszList<Attestation> attestations,
       SszList<Deposit> deposits,
       SszList<SignedVoluntaryExit> voluntary_exits,
-      ExecutionPayload execution_payload) {
+      ExecutionPayload execution_payload,
+      SszList<ShardProposerSlashing> shardProposerSlashings,
+      SszList<SignedShardBlobHeader> shardHeaders) {
     super(
         type,
         randao_reveal,
@@ -76,7 +85,9 @@ public class BeaconBlockBodyRayonism
         attestations,
         deposits,
         voluntary_exits,
-        execution_payload);
+        execution_payload,
+        shardProposerSlashings,
+        shardHeaders);
   }
 
   public static BeaconBlockBodyRayonism required(final BeaconBlockBody body) {

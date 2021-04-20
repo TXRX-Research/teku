@@ -24,6 +24,8 @@ import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.Deposit;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.SignedVoluntaryExit;
+import tech.pegasys.teku.spec.datastructures.sharding.ShardProposerSlashing;
+import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.ssz.SszList;
 
 public interface BeaconBlockBodyBuilder {
@@ -49,4 +51,9 @@ public interface BeaconBlockBodyBuilder {
 
   // Not required by all hard forks so provided via a Supplier that is only invoked when needed.
   BeaconBlockBodyBuilder executionPayload(Supplier<ExecutionPayload> executionPayloadSupplier);
+
+  BeaconBlockBodyBuilder shardProposerSlashings(
+      SszList<ShardProposerSlashing> shardProposerSlashings);
+
+  BeaconBlockBodyBuilder shardHeaders(SszList<SignedShardBlobHeader> shardHeaders);
 }

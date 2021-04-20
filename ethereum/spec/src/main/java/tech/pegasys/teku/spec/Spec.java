@@ -166,7 +166,7 @@ public class Spec {
         .orElse(false)) {
       return SpecMilestone.ALTAIR;
     } else if (specConfig
-        .toVersionMerge()
+        .toVersionRayonism()
         .map(config -> fork.getCurrent_version().equals(config.getMergeForkVersion()))
         .orElse(false)) {
       return SpecMilestone.MERGE;

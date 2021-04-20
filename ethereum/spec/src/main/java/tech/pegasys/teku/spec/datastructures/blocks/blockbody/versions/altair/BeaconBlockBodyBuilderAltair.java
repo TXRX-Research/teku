@@ -19,7 +19,10 @@ import java.util.function.Supplier;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBodyBuilder;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.common.AbstractBeaconBlockBodyBuilder;
 import tech.pegasys.teku.spec.datastructures.execution.ExecutionPayload;
+import tech.pegasys.teku.spec.datastructures.sharding.ShardProposerSlashing;
+import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.type.SszSignature;
+import tech.pegasys.teku.ssz.SszList;
 import tech.pegasys.teku.ssz.primitive.SszBytes32;
 
 public class BeaconBlockBodyBuilderAltair extends AbstractBeaconBlockBodyBuilder {
@@ -44,6 +47,20 @@ public class BeaconBlockBodyBuilderAltair extends AbstractBeaconBlockBodyBuilder
     // No execution payload in altair
     return this;
   }
+
+  @Override
+  public BeaconBlockBodyBuilder shardProposerSlashings(
+      SszList<ShardProposerSlashing> shardProposerSlashings) {
+    // absent in phase 0
+    return this;
+  }
+
+  @Override
+  public BeaconBlockBodyBuilder shardHeaders(SszList<SignedShardBlobHeader> shardHeaders) {
+    // absent in phase 0
+    return this;
+  }
+
 
   @Override
   protected void validate() {

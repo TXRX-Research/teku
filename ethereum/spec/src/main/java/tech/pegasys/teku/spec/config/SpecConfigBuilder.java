@@ -834,17 +834,27 @@ public class SpecConfigBuilder {
     // Transition
     private long transitionTotalDifficulty;
 
-    private RayonismBuilder() {}
+    // Sharding
+    private int maxShardProposerSlashings;
+    private int maxShards;
+    private int maxShardHeadersPerShard;
+
+    private RayonismBuilder() {
+    }
 
     SpecConfigRayonism build(final SpecConfig specConfig) {
       return new SpecConfigRayonism(
-          specConfig, mergeForkVersion, mergeForkSlot, transitionTotalDifficulty);
+          specConfig, mergeForkVersion, mergeForkSlot, transitionTotalDifficulty,
+          maxShardProposerSlashings, maxShards, maxShardHeadersPerShard);
     }
 
     void validate() {
       validateConstant("mergeForkVersion", mergeForkVersion);
       validateConstant("mergeForkSlot", mergeForkSlot);
       validateConstant("transitionTotalDifficulty", transitionTotalDifficulty);
+      validateConstant("maxShardProposerSlashings", maxShardProposerSlashings);
+      validateConstant("maxShards", maxShards);
+      validateConstant("maxShardHeadersPerShard", maxShardHeadersPerShard);
     }
 
     public RayonismBuilder mergeForkVersion(Bytes4 mergeForkVersion) {
@@ -861,6 +871,21 @@ public class SpecConfigBuilder {
 
     public RayonismBuilder transitionTotalDifficulty(long transitionTotalDifficulty) {
       this.transitionTotalDifficulty = transitionTotalDifficulty;
+      return this;
+    }
+
+    public RayonismBuilder maxShardProposerSlashings(int maxShardProposerSlashings) {
+      this.maxShardProposerSlashings = maxShardProposerSlashings;
+      return this;
+    }
+
+    public RayonismBuilder maxShards(int maxShards) {
+      this.maxShards = maxShards;
+      return this;
+    }
+
+    public RayonismBuilder maxShardHeadersPerShard(int maxShardHeadersPerShard) {
+      this.maxShardHeadersPerShard = maxShardHeadersPerShard;
       return this;
     }
   }

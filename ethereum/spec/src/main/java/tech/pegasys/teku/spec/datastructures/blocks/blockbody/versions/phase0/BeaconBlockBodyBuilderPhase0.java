@@ -20,7 +20,10 @@ import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBodyBui
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.common.AbstractBeaconBlockBodyBuilder;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.altair.SyncAggregate;
 import tech.pegasys.teku.spec.datastructures.execution.ExecutionPayload;
+import tech.pegasys.teku.spec.datastructures.sharding.ShardProposerSlashing;
+import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.type.SszSignature;
+import tech.pegasys.teku.ssz.SszList;
 import tech.pegasys.teku.ssz.primitive.SszBytes32;
 
 public class BeaconBlockBodyBuilderPhase0 extends AbstractBeaconBlockBodyBuilder {
@@ -41,6 +44,19 @@ public class BeaconBlockBodyBuilderPhase0 extends AbstractBeaconBlockBodyBuilder
   public BeaconBlockBodyBuilder executionPayload(
       Supplier<ExecutionPayload> executionPayloadSupplier) {
     // No execution payload in phase 0
+    return this;
+  }
+
+  @Override
+  public BeaconBlockBodyBuilder shardProposerSlashings(
+      SszList<ShardProposerSlashing> shardProposerSlashings) {
+    // absent in phase 0
+    return this;
+  }
+
+  @Override
+  public BeaconBlockBodyBuilder shardHeaders(SszList<SignedShardBlobHeader> shardHeaders) {
+    // absent in phase 0
     return this;
   }
 

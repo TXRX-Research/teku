@@ -1,6 +1,6 @@
 package tech.pegasys.teku.spec.config;
 
-import java.util.Objects;
+import com.google.common.base.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
@@ -15,20 +15,27 @@ public class SpecConfigRayonism extends DelegatingSpecConfig {
   // Transition
   private final long transitionTotalDifficulty;
 
-  public SpecConfigRayonism(
-      SpecConfig specConfig,
-      Bytes4 mergeForkVersion,
-      UInt64 mergeForkSlot,
-      long transitionTotalDifficulty) {
+  // Sharding
+  private final int maxShardProposerSlashings;
+  private final int maxShards;
+  private final int maxShardHeadersPerShard;
+
+  public SpecConfigRayonism(SpecConfig specConfig,
+      Bytes4 mergeForkVersion, UInt64 mergeForkSlot, long transitionTotalDifficulty,
+      int maxShardProposerSlashings, int maxShards,
+      int maxShardHeadersPerShard) {
     super(specConfig);
     this.mergeForkVersion = mergeForkVersion;
     this.mergeForkSlot = mergeForkSlot;
     this.transitionTotalDifficulty = transitionTotalDifficulty;
+    this.maxShardProposerSlashings = maxShardProposerSlashings;
+    this.maxShards = maxShards;
+    this.maxShardHeadersPerShard = maxShardHeadersPerShard;
   }
 
   public static SpecConfigRayonism required(final SpecConfig specConfig) {
     return specConfig
-        .toVersionMerge()
+        .toVersionRayonism()
         .orElseThrow(
             () ->
                 new IllegalArgumentException(
@@ -40,7 +47,7 @@ public class SpecConfigRayonism extends DelegatingSpecConfig {
       final SpecConfig specConfig, final Function<SpecConfigRayonism, T> ctr) {
     return ctr.apply(
         specConfig
-            .toVersionMerge()
+            .toVersionRayonism()
             .orElseThrow(
                 () ->
                     new IllegalArgumentException(
@@ -60,23 +67,46 @@ public class SpecConfigRayonism extends DelegatingSpecConfig {
     return transitionTotalDifficulty;
   }
 
+  public int getMaxShardProposerSlashings() {
+    return maxShardProposerSlashings;
+  }
+
+  public int getMaxShards() {
+    return maxShards;
+  }
+
+  public int getMaxShardHeadersPerShard() {
+    return maxShardHeadersPerShard;
+  }
+
   @Override
-  public Optional<SpecConfigRayonism> toVersionMerge() {
+  public Optional<SpecConfigRayonism> toVersionRayonism() {
     return Optional.of(this);
   }
 
   @Override
-  public boolean equals(final Object o) {
-    if (this == o) return true;
-    if (o == null || getClass() != o.getClass()) return false;
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (!(o instanceof SpecConfigRayonism)) {
+      return false;
+    }
     SpecConfigRayonism that = (SpecConfigRayonism) o;
-    return Objects.equals(mergeForkVersion, that.mergeForkVersion)
-        && Objects.equals(mergeForkSlot, that.mergeForkSlot)
-        && transitionTotalDifficulty == that.transitionTotalDifficulty;
+    return getTransitionTotalDifficulty() == that.getTransitionTotalDifficulty() &&
+        Objects.equal(getMergeForkVersion(), that.getMergeForkVersion()) &&
+        Objects.equal(getMergeForkSlot(), that.getMergeForkSlot()) &&
+        Objects
+            .equal(getMaxShardProposerSlashings(), that.getMaxShardProposerSlashings()) &&
+        Objects.equal(getMaxShards(), that.getMaxShards()) &&
+        Objects
+            .equal(getMaxShardHeadersPerShard(), that.getMaxShardHeadersPerShard());
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(mergeForkVersion, mergeForkSlot, transitionTotalDifficulty);
+    return Objects
+        .hashCode(getMergeForkVersion(), getMergeForkSlot(), getTransitionTotalDifficulty(),
+            getMaxShardProposerSlashings(), getMaxShards(), getMaxShardHeadersPerShard());
   }
 }

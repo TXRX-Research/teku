@@ -20,12 +20,19 @@ import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBodyBui
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.common.AbstractBeaconBlockBodyBuilder;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.altair.SyncAggregate;
 import tech.pegasys.teku.spec.datastructures.execution.ExecutionPayload;
+import tech.pegasys.teku.spec.datastructures.sharding.ShardProposerSlashing;
+import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.type.SszSignature;
+import tech.pegasys.teku.ssz.SszList;
 import tech.pegasys.teku.ssz.primitive.SszBytes32;
 
 public class BeaconBlockBodyBuilderRayonism extends AbstractBeaconBlockBodyBuilder {
+
   private BeaconBlockBodySchemaRayonism schema;
   private ExecutionPayload executionPayload;
+
+  private SszList<ShardProposerSlashing> shardProposerSlashings;
+  private SszList<SignedShardBlobHeader> shardHeaders;
 
   public BeaconBlockBodyBuilderRayonism schema(final BeaconBlockBodySchemaRayonism schema) {
     this.schema = schema;
@@ -42,6 +49,20 @@ public class BeaconBlockBodyBuilderRayonism extends AbstractBeaconBlockBodyBuild
   public BeaconBlockBodyBuilder executionPayload(
       Supplier<ExecutionPayload> executionPayloadSupplier) {
     this.executionPayload = executionPayloadSupplier.get();
+    return this;
+  }
+
+  @Override
+  public BeaconBlockBodyBuilderRayonism shardProposerSlashings(
+      SszList<ShardProposerSlashing> shardProposerSlashings) {
+    this.shardProposerSlashings = shardProposerSlashings;
+    return this;
+  }
+
+  @Override
+  public BeaconBlockBodyBuilderRayonism shardHeaders(
+      SszList<SignedShardBlobHeader> shardHeaders) {
+    this.shardHeaders = shardHeaders;
     return this;
   }
 
@@ -64,6 +85,8 @@ public class BeaconBlockBodyBuilderRayonism extends AbstractBeaconBlockBodyBuild
         attestations,
         deposits,
         voluntaryExits,
-        executionPayload);
+        executionPayload,
+        shardProposerSlashings,
+        shardHeaders);
   }
 }
