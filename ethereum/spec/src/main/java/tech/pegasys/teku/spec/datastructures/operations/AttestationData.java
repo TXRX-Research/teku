@@ -16,19 +16,20 @@ package tech.pegasys.teku.spec.datastructures.operations;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
-import tech.pegasys.teku.ssz.containers.Container5;
-import tech.pegasys.teku.ssz.containers.ContainerSchema5;
+import tech.pegasys.teku.ssz.containers.Container6;
+import tech.pegasys.teku.ssz.containers.ContainerSchema6;
 import tech.pegasys.teku.ssz.primitive.SszBytes32;
 import tech.pegasys.teku.ssz.primitive.SszUInt64;
 import tech.pegasys.teku.ssz.schema.SszPrimitiveSchemas;
 import tech.pegasys.teku.ssz.tree.TreeNode;
 
 public class AttestationData
-    extends Container5<AttestationData, SszUInt64, SszUInt64, SszBytes32, Checkpoint, Checkpoint> {
+    extends
+    Container6<AttestationData, SszUInt64, SszUInt64, SszBytes32, Checkpoint, Checkpoint, SszBytes32> {
 
   public static class AttestationDataSchema
-      extends ContainerSchema5<
-          AttestationData, SszUInt64, SszUInt64, SszBytes32, Checkpoint, Checkpoint> {
+      extends ContainerSchema6<
+                AttestationData, SszUInt64, SszUInt64, SszBytes32, Checkpoint, Checkpoint, SszBytes32> {
 
     public AttestationDataSchema() {
       super(
@@ -37,7 +38,9 @@ public class AttestationData
           namedSchema("index", SszPrimitiveSchemas.UINT64_SCHEMA),
           namedSchema("beacon_block_root", SszPrimitiveSchemas.BYTES32_SCHEMA),
           namedSchema("source", Checkpoint.SSZ_SCHEMA),
-          namedSchema("target", Checkpoint.SSZ_SCHEMA));
+          namedSchema("target", Checkpoint.SSZ_SCHEMA),
+          // TODO need versioned structure here
+          namedSchema("shard_header_root", SszPrimitiveSchemas.BYTES32_SCHEMA));
     }
 
     @Override
@@ -54,17 +57,26 @@ public class AttestationData
 
   public AttestationData(
       UInt64 slot, UInt64 index, Bytes32 beacon_block_root, Checkpoint source, Checkpoint target) {
+    this(slot, index, beacon_block_root, source, target, Bytes32.ZERO);
+  }
+
+  public AttestationData(
+      UInt64 slot, UInt64 index, Bytes32 beacon_block_root, Checkpoint source, Checkpoint target,
+      Bytes32 shard_header_root) {
+
     super(
         SSZ_SCHEMA,
         SszUInt64.of(slot),
         SszUInt64.of(index),
         SszBytes32.of(beacon_block_root),
         source,
-        target);
+        target,
+        SszBytes32.of(shard_header_root));
   }
 
   public AttestationData(UInt64 slot, AttestationData data) {
-    this(slot, data.getIndex(), data.getBeacon_block_root(), data.getSource(), data.getTarget());
+    this(slot, data.getIndex(), data.getBeacon_block_root(), data.getSource(), data.getTarget(),
+        data.getShard_header_root());
   }
 
   public UInt64 getEarliestSlotForForkChoice() {
@@ -91,5 +103,9 @@ public class AttestationData
 
   public Checkpoint getTarget() {
     return getField4();
+  }
+
+  public Bytes32 getShard_header_root() {
+    return getField5().get();
   }
 }
