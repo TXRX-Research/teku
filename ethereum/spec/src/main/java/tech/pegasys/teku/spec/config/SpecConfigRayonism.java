@@ -19,6 +19,8 @@ public class SpecConfigRayonism extends DelegatingSpecConfig {
   private final int maxShardProposerSlashings;
   private final int maxShards;
   private final int maxShardHeadersPerShard;
+  private final UInt64 maxSamplesPerBlock;
+  private final UInt64 targetSamplesPerBlock;
   private final int initialActiveShards;
   private final int gaspriceAdjustmentCoefficient;
   private final UInt64 maxGasprice;
@@ -31,7 +33,10 @@ public class SpecConfigRayonism extends DelegatingSpecConfig {
   public SpecConfigRayonism(SpecConfig specConfig,
       Bytes4 mergeForkVersion, UInt64 mergeForkSlot, long transitionTotalDifficulty,
       int maxShardProposerSlashings, int maxShards, int maxShardHeadersPerShard,
-      int initialActiveShards, int gaspriceAdjustmentCoefficient,
+      UInt64 maxSamplesPerBlock,
+      UInt64 targetSamplesPerBlock,
+      int initialActiveShards,
+      int gaspriceAdjustmentCoefficient,
       UInt64 maxGasprice, UInt64 minGasprice,
       Bytes4 domainShardProposer, Bytes4 domainShardCommittee) {
     super(specConfig);
@@ -41,6 +46,8 @@ public class SpecConfigRayonism extends DelegatingSpecConfig {
     this.maxShardProposerSlashings = maxShardProposerSlashings;
     this.maxShards = maxShards;
     this.maxShardHeadersPerShard = maxShardHeadersPerShard;
+    this.maxSamplesPerBlock = maxSamplesPerBlock;
+    this.targetSamplesPerBlock = targetSamplesPerBlock;
     this.initialActiveShards = initialActiveShards;
     this.gaspriceAdjustmentCoefficient = gaspriceAdjustmentCoefficient;
     this.maxGasprice = maxGasprice;
@@ -93,6 +100,14 @@ public class SpecConfigRayonism extends DelegatingSpecConfig {
 
   public int getMaxShardHeadersPerShard() {
     return maxShardHeadersPerShard;
+  }
+
+  public UInt64 getMaxSamplesPerBlock() {
+    return maxSamplesPerBlock;
+  }
+
+  public UInt64 getTargetSamplesPerBlock() {
+    return targetSamplesPerBlock;
   }
 
   public int getInitialActiveShards() {

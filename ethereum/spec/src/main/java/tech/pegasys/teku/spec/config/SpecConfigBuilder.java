@@ -839,6 +839,9 @@ public class SpecConfigBuilder {
     private int maxShards;
     private int maxShardHeadersPerShard;
 
+    private UInt64 maxSamplesPerBlock;
+    private UInt64 targetSamplesPerBlock;
+
     private int initialActiveShards;
     private int gaspriceAdjustmentCoefficient;
     private UInt64 maxGasprice;
@@ -854,7 +857,8 @@ public class SpecConfigBuilder {
     SpecConfigRayonism build(final SpecConfig specConfig) {
       return new SpecConfigRayonism(
           specConfig, mergeForkVersion, mergeForkSlot, transitionTotalDifficulty,
-          maxShardProposerSlashings, maxShards, maxShardHeadersPerShard, initialActiveShards,
+          maxShardProposerSlashings, maxShards, maxShardHeadersPerShard, maxSamplesPerBlock,
+          targetSamplesPerBlock, initialActiveShards,
           gaspriceAdjustmentCoefficient, maxGasprice, minGasprice, domainShardProposer,
           domainShardCommittee);
     }
@@ -866,6 +870,8 @@ public class SpecConfigBuilder {
       validateConstant("maxShardProposerSlashings", maxShardProposerSlashings);
       validateConstant("maxShards", maxShards);
       validateConstant("maxShardHeadersPerShard", maxShardHeadersPerShard);
+      validateConstant("maxSamplesPerBlock", maxSamplesPerBlock);
+      validateConstant("targetSamplesPerBlock", targetSamplesPerBlock);
       validateConstant("initialActiveShards", initialActiveShards);
       validateConstant("gaspriceAdjustmentCoefficient", gaspriceAdjustmentCoefficient);
       validateConstant("maxGasprice", maxGasprice);
@@ -903,6 +909,17 @@ public class SpecConfigBuilder {
 
     public RayonismBuilder maxShardHeadersPerShard(int maxShardHeadersPerShard) {
       this.maxShardHeadersPerShard = maxShardHeadersPerShard;
+      return this;
+    }
+
+    public RayonismBuilder setMaxSamplesPerBlock(UInt64 maxSamplesPerBlock) {
+      this.maxSamplesPerBlock = maxSamplesPerBlock;
+      return this;
+    }
+
+    public RayonismBuilder setTargetSamplesPerBlock(
+        UInt64 targetSamplesPerBlock) {
+      this.targetSamplesPerBlock = targetSamplesPerBlock;
       return this;
     }
 
