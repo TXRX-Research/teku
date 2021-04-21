@@ -839,13 +839,24 @@ public class SpecConfigBuilder {
     private int maxShards;
     private int maxShardHeadersPerShard;
 
+    private int initialActiveShards;
+    private int gaspriceAdjustmentCoefficient;
+    private UInt64 maxGasprice;
+    private UInt64 minGasprice;
+
+    // Signature domains
+    private Bytes4 domainShardProposer;
+    private Bytes4 domainShardCommittee;
+
     private RayonismBuilder() {
     }
 
     SpecConfigRayonism build(final SpecConfig specConfig) {
       return new SpecConfigRayonism(
           specConfig, mergeForkVersion, mergeForkSlot, transitionTotalDifficulty,
-          maxShardProposerSlashings, maxShards, maxShardHeadersPerShard);
+          maxShardProposerSlashings, maxShards, maxShardHeadersPerShard, initialActiveShards,
+          gaspriceAdjustmentCoefficient, maxGasprice, minGasprice, domainShardProposer,
+          domainShardCommittee);
     }
 
     void validate() {
@@ -855,6 +866,12 @@ public class SpecConfigBuilder {
       validateConstant("maxShardProposerSlashings", maxShardProposerSlashings);
       validateConstant("maxShards", maxShards);
       validateConstant("maxShardHeadersPerShard", maxShardHeadersPerShard);
+      validateConstant("initialActiveShards", initialActiveShards);
+      validateConstant("gaspriceAdjustmentCoefficient", gaspriceAdjustmentCoefficient);
+      validateConstant("maxGasprice", maxGasprice);
+      validateConstant("minGasprice", minGasprice);
+      validateConstant("domainShardProposer", domainShardProposer);
+      validateConstant("domainShardCommittee", domainShardCommittee);
     }
 
     public RayonismBuilder mergeForkVersion(Bytes4 mergeForkVersion) {
@@ -886,6 +903,36 @@ public class SpecConfigBuilder {
 
     public RayonismBuilder maxShardHeadersPerShard(int maxShardHeadersPerShard) {
       this.maxShardHeadersPerShard = maxShardHeadersPerShard;
+      return this;
+    }
+
+    public RayonismBuilder initialActiveShards(int initialActiveShards) {
+      this.initialActiveShards = initialActiveShards;
+      return this;
+    }
+
+    public RayonismBuilder gaspriceAdjustmentCoefficient(int gaspriceAdjustmentCoefficient) {
+      this.gaspriceAdjustmentCoefficient = gaspriceAdjustmentCoefficient;
+      return this;
+    }
+
+    public RayonismBuilder maxGasprice(UInt64 maxGasprice) {
+      this.maxGasprice = maxGasprice;
+      return this;
+    }
+
+    public RayonismBuilder minGasprice(UInt64 minGasprice) {
+      this.minGasprice = minGasprice;
+      return this;
+    }
+
+    public RayonismBuilder domainShardProposer(Bytes4 domainShardProposer) {
+      this.domainShardProposer = domainShardProposer;
+      return this;
+    }
+
+    public RayonismBuilder domainShardCommittee(Bytes4 domainShardCommittee) {
+      this.domainShardCommittee = domainShardCommittee;
       return this;
     }
   }
