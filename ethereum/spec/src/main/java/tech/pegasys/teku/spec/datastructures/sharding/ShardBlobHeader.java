@@ -65,7 +65,7 @@ public class ShardBlobHeader
     return getField1().get();
   }
 
-  public ShardBlobSummary getShardBlobSummary() {
+  public ShardBlobSummary getBodySummary() {
     return getField2();
   }
 

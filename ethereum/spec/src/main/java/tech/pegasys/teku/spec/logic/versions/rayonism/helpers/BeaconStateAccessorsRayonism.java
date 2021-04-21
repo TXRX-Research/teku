@@ -13,17 +13,26 @@
 
 package tech.pegasys.teku.spec.logic.versions.rayonism.helpers;
 
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
+import tech.pegasys.teku.spec.config.SpecConfigRayonism;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.rayonism.BeaconStateRayonism;
 import tech.pegasys.teku.spec.logic.common.helpers.BeaconStateAccessors;
 import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
 import tech.pegasys.teku.spec.logic.common.helpers.Predicates;
+import tech.pegasys.teku.spec.logic.common.util.BeaconStateUtil;
 
 public class BeaconStateAccessorsRayonism extends BeaconStateAccessors {
+  private final SpecConfigRayonism configRayonism;
+  private final MiscHelpers miscHelpers;
+
   public BeaconStateAccessorsRayonism(
       final SpecConfig config, final Predicates predicates, final MiscHelpers miscHelpers) {
     super(config, predicates, miscHelpers);
+    configRayonism = config.toVersionRayonism()
+        .orElseThrow(() -> new IllegalArgumentException("Expected Rayonism spec version"));
+    this.miscHelpers = miscHelpers;
   }
 
   // Custom accessors
@@ -34,5 +43,9 @@ public class BeaconStateAccessorsRayonism extends BeaconStateAccessors {
         Math.toIntExact(
             state.getBeaconStateSchema().getPreviousEpochAttestationsSchema().getMaxLength());
     return absoluteMax - state.getPrevious_epoch_attestations().size();
+  }
+
+  public int getActiveShardCount(final BeaconState state, final UInt64 epoch) {
+    return configRayonism.getInitialActiveShards();
   }
 }

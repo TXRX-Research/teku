@@ -142,6 +142,14 @@ public class BeaconBlockBodyRayonism
     return getField8();
   }
 
+  public SszList<ShardProposerSlashing> getShard_proposer_slashings() {
+    return getField9();
+  }
+
+  public SszList<SignedShardBlobHeader> getShard_headers() {
+    return getField10();
+  }
+
   @Override
   public BeaconBlockBodySchemaRayonism getSchema() {
     return (BeaconBlockBodySchemaRayonism) super.getSchema();

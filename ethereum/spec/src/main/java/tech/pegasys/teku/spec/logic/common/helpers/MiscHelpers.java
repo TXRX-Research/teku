@@ -68,6 +68,12 @@ public class MiscHelpers {
   }
 
   public int computeProposerIndex(BeaconState state, List<Integer> indices, Bytes32 seed) {
+    return computeProposerIndex(state, indices, seed, UInt64.ZERO);
+  }
+
+  public int computeProposerIndex(BeaconState state, List<Integer> indices, Bytes32 seed,
+      UInt64 minEffectiveBalance) {
+
     checkArgument(!indices.isEmpty(), "compute_proposer_index indices must not be empty");
     UInt64 MAX_RANDOM_BYTE = UInt64.valueOf(255); // Math.pow(2, 8) - 1;
     int i = 0;
@@ -80,6 +86,11 @@ public class MiscHelpers {
       }
       int random_byte = UnsignedBytes.toInt(hash.get(i % 32));
       UInt64 effective_balance = state.getValidators().get(candidate_index).getEffective_balance();
+
+      if (effective_balance.isLessThanOrEqualTo(minEffectiveBalance)) {
+        continue;
+      }
+
       if (effective_balance
           .times(MAX_RANDOM_BYTE)
           .isGreaterThanOrEqualTo(specConfig.getMaxEffectiveBalance().times(random_byte))) {
@@ -87,6 +98,10 @@ public class MiscHelpers {
       }
       i++;
     }
+  }
+
+  public UInt64 computeStartSlotAtEpoch(UInt64 epoch) {
+    return epoch.times(specConfig.getSlotsPerEpoch());
   }
 
   public UInt64 computeEpochAtSlot(UInt64 slot) {

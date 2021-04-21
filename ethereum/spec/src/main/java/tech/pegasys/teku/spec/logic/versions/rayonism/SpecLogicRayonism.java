@@ -14,7 +14,6 @@
 package tech.pegasys.teku.spec.logic.versions.rayonism;
 
 import java.util.Optional;
-import tech.pegasys.teku.spec.executionengine.ExecutionEngineService;
 import tech.pegasys.teku.spec.config.SpecConfigRayonism;
 import tech.pegasys.teku.spec.logic.common.AbstractSpecLogic;
 import tech.pegasys.teku.spec.logic.common.helpers.BeaconStateAccessors;
@@ -36,6 +35,7 @@ import tech.pegasys.teku.spec.logic.versions.rayonism.helpers.MiscHelpersRayonis
 import tech.pegasys.teku.spec.logic.versions.rayonism.statetransition.StateTransitionRayonism;
 import tech.pegasys.teku.spec.logic.versions.rayonism.statetransition.epoch.EpochProcessorRayonism;
 import tech.pegasys.teku.spec.logic.versions.rayonism.statetransition.epoch.ValidatorStatusFactoryRayonism;
+import tech.pegasys.teku.spec.logic.versions.rayonism.util.CommitteeUtilRayonism;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsRayonism;
 
 public class SpecLogicRayonism extends AbstractSpecLogic {
@@ -92,7 +92,8 @@ public class SpecLogicRayonism extends AbstractSpecLogic {
         new AttestationDataStateTransitionValidator();
 
     // Util
-    final CommitteeUtil committeeUtil = new CommitteeUtil(config);
+    final CommitteeUtilRayonism committeeUtil = new CommitteeUtilRayonism(config,
+        beaconStateAccessors, miscHelpers);
     final ValidatorsUtil validatorsUtil = new ValidatorsUtil();
     final BeaconStateUtil beaconStateUtil =
         new BeaconStateUtil(
@@ -129,7 +130,8 @@ public class SpecLogicRayonism extends AbstractSpecLogic {
             attestationUtil,
             validatorsUtil,
             attestationValidator,
-            executionPayloadUtil);
+            executionPayloadUtil,
+            committeeUtil);
     final StateTransitionRayonism stateTransition =
         StateTransitionRayonism.create(
             config, blockProcessor, epochProcessor, beaconStateUtil, beaconStateAccessors);

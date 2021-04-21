@@ -38,6 +38,10 @@ public class MathHelpers {
     return x;
   }
 
+  public static Bytes uintToBytes(UInt64 value) {
+    return uintToBytes(value.longValue(), 8);
+  }
+
   public static Bytes uintToBytes(long value, int numBytes) {
     int longBytes = Long.SIZE / 8;
     Bytes valueBytes = Bytes.ofUnsignedLong(value, ByteOrder.LITTLE_ENDIAN);

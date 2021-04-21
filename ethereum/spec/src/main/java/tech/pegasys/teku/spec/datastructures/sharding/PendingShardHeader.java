@@ -55,6 +55,10 @@ public class PendingShardHeader
     public PendingShardHeader createFromBackingNode(TreeNode node) {
       return new PendingShardHeader(this, node);
     }
+
+    public SszBitlistSchema<?> getVotesSchema() {
+      return (SszBitlistSchema<?>) getFieldSchema4();
+    }
   }
 
   public static final PendingShardHeaderSchema SSZ_SCHEMA = new PendingShardHeaderSchema();

@@ -24,15 +24,20 @@ import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.crypto.Hash;
 import tech.pegasys.teku.bls.BLSSignature;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateCache;
+import tech.pegasys.teku.spec.logic.common.helpers.BeaconStateAccessors;
 
 public class CommitteeUtil {
   private final SpecConfig specConfig;
+  private final BeaconStateAccessors stateAccessors;
 
-  public CommitteeUtil(final SpecConfig specConfig) {
+  public CommitteeUtil(final SpecConfig specConfig,
+      BeaconStateAccessors stateAccessors) {
     this.specConfig = specConfig;
+    this.stateAccessors = stateAccessors;
   }
 
   public int getAggregatorModulo(final int committeeSize) {
@@ -95,7 +100,31 @@ public class CommitteeUtil {
         .isZero();
   }
 
-  List<Integer> computeCommittee(
+  public UInt64 getCommitteeCountPerSlot(BeaconState state, UInt64 epoch) {
+    List<Integer> active_validator_indices =
+        stateAccessors.getActiveValidatorIndices(state, epoch);
+    return UInt64.valueOf(
+        Math.max(
+            1,
+            Math.min(
+                specConfig.getMaxCommitteesPerSlot(),
+                Math.floorDiv(
+                    Math.floorDiv(active_validator_indices.size(), specConfig.getSlotsPerEpoch()),
+                    specConfig.getTargetCommitteeSize()))));
+  }
+
+  public UInt64 getCommitteeCountPerSlot(final int activeValidatorCount) {
+    return UInt64.valueOf(
+        Math.max(
+            1,
+            Math.min(
+                specConfig.getMaxCommitteesPerSlot(),
+                Math.floorDiv(
+                    Math.floorDiv(activeValidatorCount, specConfig.getSlotsPerEpoch()),
+                    specConfig.getTargetCommitteeSize()))));
+  }
+
+  protected List<Integer> computeCommittee(
       BeaconState state, List<Integer> indices, Bytes32 seed, int index, int count) {
     int start = Math.floorDiv(indices.size() * index, count);
     int end = Math.floorDiv(indices.size() * (index + 1), count);

@@ -89,7 +89,7 @@ public class SpecLogicAltair extends AbstractSpecLogic {
         new AttestationDataStateTransitionValidator();
 
     // Util
-    final CommitteeUtil committeeUtil = new CommitteeUtil(config);
+    final CommitteeUtil committeeUtil = new CommitteeUtil(config, beaconStateAccessors);
     final ValidatorsUtil validatorsUtil = new ValidatorsUtil();
     final BeaconStateUtil beaconStateUtil =
         new BeaconStateUtil(
