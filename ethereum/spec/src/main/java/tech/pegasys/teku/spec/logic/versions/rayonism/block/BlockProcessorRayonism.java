@@ -34,6 +34,7 @@ import tech.pegasys.teku.spec.datastructures.operations.AttestationData;
 import tech.pegasys.teku.spec.datastructures.sharding.PendingShardHeader;
 import tech.pegasys.teku.spec.datastructures.sharding.ShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.sharding.ShardBlobSummary;
+import tech.pegasys.teku.spec.datastructures.sharding.ShardProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.state.PendingAttestation;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.MutableBeaconState;
@@ -312,6 +313,7 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
 
       processProposerSlashingsNoValidation(state, body.getProposer_slashings());
       processAttesterSlashings(state, body.getAttester_slashings());
+      processShardProposerSlashing(state, bodyRayonism.getShard_proposer_slashings());
       processShardHeaders(state, bodyRayonism.getShard_headers());
       processAttestations(state, body.getAttestations(), indexedAttestationCache, false);
       processDeposits(state, body.getDeposits());
@@ -321,6 +323,11 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
       LOG.warn(e.getMessage());
       throw new BlockProcessingException(e);
     }
+  }
+
+  private void processShardProposerSlashing(MutableBeaconState state,
+      SszList<ShardProposerSlashing> shard_proposer_slashings) {
+    // TODO to implement
   }
 
   protected void processShardHeaders(MutableBeaconState state,
