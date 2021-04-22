@@ -235,10 +235,7 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
   protected void processShardHeaders(MutableBeaconState state,
       SszList<SignedShardBlobHeader> shard_headers) throws BlockProcessingException {
     try {
-      if (!(state instanceof MutableBeaconStateRayonism)) {
-        throw new IllegalArgumentException("Expecting MutableBeaconStateRayonism instance here");
-      }
-      MutableBeaconStateRayonism stateRayonism = (MutableBeaconStateRayonism) state;
+      MutableBeaconStateRayonism stateRayonism = MutableBeaconStateRayonism.required(state);
       for (SignedShardBlobHeader shardHeader : shard_headers) {
         processShardHeader(stateRayonism, shardHeader);
       }
