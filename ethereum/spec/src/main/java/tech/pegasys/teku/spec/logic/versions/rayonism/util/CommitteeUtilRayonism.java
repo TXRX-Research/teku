@@ -103,7 +103,16 @@ public class CommitteeUtilRayonism extends CommitteeUtil {
     return miscHelpers.computeProposerIndex(state, committee, seed, minEffectiveBalance);
   }
 
-//  def compute_committee_index_from_shard(state: BeaconState, slot: Slot, shard: Shard) -> CommitteeIndex:
+  //  def compute_shard_from_committee_index(state: BeaconState, slot: Slot, index: CommitteeIndex) -> Shard:
+  public UInt64 computeShardFromCommitteeIndex(BeaconStateRayonism state, UInt64 slot, UInt64 index) {
+    //  active_shards = get_active_shard_count(state, compute_epoch_at_slot(slot))
+    int activeShards = beaconStateAccessors
+        .getActiveShardCount(state, miscHelpers.computeEpochAtSlot(slot));
+    //  return Shard((index + get_start_shard(state, slot)) % active_shards)
+    return index.plus(getStartShard(state, slot)).mod(activeShards);
+  }
+
+  //  def compute_committee_index_from_shard(state: BeaconState, slot: Slot, shard: Shard) -> CommitteeIndex:
   public UInt64 computeCommitteeIndexFromShard(BeaconStateRayonism state, UInt64 slot, UInt64 shard) {
     //  active_shards = get_active_shard_count(state, compute_epoch_at_slot(slot))
     int activeShards = beaconStateAccessors

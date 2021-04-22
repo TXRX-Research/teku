@@ -84,6 +84,17 @@ public class PendingShardHeader
         SszBit.of(confirmed));
   }
 
+  public PendingShardHeader(PendingShardHeader header, SszBitlist newVotes, boolean confirmed) {
+    super(
+        header.getSchema(),
+        SszUInt64.of(header.getSlot()),
+        SszUInt64.of(header.getShard()),
+        header.getCommitment(),
+        SszBytes32.of(header.getRoot()),
+        newVotes,
+        SszBit.of(confirmed));
+  }
+
   public UInt64 getSlot() {
     return getField0().get();
   }
@@ -106,5 +117,10 @@ public class PendingShardHeader
 
   public boolean isConfirmed() {
     return getField5().get();
+  }
+
+  @Override
+  public PendingShardHeaderSchema getSchema() {
+    return (PendingShardHeaderSchema) super.getSchema();
   }
 }

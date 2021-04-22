@@ -16,6 +16,8 @@ package tech.pegasys.teku.spec.logic.versions.rayonism.block;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.lang.Math.toIntExact;
 
+import java.util.List;
+import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.tuweni.bytes.Bytes32;
@@ -50,6 +52,7 @@ import tech.pegasys.teku.spec.logic.versions.rayonism.helpers.MiscHelpersRayonis
 import tech.pegasys.teku.spec.logic.versions.rayonism.util.CommitteeUtilRayonism;
 import tech.pegasys.teku.ssz.SszList;
 import tech.pegasys.teku.ssz.SszMutableList;
+import tech.pegasys.teku.ssz.collections.SszBitlist;
 
 public class BlockProcessorRayonism extends AbstractBlockProcessor {
 
@@ -178,6 +181,94 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
     } else {
       state.getPrevious_epoch_attestations().append(pendingAttestation);
     }
+    updatePendingVotes(state, attestation);
+  }
+
+
+  //  def update_pending_votes(state: BeaconState, attestation: Attestation) -> None:
+  private void updatePendingVotes(MutableBeaconStateRayonism state, Attestation attestation) {
+    //      # Find and update the PendingShardHeader object, invalid block if pending header not in state
+    //  if compute_epoch_at_slot(attestation.data.slot) == get_current_epoch(state):
+    //    pending_headers = state.current_epoch_pending_shard_headers
+    //  else:
+    //    pending_headers = state.previous_epoch_pending_shard_headers
+    final SszMutableList<PendingShardHeader> pendingHeaders;
+    if (miscHelpers.computeEpochAtSlot(attestation.getData().getSlot())
+        .equals(beaconStateAccessors.getCurrentEpoch(state))) {
+      pendingHeaders = state.getCurrent_epoch_pending_shard_headers();
+    } else {
+      pendingHeaders = state.getPrevious_epoch_pending_shard_headers();
+    }
+    //  pending_header = None
+    //  for header in pending_headers:
+    //      if header.root == attestation.data.shard_header_root:
+    //        pending_header = header
+    int pendingHeaderIndex = 0;
+    Optional<PendingShardHeader> maybePendingHeader = Optional.empty();
+    for (int i = 0; i < pendingHeaders.size(); i++) {
+      PendingShardHeader pendingHeader = pendingHeaders.get(i);
+      if (pendingHeader.getRoot().equals(attestation.getData().getShard_header_root())) {
+        maybePendingHeader = Optional.of(pendingHeader);
+        pendingHeaderIndex = i;
+        break;
+      }
+    }
+    //  assert pending_header is not None
+    PendingShardHeader pendingHeader = maybePendingHeader
+        .orElseThrow(() -> new IllegalArgumentException(
+            "updatePendingVotes: attested shard header should be in the state pending list"));
+    //  assert pending_header.slot == attestation.data.slot
+    checkArgument(pendingHeader.getSlot().equals(attestation.getData().getSlot()),
+        "updatePendingVotes: attestation slot is equal to header slot");
+    //  assert pending_header.shard == compute_shard_from_committee_index(
+    //      state,
+    //      attestation.data.slot,
+    //      attestation.data.index,
+    //      )
+    UInt64 shard = committeeUtilRayonism
+        .computeShardFromCommitteeIndex(state, attestation.getData().getSlot(),
+            attestation.getData().getIndex());
+    checkArgument(pendingHeader.getShard().equals(shard),
+        "updatePendingVotes: attestation index should match header shard");
+    //  for i in range(len(pending_header.votes)):
+    //    pending_header.votes[i] = pending_header.votes[i] or attestation.aggregation_bits[i]
+    SszBitlist updatedVotes = pendingHeader.getVotes().or(attestation.getAggregation_bits());
+
+    // TODO question: looks like an obsolete check
+    // From discord:
+    // Shouldn't the ShardHeader be unique with respect to (slot, shard)? There is just one shard
+    // proposer for (slot, shard) who may publish just one ShardHeader (else he is subject to be slashed).
+    // Why we are looking for other pending_headers with the same (slot, shard) then?
+    //
+    //  # Check if the PendingShardHeader is eligible for expedited confirmation
+    //  # Requirement 1: nothing else confirmed
+    //  all_candidates = [
+    //      c for c in pending_headers if
+    //      (c.slot, c.shard) == (pending_header.slot, pending_header.shard)
+    //  ]
+    //  if True in [c.confirmed for c in all_candidates]:
+    //      return
+
+    //  # Requirement 2: >= 2/3 of balance attesting
+    //  participants = get_attesting_indices(state, attestation.data, pending_header.votes)
+    List<Integer> participants = attestationUtil
+        .getAttestingIndices(state, attestation.getData(), updatedVotes);
+    //  participants_balance = get_total_balance(state, participants)
+    UInt64 participantsBalance = beaconStateAccessors.getTotalBalance(state, participants);
+    //  full_committee = get_beacon_committee(state, attestation.data.slot, attestation.data.index)
+    List<Integer> fullCommittee = beaconStateUtil
+        .getBeaconCommittee(state, attestation.getData().getSlot(),
+            attestation.getData().getIndex());
+    //  full_committee_balance = get_total_balance(state, full_committee)
+    UInt64 fullCommitteeBalance = beaconStateAccessors.getTotalBalance(state, fullCommittee);
+    //  if participants_balance * 3 >= full_committee_balance * 2:
+    //    pending_header.confirmed = True
+    boolean pendingHeaderConfirmed = participantsBalance.times(3)
+        .isGreaterThanOrEqualTo(fullCommitteeBalance.times(2));
+
+    PendingShardHeader updatedPendingHeader = new PendingShardHeader(pendingHeader, updatedVotes,
+        pendingHeaderConfirmed);
+    pendingHeaders.set(pendingHeaderIndex, updatedPendingHeader);
   }
 
   /**
