@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.spec.logic.versions.rayonism.statetransition.epoch;
 
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.MutableBeaconState;
@@ -24,11 +25,15 @@ import tech.pegasys.teku.spec.logic.common.statetransition.epoch.AbstractEpochPr
 import tech.pegasys.teku.spec.logic.common.statetransition.epoch.RewardAndPenaltyDeltas;
 import tech.pegasys.teku.spec.logic.common.statetransition.epoch.status.ValidatorStatusFactory;
 import tech.pegasys.teku.spec.logic.common.statetransition.epoch.status.ValidatorStatuses;
+import tech.pegasys.teku.spec.logic.common.statetransition.exceptions.EpochProcessingException;
 import tech.pegasys.teku.spec.logic.common.util.BeaconStateUtil;
 import tech.pegasys.teku.spec.logic.common.util.ValidatorsUtil;
 import tech.pegasys.teku.spec.logic.versions.phase0.statetransition.epoch.RewardsAndPenaltiesCalculatorPhase0;
+import tech.pegasys.teku.spec.logic.versions.rayonism.util.CommitteeUtilRayonism;
 
 public class EpochProcessorRayonism extends AbstractEpochProcessor {
+
+  private final CommitteeUtilRayonism committeeUtil;
 
   public EpochProcessorRayonism(
       final SpecConfig specConfig,
@@ -37,7 +42,8 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
       final BeaconStateMutators beaconStateMutators,
       final ValidatorsUtil validatorsUtil,
       final BeaconStateUtil beaconStateUtil,
-      final ValidatorStatusFactory validatorStatusFactory) {
+      final ValidatorStatusFactory validatorStatusFactory,
+      CommitteeUtilRayonism committeeUtil) {
     super(
         specConfig,
         miscHelpers,
@@ -46,7 +52,56 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
         validatorsUtil,
         beaconStateUtil,
         validatorStatusFactory);
+    this.committeeUtil = committeeUtil;
   }
+
+  protected void processEpoch(final BeaconState preState, final MutableBeaconState state)
+      throws EpochProcessingException {
+    final ValidatorStatuses validatorStatuses =
+        validatorStatusFactory.createValidatorStatuses(preState);
+    processJustificationAndFinalization(state, validatorStatuses.getTotalBalances());
+    processInactivityUpdates(state, validatorStatuses);
+    processRewardsAndPenalties(state, validatorStatuses);
+    processRegistryUpdates(state, validatorStatuses.getStatuses());
+    processSlashings(state, validatorStatuses.getTotalBalances().getCurrentEpochActiveValidators());
+
+    // Sharding
+    MutableBeaconStateRayonism beaconStateRayonism = MutableBeaconStateRayonism.required(state);
+    processPendingHeaders(beaconStateRayonism);
+    processConfirmedHeaderFees(beaconStateRayonism);
+    resetPendingHeaders(beaconStateRayonism);
+
+    // Final updates
+    processEth1DataReset(state);
+    processEffectiveBalanceUpdates(state);
+    processSlashingsReset(state);
+    processRandaoMixesReset(state);
+    processHistoricalRootsUpdate(state);
+    processParticipationUpdates(state);
+    processSyncCommitteeUpdates(state);
+
+    processShardEpochIncrement(beaconStateRayonism);
+  }
+
+  private void processPendingHeaders(MutableBeaconStateRayonism state) {
+
+  }
+
+  private void processConfirmedHeaderFees(MutableBeaconStateRayonism state) {
+
+  }
+
+  private void resetPendingHeaders(MutableBeaconStateRayonism state) {
+
+  }
+
+  private void processShardEpochIncrement(MutableBeaconStateRayonism state) {
+    //    # Update current_epoch_start_shard
+    //    state.current_epoch_start_shard = get_start_shard(state, Slot(state.slot + 1))
+    UInt64 newStartShard = committeeUtil.getStartShard(state, state.getSlot().increment());
+    state.setCurrent_epoch_start_shard(newStartShard);
+  }
+
 
   @Override
   public RewardAndPenaltyDeltas getRewardAndPenaltyDeltas(
