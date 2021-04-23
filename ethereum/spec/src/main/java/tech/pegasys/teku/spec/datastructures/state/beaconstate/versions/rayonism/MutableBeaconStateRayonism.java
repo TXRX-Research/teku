@@ -21,6 +21,7 @@ import tech.pegasys.teku.spec.datastructures.sharding.PendingShardHeader;
 import tech.pegasys.teku.spec.datastructures.state.PendingAttestation;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.MutableBeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.BeaconStateFields;
+import tech.pegasys.teku.ssz.SszList;
 import tech.pegasys.teku.ssz.SszMutableList;
 import tech.pegasys.teku.ssz.SszVector;
 import tech.pegasys.teku.ssz.primitive.SszUInt64;
@@ -64,6 +65,12 @@ public interface MutableBeaconStateRayonism extends MutableBeaconState, BeaconSt
     final int fieldIndex =
         getSchema().getFieldIndex(BeaconStateFields.PREVIOUS_EPOCH_PENDING_SHARD_HEADERS.name());
     return getAnyByRef(fieldIndex);
+  }
+
+  default void setPrevious_epoch_pending_shard_headers(SszList<PendingShardHeader> headers) {
+    final int fieldIndex =
+        getSchema().getFieldIndex(BeaconStateFields.PREVIOUS_EPOCH_PENDING_SHARD_HEADERS.name());
+    set(fieldIndex, headers);
   }
 
   @Override

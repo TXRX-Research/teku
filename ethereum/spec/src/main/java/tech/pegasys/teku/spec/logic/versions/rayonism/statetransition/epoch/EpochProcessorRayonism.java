@@ -16,6 +16,7 @@ package tech.pegasys.teku.spec.logic.versions.rayonism.statetransition.epoch;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import org.apache.commons.lang3.tuple.Pair;
@@ -42,6 +43,7 @@ import tech.pegasys.teku.spec.logic.versions.phase0.statetransition.epoch.Reward
 import tech.pegasys.teku.spec.logic.versions.rayonism.helpers.BeaconStateAccessorsRayonism;
 import tech.pegasys.teku.spec.logic.versions.rayonism.util.CommitteeUtilRayonism;
 import tech.pegasys.teku.spec.schemas.SchemaDefinitionsRayonism;
+import tech.pegasys.teku.ssz.SszList;
 import tech.pegasys.teku.ssz.SszMutableList;
 import tech.pegasys.teku.ssz.SszVector;
 
@@ -118,7 +120,7 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
     UInt64 previousEpochStartSlot = miscHelpers.computeStartSlotAtEpoch(previousEpoch);
     // for slot in range(previous_epoch_start_slot, previous_epoch_start_slot + SLOTS_PER_EPOCH):
     UInt64 currentEpochStartSlot = previousEpochStartSlot.plus(specConfig.getSlotsPerEpoch());
-    int activeShards = beaconStateAccessors.getActiveShardCount(state, previousEpoch);
+    int activeShardCount = beaconStateAccessors.getActiveShardCount(state, previousEpoch);
     SszMutableList<PendingShardHeader> previousEpochPendingShardHeaders =
         state.getPrevious_epoch_pending_shard_headers();
     for (UInt64 slot_ = previousEpochStartSlot;
@@ -127,7 +129,7 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
       final UInt64 slot = slot_;
       //     for shard in range(get_active_shard_count(state, previous_epoch)):
       for (UInt64 shard_ = UInt64.ZERO;
-          shard_.isLessThan(activeShards);
+          shard_.isLessThan(activeShardCount);
           shard_ = shard_.increment()) {
         final UInt64 shard = shard_;
         //         # Pending headers for this (slot, shard) combo
@@ -242,9 +244,163 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
     state.setGrandparent_epoch_confirmed_commitments(confirmedCommitments);
   }
 
-  private void processConfirmedHeaderFees(MutableBeaconStateRayonism state) {}
+  // def charge_confirmed_header_fees(state: BeaconState) -> None:
+  private void processConfirmedHeaderFees(MutableBeaconStateRayonism state) {
+    //    new_gasprice = state.shard_gasprice
+    UInt64 newGasPrice = state.getShard_gasprice();
+    //    adjustment_quotient = (
+    //        get_active_shard_count(state, get_current_epoch(state))
+    //        * SLOTS_PER_EPOCH * GASPRICE_ADJUSTMENT_COEFFICIENT
+    //    )
+    int activeShardCountCur =
+        beaconStateAccessors.getActiveShardCount(
+            state, beaconStateAccessors.getCurrentEpoch(state));
+    int adjustmentQuotient =
+        activeShardCountCur
+            * specConfig.getSlotsPerEpoch()
+            * specConfigRayonism.getGaspriceAdjustmentCoefficient();
+    //    previous_epoch_start_slot = compute_start_slot_at_epoch(get_previous_epoch(state))
+    UInt64 previousEpoch = beaconStateAccessors.getPreviousEpoch(state);
+    UInt64 previousEpochStartSlot = miscHelpers.computeStartSlotAtEpoch(previousEpoch);
+    UInt64 currentEpochStartSlot = previousEpochStartSlot.plus(specConfig.getSlotsPerEpoch());
+    int activeShardCount = beaconStateAccessors.getActiveShardCount(state, previousEpoch);
+    SszList<PendingShardHeader> previousEpochPendingShardHeaders =
+        state.getPrevious_epoch_pending_shard_headers();
+    //    for slot in range(previous_epoch_start_slot, previous_epoch_start_slot + SLOTS_PER_EPOCH):
+    for (UInt64 slot_ = previousEpochStartSlot;
+        slot_.isLessThan(currentEpochStartSlot);
+        slot_ = slot_.increment()) {
+      final UInt64 slot = slot_;
+      // TODO question: either MAX_SHARDS or activeShards ?
+      // for shard in range(SHARD_COUNT):
+      for (UInt64 shard_ = UInt64.ZERO;
+          shard_.isLessThan(activeShardCount);
+          shard_ = shard_.increment()) {
+        final UInt64 shard = shard_;
+        // confirmed_candidates = [
+        //     c for c in state.previous_epoch_pending_shard_headers
+        //     if (c.slot, c.shard, c.confirmed) == (slot, shard, True)
+        // ]
+        Optional<PendingShardHeader> maybeCandidate =
+            previousEpochPendingShardHeaders.stream()
+                .filter(
+                    h -> h.getSlot().equals(slot) && h.getShard().equals(shard) && h.isConfirmed())
+                .findFirst();
+        // if not any(confirmed_candidates):
+        //     continue
+        if (maybeCandidate.isEmpty()) {
+          continue;
+        }
+        // candidate = confirmed_candidates[0]
+        PendingShardHeader candidate = maybeCandidate.get();
 
-  private void resetPendingHeaders(MutableBeaconStateRayonism state) {}
+        // # Charge EIP 1559 fee
+        // TODO question: get_shard_proposer_index ?
+        // proposer = get_shard_proposer(state, slot, shard)
+        int proposer = committeeUtil.getShardProposerIndex(state, slot, shard);
+        // fee = (
+        //     (state.shard_gasprice * candidate.commitment.length)
+        //     // TARGET_SAMPLES_PER_BLOCK
+        // )
+        UInt64 fee =
+            state
+                .getShard_gasprice()
+                .times(candidate.getCommitment().getLength())
+                .dividedBy(specConfigRayonism.getTargetSamplesPerBlock());
+        // decrease_balance(state, proposer, fee)
+        beaconStateMutators.decreaseBalance(state, proposer, fee);
+
+        // # Track updated gas price
+        // new_gasprice = compute_updated_gasprice(
+        //     new_gasprice,
+        //     candidate.commitment.length,
+        //     adjustment_quotient,
+        // )
+        newGasPrice =
+            computeUpdatedGasprice(
+                newGasPrice, candidate.getCommitment().getLength(), adjustmentQuotient);
+      }
+    }
+    //    state.shard_gasprice = new_gasprice
+    state.setShard_gasprice(newGasPrice);
+  }
+
+  // def compute_updated_gasprice(prev_gasprice: Gwei, shard_block_length: uint64,
+  // adjustment_quotient: uint64) -> Gwei:
+  UInt64 computeUpdatedGasprice(
+      UInt64 preevGasprice, UInt64 shardBlockLength, int adjustmentQuotient) {
+    //  if shard_block_length > TARGET_SAMPLES_PER_BLOCK:
+    if (shardBlockLength.isGreaterThan(specConfigRayonism.getTargetSamplesPerBlock())) {
+      //      delta = max(1, prev_gasprice * (shard_block_length - TARGET_SAMPLES_PER_BLOCK)
+      //                     // TARGET_SAMPLES_PER_BLOCK // adjustment_quotient)
+      UInt64 delta =
+          preevGasprice
+              .times(shardBlockLength.minus(specConfigRayonism.getTargetSamplesPerBlock()))
+              .dividedBy(specConfigRayonism.getTargetSamplesPerBlock())
+              .dividedBy(adjustmentQuotient)
+              .max(UInt64.ONE);
+      //      return min(prev_gasprice + delta, MAX_GASPRICE)
+      return preevGasprice.plus(delta).min(specConfigRayonism.getMaxGasprice());
+      //  else:
+    } else {
+      //      delta = max(1, prev_gasprice * (TARGET_SAMPLES_PER_BLOCK - shard_block_length)
+      //                     // TARGET_SAMPLES_PER_BLOCK // adjustment_quotient)
+      UInt64 delta =
+          preevGasprice
+              .times(specConfigRayonism.getTargetSamplesPerBlock().minus(shardBlockLength))
+              .dividedBy(specConfigRayonism.getTargetSamplesPerBlock())
+              .dividedBy(adjustmentQuotient)
+              .max(UInt64.ONE);
+      //      return max(prev_gasprice, MIN_GASPRICE + delta) - delta
+      return preevGasprice.max(specConfigRayonism.getMinGasprice().plus(delta)).minus(delta);
+    }
+  }
+
+  //  def reset_pending_headers(state: BeaconState) -> None:
+  private void resetPendingHeaders(MutableBeaconStateRayonism state) {
+    //  state.previous_epoch_pending_shard_headers = state.current_epoch_pending_shard_headers
+    state.setPrevious_epoch_pending_shard_headers(state.getCurrent_epoch_pending_shard_headers());
+    //  state.current_epoch_pending_shard_headers = []
+    state.getCurrent_epoch_pending_shard_headers().clear();
+    //  # Add dummy "empty" PendingShardHeader (default vote for if no shard header available)
+    //  next_epoch = get_current_epoch(state) + 1
+    UInt64 nextEpoch = beaconStateAccessors.getCurrentEpoch(state).increment();
+    //  next_epoch_start_slot = compute_start_slot_at_epoch(next_epoch)
+    UInt64 nextEpochStartSlot = miscHelpers.computeStartSlotAtEpoch(nextEpoch);
+    //  for slot in range(next_epoch_start_slot, next_epoch_start_slot + SLOTS_IN_EPOCH):
+    for (UInt64 slot = nextEpochStartSlot;
+        slot.isLessThan(nextEpochStartSlot.plus(specConfig.getSlotsPerEpoch()));
+        slot = slot.increment()) {
+      // TODO question: missing state argument
+      //      for index in range(get_committee_count_per_slot(next_epoch)):
+      UInt64 committeeCountPerSlot = committeeUtil.getCommitteeCountPerSlot(state, nextEpoch);
+      for (UInt64 index = UInt64.ZERO;
+          index.isLessThan(committeeCountPerSlot);
+          index = index.increment()) {
+        // shard = compute_shard_from_committee_index(state, slot, index)
+        UInt64 shard = committeeUtil.computeShardFromCommitteeIndex(state, slot, index);
+        // committee_length = len(get_beacon_committee(state, slot, shard))
+        int committeeLength = beaconStateUtil.getBeaconCommittee(state, slot, shard).size();
+        // state.current_epoch_pending_shard_headers.append(PendingShardHeader(
+        //     slot=slot,
+        //     shard=shard,
+        //     commitment=DataCommitment(),
+        //     root=Root(),
+        //     votes=Bitlist[MAX_VALIDATORS_PER_COMMITTEE]([0] * committee_length),
+        //     confirmed=False,
+        // ))
+        PendingShardHeader emptyShardHeader =
+            new PendingShardHeader(
+                slot,
+                shard,
+                new DataCommitment(),
+                Bytes32.ZERO,
+                PendingShardHeader.SSZ_SCHEMA.getVotesSchema().ofBits(committeeLength),
+                false);
+        state.getCurrent_epoch_pending_shard_headers().append(emptyShardHeader);
+      }
+    }
+  }
 
   private void processShardEpochIncrement(MutableBeaconStateRayonism state) {
     //    # Update current_epoch_start_shard
