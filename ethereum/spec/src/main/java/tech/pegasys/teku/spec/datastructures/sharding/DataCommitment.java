@@ -47,6 +47,10 @@ public class DataCommitment extends Container2<DataCommitment, SszPublicKey, Ssz
     super(type, backingNode);
   }
 
+  public DataCommitment() {
+    super(SSZ_SCHEMA);
+  }
+
   public DataCommitment(final BLSPublicKey point, final UInt64 length) {
     super(SSZ_SCHEMA, new SszPublicKey(point), SszUInt64.of(length));
   }

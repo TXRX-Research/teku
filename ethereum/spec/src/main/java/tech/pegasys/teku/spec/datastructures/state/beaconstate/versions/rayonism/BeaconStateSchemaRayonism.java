@@ -26,6 +26,7 @@ import tech.pegasys.teku.spec.datastructures.state.PendingAttestation;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateSchema;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.AbstractBeaconStateSchema;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.BeaconStateFields;
+import tech.pegasys.teku.ssz.SszVector;
 import tech.pegasys.teku.ssz.schema.SszListSchema;
 import tech.pegasys.teku.ssz.schema.SszPrimitiveSchemas;
 import tech.pegasys.teku.ssz.schema.SszVectorSchema;
@@ -137,6 +138,18 @@ public class BeaconStateSchemaRayonism
   public SszListSchema<PendingAttestation, ?> getCurrentEpochAttestationsSchema() {
     return (SszListSchema<PendingAttestation, ?>)
         getChildSchema(getFieldIndex(BeaconStateFields.CURRENT_EPOCH_ATTESTATIONS.name()));
+  }
+
+  @SuppressWarnings("unchecked")
+  public SszVectorSchema<SszVector<DataCommitment>, ?> getGrandparentEpochConfirmedCommitmentsSchema() {
+    return (SszVectorSchema<SszVector<DataCommitment>, ?>) getChildSchema(
+        getFieldIndex(BeaconStateFields.GRANDPARENT_EPOCH_CONFIRMED_COMMITMENTS.name()));
+  }
+
+  @SuppressWarnings("unchecked")
+  public SszVectorSchema<DataCommitment, ?> getGrandparentEpochConfirmedCommitmentsElementSchema() {
+    return (SszVectorSchema<DataCommitment, ?>) getGrandparentEpochConfirmedCommitmentsSchema()
+        .getElementSchema();
   }
 
   @Override

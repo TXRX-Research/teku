@@ -74,11 +74,10 @@ public interface MutableBeaconStateRayonism extends MutableBeaconState, BeaconSt
     return getAnyByRef(fieldIndex);
   }
 
-  @Override
-  default SszMutableVector<SszVector<DataCommitment>> getGrandparent_epoch_confirmed_commitments() {
+  default void setGrandparent_epoch_confirmed_commitments(SszVector<SszVector<DataCommitment>> commitments) {
     final int fieldIndex =
         getSchema().getFieldIndex(BeaconStateFields.GRANDPARENT_EPOCH_CONFIRMED_COMMITMENTS.name());
-    return getAnyByRef(fieldIndex);
+    set(fieldIndex, commitments);
   }
 
   default void setShard_gasprice(UInt64 shardPrice) {

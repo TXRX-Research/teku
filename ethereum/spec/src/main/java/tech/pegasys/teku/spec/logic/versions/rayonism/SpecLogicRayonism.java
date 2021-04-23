@@ -118,7 +118,8 @@ public class SpecLogicRayonism extends AbstractSpecLogic {
             validatorsUtil,
             beaconStateUtil,
             validatorStatusFactory,
-            committeeUtil);
+            committeeUtil,
+            schemaDefinitions);
     final ExecutionPayloadUtil executionPayloadUtil = new ExecutionPayloadUtil();
     final BlockProcessorRayonism blockProcessor =
         new BlockProcessorRayonism(
