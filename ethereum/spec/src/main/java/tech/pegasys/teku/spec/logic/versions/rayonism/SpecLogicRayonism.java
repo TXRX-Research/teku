@@ -92,8 +92,8 @@ public class SpecLogicRayonism extends AbstractSpecLogic {
         new AttestationDataStateTransitionValidator();
 
     // Util
-    final CommitteeUtilRayonism committeeUtil = new CommitteeUtilRayonism(config,
-        beaconStateAccessors, miscHelpers);
+    final CommitteeUtilRayonism committeeUtil =
+        new CommitteeUtilRayonism(config, beaconStateAccessors, miscHelpers);
     final ValidatorsUtil validatorsUtil = new ValidatorsUtil();
     final BeaconStateUtil beaconStateUtil =
         new BeaconStateUtil(

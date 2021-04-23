@@ -109,9 +109,7 @@ public class BeaconStateUtil {
     return getBlockRootAtSlot(state, computeStartSlotAtEpoch(epoch));
   }
 
-  /**
-   * @deprecated Use {@link MiscHelpers#computeStartSlotAtEpoch(UInt64)}
-   */
+  /** @deprecated Use {@link MiscHelpers#computeStartSlotAtEpoch(UInt64)} */
   public UInt64 computeStartSlotAtEpoch(UInt64 epoch) {
     return epoch.times(specConfig.getSlotsPerEpoch());
   }
@@ -187,9 +185,7 @@ public class BeaconStateUtil {
     return true;
   }
 
-  /**
-   * @deprecated  Use {@link CommitteeUtil#getCommitteeCountPerSlot(BeaconState, UInt64)}
-   */
+  /** @deprecated Use {@link CommitteeUtil#getCommitteeCountPerSlot(BeaconState, UInt64)} */
   public UInt64 getCommitteeCountPerSlot(BeaconState state, UInt64 epoch) {
     List<Integer> active_validator_indices =
         beaconStateAccessors.getActiveValidatorIndices(state, epoch);
@@ -203,9 +199,7 @@ public class BeaconStateUtil {
                     specConfig.getTargetCommitteeSize()))));
   }
 
-  /**
-   * @deprecated  Use {@link CommitteeUtil#getCommitteeCountPerSlot(int)}
-   */
+  /** @deprecated Use {@link CommitteeUtil#getCommitteeCountPerSlot(int)} */
   public UInt64 getCommitteeCountPerSlot(final int activeValidatorCount) {
     return UInt64.valueOf(
         Math.max(

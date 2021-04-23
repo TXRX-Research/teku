@@ -49,8 +49,7 @@ public class ShardBlobReference
     super(type, backingNode);
   }
 
-  public ShardBlobReference(
-      UInt64 slot, UInt64 shard, Bytes32 body_root, UInt64 proposer_index) {
+  public ShardBlobReference(UInt64 slot, UInt64 shard, Bytes32 body_root, UInt64 proposer_index) {
     super(
         SSZ_SCHEMA,
         SszUInt64.of(slot),

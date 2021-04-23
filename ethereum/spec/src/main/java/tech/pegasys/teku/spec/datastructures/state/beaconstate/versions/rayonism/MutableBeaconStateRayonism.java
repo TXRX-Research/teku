@@ -22,7 +22,6 @@ import tech.pegasys.teku.spec.datastructures.state.PendingAttestation;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.MutableBeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.BeaconStateFields;
 import tech.pegasys.teku.ssz.SszMutableList;
-import tech.pegasys.teku.ssz.SszMutableVector;
 import tech.pegasys.teku.ssz.SszVector;
 import tech.pegasys.teku.ssz.primitive.SszUInt64;
 
@@ -74,15 +73,15 @@ public interface MutableBeaconStateRayonism extends MutableBeaconState, BeaconSt
     return getAnyByRef(fieldIndex);
   }
 
-  default void setGrandparent_epoch_confirmed_commitments(SszVector<SszVector<DataCommitment>> commitments) {
+  default void setGrandparent_epoch_confirmed_commitments(
+      SszVector<SszVector<DataCommitment>> commitments) {
     final int fieldIndex =
         getSchema().getFieldIndex(BeaconStateFields.GRANDPARENT_EPOCH_CONFIRMED_COMMITMENTS.name());
     set(fieldIndex, commitments);
   }
 
   default void setShard_gasprice(UInt64 shardPrice) {
-    final int fieldIndex =
-        getSchema().getFieldIndex(BeaconStateFields.SHARD_GASPRICE.name());
+    final int fieldIndex = getSchema().getFieldIndex(BeaconStateFields.SHARD_GASPRICE.name());
     set(fieldIndex, SszUInt64.of(shardPrice));
   }
 

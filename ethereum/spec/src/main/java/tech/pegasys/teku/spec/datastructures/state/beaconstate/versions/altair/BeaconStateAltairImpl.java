@@ -13,7 +13,6 @@
 
 package tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.altair;
 
-import com.google.common.base.MoreObjects.ToStringHelper;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateCache;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateSchema;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.common.AbstractBeaconState;

@@ -1,3 +1,16 @@
+/*
+ * Copyright 2021 ConsenSys AG.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package tech.pegasys.teku.spec.config;
 
 import com.google.common.base.Objects;
@@ -30,15 +43,22 @@ public class SpecConfigRayonism extends DelegatingSpecConfig {
   private final Bytes4 domainShardProposer;
   private final Bytes4 domainShardCommittee;
 
-  public SpecConfigRayonism(SpecConfig specConfig,
-      Bytes4 mergeForkVersion, UInt64 mergeForkSlot, long transitionTotalDifficulty,
-      int maxShardProposerSlashings, int maxShards, int maxShardHeadersPerShard,
+  public SpecConfigRayonism(
+      SpecConfig specConfig,
+      Bytes4 mergeForkVersion,
+      UInt64 mergeForkSlot,
+      long transitionTotalDifficulty,
+      int maxShardProposerSlashings,
+      int maxShards,
+      int maxShardHeadersPerShard,
       UInt64 maxSamplesPerBlock,
       UInt64 targetSamplesPerBlock,
       int initialActiveShards,
       int gaspriceAdjustmentCoefficient,
-      UInt64 maxGasprice, UInt64 minGasprice,
-      Bytes4 domainShardProposer, Bytes4 domainShardCommittee) {
+      UInt64 maxGasprice,
+      UInt64 minGasprice,
+      Bytes4 domainShardProposer,
+      Bytes4 domainShardCommittee) {
     super(specConfig);
     this.mergeForkVersion = mergeForkVersion;
     this.mergeForkSlot = mergeForkSlot;
@@ -148,27 +168,36 @@ public class SpecConfigRayonism extends DelegatingSpecConfig {
       return false;
     }
     SpecConfigRayonism that = (SpecConfigRayonism) o;
-    return getTransitionTotalDifficulty() == that.getTransitionTotalDifficulty() &&
-        getMaxShardProposerSlashings() == that.getMaxShardProposerSlashings() &&
-        getMaxShards() == that.getMaxShards() &&
-        getMaxShardHeadersPerShard() == that.getMaxShardHeadersPerShard() &&
-        initialActiveShards == that.initialActiveShards &&
-        gaspriceAdjustmentCoefficient == that.gaspriceAdjustmentCoefficient &&
-        getShardCommitteePeriod() == that.getShardCommitteePeriod() &&
-        Objects.equal(getMergeForkVersion(), that.getMergeForkVersion()) &&
-        Objects.equal(getMergeForkSlot(), that.getMergeForkSlot()) &&
-        Objects.equal(maxGasprice, that.maxGasprice) &&
-        Objects.equal(minGasprice, that.minGasprice) &&
-        Objects.equal(domainShardProposer, that.domainShardProposer) &&
-        Objects.equal(domainShardCommittee, that.domainShardCommittee);
+    return getTransitionTotalDifficulty() == that.getTransitionTotalDifficulty()
+        && getMaxShardProposerSlashings() == that.getMaxShardProposerSlashings()
+        && getMaxShards() == that.getMaxShards()
+        && getMaxShardHeadersPerShard() == that.getMaxShardHeadersPerShard()
+        && initialActiveShards == that.initialActiveShards
+        && gaspriceAdjustmentCoefficient == that.gaspriceAdjustmentCoefficient
+        && getShardCommitteePeriod() == that.getShardCommitteePeriod()
+        && Objects.equal(getMergeForkVersion(), that.getMergeForkVersion())
+        && Objects.equal(getMergeForkSlot(), that.getMergeForkSlot())
+        && Objects.equal(maxGasprice, that.maxGasprice)
+        && Objects.equal(minGasprice, that.minGasprice)
+        && Objects.equal(domainShardProposer, that.domainShardProposer)
+        && Objects.equal(domainShardCommittee, that.domainShardCommittee);
   }
 
   @Override
   public int hashCode() {
-    return Objects
-        .hashCode(getMergeForkVersion(), getMergeForkSlot(), getTransitionTotalDifficulty(),
-            getMaxShardProposerSlashings(), getMaxShards(), getMaxShardHeadersPerShard(),
-            initialActiveShards, gaspriceAdjustmentCoefficient, maxGasprice, minGasprice,
-            getShardCommitteePeriod(), domainShardProposer, domainShardCommittee);
+    return Objects.hashCode(
+        getMergeForkVersion(),
+        getMergeForkSlot(),
+        getTransitionTotalDifficulty(),
+        getMaxShardProposerSlashings(),
+        getMaxShards(),
+        getMaxShardHeadersPerShard(),
+        initialActiveShards,
+        gaspriceAdjustmentCoefficient,
+        maxGasprice,
+        minGasprice,
+        getShardCommitteePeriod(),
+        domainShardProposer,
+        domainShardCommittee);
   }
 }

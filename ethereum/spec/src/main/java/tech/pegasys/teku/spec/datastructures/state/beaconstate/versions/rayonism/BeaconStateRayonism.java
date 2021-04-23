@@ -81,8 +81,7 @@ public interface BeaconStateRayonism extends BeaconState {
   }
 
   default UInt64 getShard_gasprice() {
-    final int fieldIndex =
-        getSchema().getFieldIndex(BeaconStateFields.SHARD_GASPRICE.name());
+    final int fieldIndex = getSchema().getFieldIndex(BeaconStateFields.SHARD_GASPRICE.name());
     return ((SszUInt64) get(fieldIndex)).get();
   }
 
@@ -97,6 +96,7 @@ public interface BeaconStateRayonism extends BeaconState {
     return Optional.of(this);
   }
 
-  <E1 extends Exception, E2 extends Exception, E3 extends Exception> BeaconStateRayonism updatedMerge(
-      Mutator<MutableBeaconStateRayonism, E1, E2, E3> mutator) throws E1, E2, E3;
+  <E1 extends Exception, E2 extends Exception, E3 extends Exception>
+      BeaconStateRayonism updatedMerge(Mutator<MutableBeaconStateRayonism, E1, E2, E3> mutator)
+          throws E1, E2, E3;
 }

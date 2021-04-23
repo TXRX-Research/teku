@@ -61,7 +61,6 @@ public class BeaconBlockBodyBuilderAltair extends AbstractBeaconBlockBodyBuilder
     return this;
   }
 
-
   @Override
   protected void validate() {
     super.validate();

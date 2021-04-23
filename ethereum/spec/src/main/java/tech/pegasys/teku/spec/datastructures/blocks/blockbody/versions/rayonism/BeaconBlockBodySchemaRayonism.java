@@ -40,18 +40,18 @@ import tech.pegasys.teku.ssz.tree.TreeNode;
 
 public class BeaconBlockBodySchemaRayonism
     extends ContainerSchema11<
-    BeaconBlockBodyRayonism,
-    SszSignature,
-    Eth1Data,
-    SszBytes32,
-    SszList<ProposerSlashing>,
-    SszList<AttesterSlashing>,
-    SszList<Attestation>,
-    SszList<Deposit>,
-    SszList<SignedVoluntaryExit>,
-    ExecutionPayload,
-    SszList<ShardProposerSlashing>,
-    SszList<SignedShardBlobHeader>>
+        BeaconBlockBodyRayonism,
+        SszSignature,
+        Eth1Data,
+        SszBytes32,
+        SszList<ProposerSlashing>,
+        SszList<AttesterSlashing>,
+        SszList<Attestation>,
+        SszList<Deposit>,
+        SszList<SignedVoluntaryExit>,
+        ExecutionPayload,
+        SszList<ShardProposerSlashing>,
+        SszList<SignedShardBlobHeader>>
     implements BeaconBlockBodySchema<BeaconBlockBodyRayonism> {
 
   private BeaconBlockBodySchemaRayonism(
@@ -130,15 +130,15 @@ public class BeaconBlockBodySchemaRayonism
             SszListSchema.create(ShardProposerSlashing.SSZ_SCHEMA, maxShardProposerSlashings)),
         namedSchema(
             BlockBodyFields.SHARD_HEADERS.name(),
-            SszListSchema
-                .create(SignedShardBlobHeader.SSZ_SCHEMA, maxShards * maxShardHeadersPerShard)));
+            SszListSchema.create(
+                SignedShardBlobHeader.SSZ_SCHEMA, maxShards * maxShardHeadersPerShard)));
   }
 
   @Override
   public BeaconBlockBodyRayonism createBlockBody(
       final Consumer<BeaconBlockBodyBuilder> builderConsumer) {
-    final BeaconBlockBodyBuilderRayonism builder = new BeaconBlockBodyBuilderRayonism()
-        .schema(this);
+    final BeaconBlockBodyBuilderRayonism builder =
+        new BeaconBlockBodyBuilderRayonism().schema(this);
     builderConsumer.accept(builder);
     return builder.build();
   }

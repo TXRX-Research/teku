@@ -13,7 +13,6 @@
 
 package tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.rayonism;
 
-import com.google.common.base.MoreObjects.ToStringHelper;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateCache;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.MutableBeaconState;
@@ -53,7 +52,7 @@ class MutableBeaconStateRayonismImpl extends AbstractMutableBeaconState<BeaconSt
 
   @Override
   public <E1 extends Exception, E2 extends Exception, E3 extends Exception>
-  BeaconStateRayonism updatedMerge(Mutator<MutableBeaconStateRayonism, E1, E2, E3> mutator) {
+      BeaconStateRayonism updatedMerge(Mutator<MutableBeaconStateRayonism, E1, E2, E3> mutator) {
     throw new UnsupportedOperationException();
   }
 }

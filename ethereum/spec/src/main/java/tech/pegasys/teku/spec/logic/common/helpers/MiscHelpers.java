@@ -71,8 +71,8 @@ public class MiscHelpers {
     return computeProposerIndex(state, indices, seed, UInt64.ZERO);
   }
 
-  public int computeProposerIndex(BeaconState state, List<Integer> indices, Bytes32 seed,
-      UInt64 minEffectiveBalance) {
+  public int computeProposerIndex(
+      BeaconState state, List<Integer> indices, Bytes32 seed, UInt64 minEffectiveBalance) {
 
     checkArgument(!indices.isEmpty(), "compute_proposer_index indices must not be empty");
     UInt64 MAX_RANDOM_BYTE = UInt64.valueOf(255); // Math.pow(2, 8) - 1;

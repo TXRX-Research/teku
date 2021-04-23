@@ -21,7 +21,6 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.rayonism
 import tech.pegasys.teku.spec.logic.common.helpers.BeaconStateAccessors;
 import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
 import tech.pegasys.teku.spec.logic.common.helpers.Predicates;
-import tech.pegasys.teku.spec.logic.common.util.BeaconStateUtil;
 
 public class BeaconStateAccessorsRayonism extends BeaconStateAccessors {
   private final SpecConfigRayonism configRayonism;
@@ -30,8 +29,10 @@ public class BeaconStateAccessorsRayonism extends BeaconStateAccessors {
   public BeaconStateAccessorsRayonism(
       final SpecConfig config, final Predicates predicates, final MiscHelpers miscHelpers) {
     super(config, predicates, miscHelpers);
-    configRayonism = config.toVersionRayonism()
-        .orElseThrow(() -> new IllegalArgumentException("Expected Rayonism spec version"));
+    configRayonism =
+        config
+            .toVersionRayonism()
+            .orElseThrow(() -> new IllegalArgumentException("Expected Rayonism spec version"));
     this.miscHelpers = miscHelpers;
   }
 

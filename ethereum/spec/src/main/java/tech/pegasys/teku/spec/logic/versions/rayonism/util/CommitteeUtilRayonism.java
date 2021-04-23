@@ -1,3 +1,16 @@
+/*
+ * Copyright 2021 ConsenSys AG.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
+
 package tech.pegasys.teku.spec.logic.versions.rayonism.util;
 
 import java.util.List;
@@ -19,7 +32,8 @@ public class CommitteeUtilRayonism extends CommitteeUtil {
   private final BeaconStateAccessorsRayonism beaconStateAccessors;
   private final MiscHelpersRayonism miscHelpers;
 
-  public CommitteeUtilRayonism(SpecConfigRayonism specConfig,
+  public CommitteeUtilRayonism(
+      SpecConfigRayonism specConfig,
       BeaconStateAccessorsRayonism beaconStateAccessors,
       MiscHelpersRayonism miscHelpersRayonism) {
     super(specConfig, beaconStateAccessors);
@@ -41,20 +55,20 @@ public class CommitteeUtilRayonism extends CommitteeUtil {
     return sourceEpoch.isGreaterThanOrEqualTo(period) ? sourceEpoch.minus(period) : sourceEpoch;
   }
 
-  //  def get_shard_committee(beacon_state: BeaconState, epoch: Epoch, shard: Shard) -> Sequence[ValidatorIndex]:
+  //  def get_shard_committee(beacon_state: BeaconState, epoch: Epoch, shard: Shard) ->
+  // Sequence[ValidatorIndex]:
   //      """
   //    Return the shard committee of the given ``epoch`` of the given ``shard``.
   //    """
   public List<Integer> getShardCommittee(BeaconState state, UInt64 epoch, UInt64 shard) {
     //  source_epoch = compute_committee_source_epoch(epoch, SHARD_COMMITTEE_PERIOD)
-    UInt64 sourceEpoch = computeCommitteeSourceEpoch(epoch,
-        specConfig.getShardCommitteePeriod());
+    UInt64 sourceEpoch = computeCommitteeSourceEpoch(epoch, specConfig.getShardCommitteePeriod());
     //  active_validator_indices = get_active_validator_indices(beacon_state, source_epoch)
-    List<Integer> activeValidatorIndices = beaconStateAccessors
-        .getActiveValidatorIndices(state, sourceEpoch);
+    List<Integer> activeValidatorIndices =
+        beaconStateAccessors.getActiveValidatorIndices(state, sourceEpoch);
     //  seed = get_seed(beacon_state, source_epoch, DOMAIN_SHARD_COMMITTEE)
-    Bytes32 seed = beaconStateAccessors
-        .getSeed(state, sourceEpoch, specConfig.getDomainShardCommittee());
+    Bytes32 seed =
+        beaconStateAccessors.getSeed(state, sourceEpoch, specConfig.getDomainShardCommittee());
     //    return compute_committee(
     //      indices=active_validator_indices,
     //      seed=seed,
@@ -62,10 +76,12 @@ public class CommitteeUtilRayonism extends CommitteeUtil {
     //      count=get_active_shard_count(beacon_state, epoch),
     //    )
     int activeShardCount = beaconStateAccessors.getActiveShardCount(state, epoch);
-    return computeCommittee(state, activeValidatorIndices, seed, shard.intValue(), activeShardCount);
+    return computeCommittee(
+        state, activeValidatorIndices, seed, shard.intValue(), activeShardCount);
   }
 
-  //  def get_shard_proposer_index(beacon_state: BeaconState, slot: Slot, shard: Shard) -> ValidatorIndex:
+  //  def get_shard_proposer_index(beacon_state: BeaconState, slot: Slot, shard: Shard) ->
+  // ValidatorIndex:
   //      """
   //    Return the proposer's index of shard block at ``slot``.
   //    """
@@ -75,51 +91,65 @@ public class CommitteeUtilRayonism extends CommitteeUtil {
     //  committee = get_shard_committee(beacon_state, epoch, shard)
     List<Integer> committee = getShardCommittee(state, epoch, shard);
     // TODO question: beacon_state.slot or slot ?
-    //  seed = hash(get_seed(beacon_state, epoch, DOMAIN_BEACON_PROPOSER) + uint_to_bytes(beacon_state.slot))
-    Bytes32 epochSeed = beaconStateAccessors
-        .getSeed(state, epoch, specConfig.getDomainShardProposer());
-    Bytes32 seed = Hash
-        .sha2_256(Bytes.concatenate(epochSeed, MathHelpers.uintToBytes(state.getSlot())));
+    //  seed = hash(get_seed(beacon_state, epoch, DOMAIN_BEACON_PROPOSER) +
+    // uint_to_bytes(beacon_state.slot))
+    Bytes32 epochSeed =
+        beaconStateAccessors.getSeed(state, epoch, specConfig.getDomainShardProposer());
+    Bytes32 seed =
+        Hash.sha2_256(Bytes.concatenate(epochSeed, MathHelpers.uintToBytes(state.getSlot())));
     //      # Proposer must have sufficient balance to pay for worst case fee burn
     // TODO question: typo?
     //  EFFECTIVE_BALANCE_MAX_DOWNWARD_DEVIATION = (
     //      (EFFECTIVE_BALANCE_INCREMENT - EFFECTIVE_BALANCE_INCREMENT)
     //      * HYSTERESIS_DOWNWARD_MULTIPLIER // HYSTERESIS_QUOTIENT
     //    )
-    UInt64 effectiveBalanceMaxDownwardDeviation = specConfig.getEffectiveBalanceIncrement().minus(
-        specConfig.getEffectiveBalanceIncrement()
-            .times(specConfig.getHysteresisDownwardMultiplier())
-            .dividedBy(specConfig.getHysteresisQuotient())
-    );
+    UInt64 effectiveBalanceMaxDownwardDeviation =
+        specConfig
+            .getEffectiveBalanceIncrement()
+            .minus(
+                specConfig
+                    .getEffectiveBalanceIncrement()
+                    .times(specConfig.getHysteresisDownwardMultiplier())
+                    .dividedBy(specConfig.getHysteresisQuotient()));
     //  min_effective_balance = (
     //  beacon_state.shard_gasprice * MAX_SAMPLES_PER_BLOCK // TARGET_SAMPLES_PER_BLOCK
     //        + EFFECTIVE_BALANCE_MAX_DOWNWARD_DEVIATION
     //    )
     // TODO question: do we really need this?  minEffectiveBalance <<< active validator balance
-    UInt64 minEffectiveBalance = state.getShard_gasprice().times(specConfig.getMaxSamplesPerBlock())
-        .dividedBy(specConfig.getTargetSamplesPerBlock())
-        .plus(effectiveBalanceMaxDownwardDeviation);
+    UInt64 minEffectiveBalance =
+        state
+            .getShard_gasprice()
+            .times(specConfig.getMaxSamplesPerBlock())
+            .dividedBy(specConfig.getTargetSamplesPerBlock())
+            .plus(effectiveBalanceMaxDownwardDeviation);
     //        return compute_proposer_index(beacon_state, committee, seed, min_effective_balance)
     return miscHelpers.computeProposerIndex(state, committee, seed, minEffectiveBalance);
   }
 
-  //  def compute_shard_from_committee_index(state: BeaconState, slot: Slot, index: CommitteeIndex) -> Shard:
-  public UInt64 computeShardFromCommitteeIndex(BeaconStateRayonism state, UInt64 slot, UInt64 index) {
+  //  def compute_shard_from_committee_index(state: BeaconState, slot: Slot, index: CommitteeIndex)
+  // -> Shard:
+  public UInt64 computeShardFromCommitteeIndex(
+      BeaconStateRayonism state, UInt64 slot, UInt64 index) {
     //  active_shards = get_active_shard_count(state, compute_epoch_at_slot(slot))
-    int activeShards = beaconStateAccessors
-        .getActiveShardCount(state, miscHelpers.computeEpochAtSlot(slot));
+    int activeShards =
+        beaconStateAccessors.getActiveShardCount(state, miscHelpers.computeEpochAtSlot(slot));
     //  return Shard((index + get_start_shard(state, slot)) % active_shards)
     return index.plus(getStartShard(state, slot)).mod(activeShards);
   }
 
-  //  def compute_committee_index_from_shard(state: BeaconState, slot: Slot, shard: Shard) -> CommitteeIndex:
-  public UInt64 computeCommitteeIndexFromShard(BeaconStateRayonism state, UInt64 slot, UInt64 shard) {
+  //  def compute_committee_index_from_shard(state: BeaconState, slot: Slot, shard: Shard) ->
+  // CommitteeIndex:
+  public UInt64 computeCommitteeIndexFromShard(
+      BeaconStateRayonism state, UInt64 slot, UInt64 shard) {
     //  active_shards = get_active_shard_count(state, compute_epoch_at_slot(slot))
-    int activeShards = beaconStateAccessors
-        .getActiveShardCount(state, miscHelpers.computeEpochAtSlot(slot));
-    //  return CommitteeIndex((active_shards + shard - get_start_shard(state, slot)) % active_shards)
-    return UInt64.valueOf(activeShards).plus(shard)
-        .minus(getStartShard(state, slot)).mod(activeShards);
+    int activeShards =
+        beaconStateAccessors.getActiveShardCount(state, miscHelpers.computeEpochAtSlot(slot));
+    //  return CommitteeIndex((active_shards + shard - get_start_shard(state, slot)) %
+    // active_shards)
+    return UInt64.valueOf(activeShards)
+        .plus(shard)
+        .minus(getStartShard(state, slot))
+        .mod(activeShards);
   }
 
   //  def get_start_shard(state: BeaconState, slot: Slot) -> Shard:
@@ -127,14 +157,17 @@ public class CommitteeUtilRayonism extends CommitteeUtil {
   //    Return the start shard at ``slot``.
   //    """
   public UInt64 getStartShard(final BeaconStateRayonism state, final UInt64 slot) {
-    UInt64 currentEpochStartSlot = miscHelpers.computeStartSlotAtEpoch(beaconStateAccessors.getCurrentEpoch(state));
+    UInt64 currentEpochStartSlot =
+        miscHelpers.computeStartSlotAtEpoch(beaconStateAccessors.getCurrentEpoch(state));
     //  shard = state.current_epoch_start_shard
     UInt64 shard = state.getCurrent_epoch_start_shard();
     //  if slot > current_epoch_start_slot:
     if (slot.isGreaterThan(currentEpochStartSlot)) {
       //  # Current epoch or the next epoch lookahead
       //  for _slot in range(current_epoch_start_slot, slot):
-      for (UInt64 iSlot = currentEpochStartSlot; iSlot.isLessThan(slot); iSlot = iSlot.increment()) {
+      for (UInt64 iSlot = currentEpochStartSlot;
+          iSlot.isLessThan(slot);
+          iSlot = iSlot.increment()) {
         // TODO question: compute_epoch_at_slot(Slot(_slot)) is invariant for this loop
         UInt64 epoch = miscHelpers.computeEpochAtSlot(iSlot);
         // committee_count = get_committee_count_per_slot(state, compute_epoch_at_slot(Slot(_slot)))
@@ -148,11 +181,13 @@ public class CommitteeUtilRayonism extends CommitteeUtil {
     } else if (slot.isLessThan(currentEpochStartSlot)) {
       // # Previous epoch
       // for _slot in list(range(slot, current_epoch_start_slot))[::-1]:
-      for (UInt64 iSlot = slot; iSlot.isLessThan(currentEpochStartSlot);
+      for (UInt64 iSlot = slot;
+          iSlot.isLessThan(currentEpochStartSlot);
           iSlot = iSlot.increment()) {
         // TODO question: compute_epoch_at_slot(Slot(_slot)) is invariant for this loop
         UInt64 epoch = miscHelpers.computeEpochAtSlot(iSlot);
-        //   committee_count = get_committee_count_per_slot(state, compute_epoch_at_slot(Slot(_slot)))
+        //   committee_count = get_committee_count_per_slot(state,
+        // compute_epoch_at_slot(Slot(_slot)))
         UInt64 committeeCount = getCommitteeCountPerSlot(state, epoch);
         //   active_shard_count = get_active_shard_count(state, compute_epoch_at_slot(Slot(_slot)))
         int activeShardCount = beaconStateAccessors.getActiveShardCount(state, epoch);

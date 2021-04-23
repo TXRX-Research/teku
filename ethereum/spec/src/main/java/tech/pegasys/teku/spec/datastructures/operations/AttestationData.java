@@ -24,12 +24,12 @@ import tech.pegasys.teku.ssz.schema.SszPrimitiveSchemas;
 import tech.pegasys.teku.ssz.tree.TreeNode;
 
 public class AttestationData
-    extends
-    Container6<AttestationData, SszUInt64, SszUInt64, SszBytes32, Checkpoint, Checkpoint, SszBytes32> {
+    extends Container6<
+        AttestationData, SszUInt64, SszUInt64, SszBytes32, Checkpoint, Checkpoint, SszBytes32> {
 
   public static class AttestationDataSchema
       extends ContainerSchema6<
-                AttestationData, SszUInt64, SszUInt64, SszBytes32, Checkpoint, Checkpoint, SszBytes32> {
+          AttestationData, SszUInt64, SszUInt64, SszBytes32, Checkpoint, Checkpoint, SszBytes32> {
 
     public AttestationDataSchema() {
       super(
@@ -61,7 +61,11 @@ public class AttestationData
   }
 
   public AttestationData(
-      UInt64 slot, UInt64 index, Bytes32 beacon_block_root, Checkpoint source, Checkpoint target,
+      UInt64 slot,
+      UInt64 index,
+      Bytes32 beacon_block_root,
+      Checkpoint source,
+      Checkpoint target,
       Bytes32 shard_header_root) {
 
     super(
@@ -75,7 +79,12 @@ public class AttestationData
   }
 
   public AttestationData(UInt64 slot, AttestationData data) {
-    this(slot, data.getIndex(), data.getBeacon_block_root(), data.getSource(), data.getTarget(),
+    this(
+        slot,
+        data.getIndex(),
+        data.getBeacon_block_root(),
+        data.getSource(),
+        data.getTarget(),
         data.getShard_header_root());
   }
 

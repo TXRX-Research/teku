@@ -32,8 +32,8 @@ import tech.pegasys.teku.spec.config.SpecConfig;
 public class CommitteeUtilTest {
   final SpecConfig specConfig = mock(SpecConfig.class);
   private final Spec spec = TestSpecFactory.createMinimalPhase0();
-  CommitteeUtil committeeUtil = new CommitteeUtil(specConfig,
-      spec.getGenesisSpec().beaconStateAccessors());
+  CommitteeUtil committeeUtil =
+      new CommitteeUtil(specConfig, spec.getGenesisSpec().beaconStateAccessors());
 
   @Test
   void aggregatorModulo_boundaryTest() {

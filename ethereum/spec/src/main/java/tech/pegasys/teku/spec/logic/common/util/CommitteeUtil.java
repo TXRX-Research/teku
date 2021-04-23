@@ -34,8 +34,7 @@ public class CommitteeUtil {
   private final SpecConfig specConfig;
   private final BeaconStateAccessors stateAccessors;
 
-  public CommitteeUtil(final SpecConfig specConfig,
-      BeaconStateAccessors stateAccessors) {
+  public CommitteeUtil(final SpecConfig specConfig, BeaconStateAccessors stateAccessors) {
     this.specConfig = specConfig;
     this.stateAccessors = stateAccessors;
   }
@@ -101,8 +100,7 @@ public class CommitteeUtil {
   }
 
   public UInt64 getCommitteeCountPerSlot(BeaconState state, UInt64 epoch) {
-    List<Integer> active_validator_indices =
-        stateAccessors.getActiveValidatorIndices(state, epoch);
+    List<Integer> active_validator_indices = stateAccessors.getActiveValidatorIndices(state, epoch);
     return UInt64.valueOf(
         Math.max(
             1,

@@ -21,8 +21,8 @@ public class ShardProposerSlashing
     extends Container2<ShardProposerSlashing, SignedShardBlobReference, SignedShardBlobReference> {
 
   public static class ShardProposerSlashingSchema
-      extends
-      ContainerSchema2<ShardProposerSlashing, SignedShardBlobReference, SignedShardBlobReference> {
+      extends ContainerSchema2<
+          ShardProposerSlashing, SignedShardBlobReference, SignedShardBlobReference> {
 
     public ShardProposerSlashingSchema() {
       super(
@@ -43,7 +43,8 @@ public class ShardProposerSlashing
     super(type, backingNode);
   }
 
-  public ShardProposerSlashing(final SignedShardBlobReference signed_reference_1,
+  public ShardProposerSlashing(
+      final SignedShardBlobReference signed_reference_1,
       final SignedShardBlobReference signed_reference_2) {
     super(SSZ_SCHEMA, signed_reference_1, signed_reference_2);
   }

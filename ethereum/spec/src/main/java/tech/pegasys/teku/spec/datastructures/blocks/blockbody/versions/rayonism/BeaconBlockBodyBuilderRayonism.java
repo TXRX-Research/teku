@@ -60,8 +60,7 @@ public class BeaconBlockBodyBuilderRayonism extends AbstractBeaconBlockBodyBuild
   }
 
   @Override
-  public BeaconBlockBodyBuilderRayonism shardHeaders(
-      SszList<SignedShardBlobHeader> shardHeaders) {
+  public BeaconBlockBodyBuilderRayonism shardHeaders(SszList<SignedShardBlobHeader> shardHeaders) {
     this.shardHeaders = shardHeaders;
     return this;
   }

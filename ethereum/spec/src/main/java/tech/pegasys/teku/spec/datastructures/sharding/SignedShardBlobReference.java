@@ -39,7 +39,8 @@ public class SignedShardBlobReference
     }
   }
 
-  public static final SignedShardBlobReferenceSchema SSZ_SCHEMA = new SignedShardBlobReferenceSchema();
+  public static final SignedShardBlobReferenceSchema SSZ_SCHEMA =
+      new SignedShardBlobReferenceSchema();
 
   private SignedShardBlobReference(SignedShardBlobReferenceSchema type, TreeNode backingNode) {
     super(type, backingNode);

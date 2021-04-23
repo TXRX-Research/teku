@@ -851,15 +851,24 @@ public class SpecConfigBuilder {
     private Bytes4 domainShardProposer;
     private Bytes4 domainShardCommittee;
 
-    private RayonismBuilder() {
-    }
+    private RayonismBuilder() {}
 
     SpecConfigRayonism build(final SpecConfig specConfig) {
       return new SpecConfigRayonism(
-          specConfig, mergeForkVersion, mergeForkSlot, transitionTotalDifficulty,
-          maxShardProposerSlashings, maxShards, maxShardHeadersPerShard, maxSamplesPerBlock,
-          targetSamplesPerBlock, initialActiveShards,
-          gaspriceAdjustmentCoefficient, maxGasprice, minGasprice, domainShardProposer,
+          specConfig,
+          mergeForkVersion,
+          mergeForkSlot,
+          transitionTotalDifficulty,
+          maxShardProposerSlashings,
+          maxShards,
+          maxShardHeadersPerShard,
+          maxSamplesPerBlock,
+          targetSamplesPerBlock,
+          initialActiveShards,
+          gaspriceAdjustmentCoefficient,
+          maxGasprice,
+          minGasprice,
+          domainShardProposer,
           domainShardCommittee);
     }
 
@@ -917,8 +926,7 @@ public class SpecConfigBuilder {
       return this;
     }
 
-    public RayonismBuilder setTargetSamplesPerBlock(
-        UInt64 targetSamplesPerBlock) {
+    public RayonismBuilder setTargetSamplesPerBlock(UInt64 targetSamplesPerBlock) {
       this.targetSamplesPerBlock = targetSamplesPerBlock;
       return this;
     }

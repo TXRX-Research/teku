@@ -92,8 +92,11 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
     this.executionPayloadUtil = executionPayloadUtil;
     this.beaconStateAccessorsRayonism = beaconStateAccessors;
     this.committeeUtilRayonism = committeeUtilRayonism;
-    this.specConfigRayonism = specConfig.toVersionRayonism().orElseThrow(
-        () -> new IllegalArgumentException("Expected Rayonism version of specConfig"));
+    this.specConfigRayonism =
+        specConfig
+            .toVersionRayonism()
+            .orElseThrow(
+                () -> new IllegalArgumentException("Expected Rayonism version of specConfig"));
   }
 
   @Override
@@ -185,16 +188,17 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
     updatePendingVotes(state, attestation);
   }
 
-
   //  def update_pending_votes(state: BeaconState, attestation: Attestation) -> None:
   private void updatePendingVotes(MutableBeaconStateRayonism state, Attestation attestation) {
-    //      # Find and update the PendingShardHeader object, invalid block if pending header not in state
+    //      # Find and update the PendingShardHeader object, invalid block if pending header not in
+    // state
     //  if compute_epoch_at_slot(attestation.data.slot) == get_current_epoch(state):
     //    pending_headers = state.current_epoch_pending_shard_headers
     //  else:
     //    pending_headers = state.previous_epoch_pending_shard_headers
     final SszMutableList<PendingShardHeader> pendingHeaders;
-    if (miscHelpers.computeEpochAtSlot(attestation.getData().getSlot())
+    if (miscHelpers
+        .computeEpochAtSlot(attestation.getData().getSlot())
         .equals(beaconStateAccessors.getCurrentEpoch(state))) {
       pendingHeaders = state.getCurrent_epoch_pending_shard_headers();
     } else {
@@ -215,21 +219,25 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
       }
     }
     //  assert pending_header is not None
-    PendingShardHeader pendingHeader = maybePendingHeader
-        .orElseThrow(() -> new IllegalArgumentException(
-            "updatePendingVotes: attested shard header should be in the state pending list"));
+    PendingShardHeader pendingHeader =
+        maybePendingHeader.orElseThrow(
+            () ->
+                new IllegalArgumentException(
+                    "updatePendingVotes: attested shard header should be in the state pending list"));
     //  assert pending_header.slot == attestation.data.slot
-    checkArgument(pendingHeader.getSlot().equals(attestation.getData().getSlot()),
+    checkArgument(
+        pendingHeader.getSlot().equals(attestation.getData().getSlot()),
         "updatePendingVotes: attestation slot is equal to header slot");
     //  assert pending_header.shard == compute_shard_from_committee_index(
     //      state,
     //      attestation.data.slot,
     //      attestation.data.index,
     //      )
-    UInt64 shard = committeeUtilRayonism
-        .computeShardFromCommitteeIndex(state, attestation.getData().getSlot(),
-            attestation.getData().getIndex());
-    checkArgument(pendingHeader.getShard().equals(shard),
+    UInt64 shard =
+        committeeUtilRayonism.computeShardFromCommitteeIndex(
+            state, attestation.getData().getSlot(), attestation.getData().getIndex());
+    checkArgument(
+        pendingHeader.getShard().equals(shard),
         "updatePendingVotes: attestation index should match header shard");
     //  for i in range(len(pending_header.votes)):
     //    pending_header.votes[i] = pending_header.votes[i] or attestation.aggregation_bits[i]
@@ -238,7 +246,8 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
     // TODO question: looks like an obsolete check
     // From discord:
     // Shouldn't the ShardHeader be unique with respect to (slot, shard)? There is just one shard
-    // proposer for (slot, shard) who may publish just one ShardHeader (else he is subject to be slashed).
+    // proposer for (slot, shard) who may publish just one ShardHeader (else he is subject to be
+    // slashed).
     // Why we are looking for other pending_headers with the same (slot, shard) then?
     //
     //  # Check if the PendingShardHeader is eligible for expedited confirmation
@@ -252,23 +261,23 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
 
     //  # Requirement 2: >= 2/3 of balance attesting
     //  participants = get_attesting_indices(state, attestation.data, pending_header.votes)
-    List<Integer> participants = attestationUtil
-        .getAttestingIndices(state, attestation.getData(), updatedVotes);
+    List<Integer> participants =
+        attestationUtil.getAttestingIndices(state, attestation.getData(), updatedVotes);
     //  participants_balance = get_total_balance(state, participants)
     UInt64 participantsBalance = beaconStateAccessors.getTotalBalance(state, participants);
     //  full_committee = get_beacon_committee(state, attestation.data.slot, attestation.data.index)
-    List<Integer> fullCommittee = beaconStateUtil
-        .getBeaconCommittee(state, attestation.getData().getSlot(),
-            attestation.getData().getIndex());
+    List<Integer> fullCommittee =
+        beaconStateUtil.getBeaconCommittee(
+            state, attestation.getData().getSlot(), attestation.getData().getIndex());
     //  full_committee_balance = get_total_balance(state, full_committee)
     UInt64 fullCommitteeBalance = beaconStateAccessors.getTotalBalance(state, fullCommittee);
     //  if participants_balance * 3 >= full_committee_balance * 2:
     //    pending_header.confirmed = True
-    boolean pendingHeaderConfirmed = participantsBalance.times(3)
-        .isGreaterThanOrEqualTo(fullCommitteeBalance.times(2));
+    boolean pendingHeaderConfirmed =
+        participantsBalance.times(3).isGreaterThanOrEqualTo(fullCommitteeBalance.times(2));
 
-    PendingShardHeader updatedPendingHeader = new PendingShardHeader(pendingHeader, updatedVotes,
-        pendingHeaderConfirmed);
+    PendingShardHeader updatedPendingHeader =
+        new PendingShardHeader(pendingHeader, updatedVotes, pendingHeaderConfirmed);
     pendingHeaders.set(pendingHeaderIndex, updatedPendingHeader);
   }
 
@@ -288,28 +297,30 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
       IndexedAttestationCache indexedAttestationCache)
       throws BlockProcessingException {
     try {
-      BeaconBlockBodyRayonism bodyRayonism = body
-          .toVersionRayonism().orElseThrow(
-              () -> new IllegalArgumentException("Expected Rayonism version of BeaconBlockBody"));
-
+      BeaconBlockBodyRayonism bodyRayonism =
+          body.toVersionRayonism()
+              .orElseThrow(
+                  () ->
+                      new IllegalArgumentException("Expected Rayonism version of BeaconBlockBody"));
 
       checkArgument(
           body.getDeposits().size()
               == Math.min(
-              specConfig.getMaxDeposits(),
-              toIntExact(
-                  state
-                      .getEth1_data()
-                      .getDeposit_count()
-                      .minus(state.getEth1_deposit_index())
-                      .longValue())),
+                  specConfig.getMaxDeposits(),
+                  toIntExact(
+                      state
+                          .getEth1_data()
+                          .getDeposit_count()
+                          .minus(state.getEth1_deposit_index())
+                          .longValue())),
           "process_operations: Verify that outstanding deposits are processed up to the maximum number of deposits");
 
-      checkArgument(bodyRayonism.getShard_headers().size()
-              <= specConfigRayonism.getMaxShardHeadersPerShard() * beaconStateAccessorsRayonism
-              .getActiveShardCount(state, beaconStateAccessors.getCurrentEpoch(state)),
-          "process_operations: Verify that number of shard headers doesn't exceeds maximum threshold"
-      );
+      checkArgument(
+          bodyRayonism.getShard_headers().size()
+              <= specConfigRayonism.getMaxShardHeadersPerShard()
+                  * beaconStateAccessorsRayonism.getActiveShardCount(
+                      state, beaconStateAccessors.getCurrentEpoch(state)),
+          "process_operations: Verify that number of shard headers doesn't exceeds maximum threshold");
 
       processProposerSlashingsNoValidation(state, body.getProposer_slashings());
       processAttesterSlashings(state, body.getAttester_slashings());
@@ -325,13 +336,14 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
     }
   }
 
-  private void processShardProposerSlashing(MutableBeaconState state,
-      SszList<ShardProposerSlashing> shard_proposer_slashings) {
+  private void processShardProposerSlashing(
+      MutableBeaconState state, SszList<ShardProposerSlashing> shard_proposer_slashings) {
     // TODO to implement
   }
 
-  protected void processShardHeaders(MutableBeaconState state,
-      SszList<SignedShardBlobHeader> shard_headers) throws BlockProcessingException {
+  protected void processShardHeaders(
+      MutableBeaconState state, SszList<SignedShardBlobHeader> shard_headers)
+      throws BlockProcessingException {
     try {
       MutableBeaconStateRayonism stateRayonism = MutableBeaconStateRayonism.required(state);
       for (SignedShardBlobHeader shardHeader : shard_headers) {
@@ -343,48 +355,59 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
     }
   }
 
-  protected void processShardHeader(MutableBeaconStateRayonism state, SignedShardBlobHeader shardHeader) {
+  protected void processShardHeader(
+      MutableBeaconStateRayonism state, SignedShardBlobHeader shardHeader) {
     ShardBlobHeader header = shardHeader.getMessage();
     UInt64 headerEpoch = miscHelpers.computeEpochAtSlot(header.getSlot());
     ShardBlobSummary bodySummary = header.getBodySummary();
 
     //    # Verify the header is not 0, and not from the future.
     //    assert Slot(0) < header.slot <= state.slot
-    checkArgument(header.getSlot().isGreaterThan(0) && header.getSlot().isLessThanOrEqualTo(state.getSlot()),
+    checkArgument(
+        header.getSlot().isGreaterThan(0) && header.getSlot().isLessThanOrEqualTo(state.getSlot()),
         "process_shard_header: Verify the header is not 0, and not from the future");
     //    # Verify that the header is within the processing time window
     //    assert header_epoch in [get_previous_epoch(state), get_current_epoch(state)]
-    checkArgument(headerEpoch.equals(beaconStateAccessors.getPreviousEpoch(state)) || headerEpoch
-        .equals(beaconStateAccessors.getCurrentEpoch(state)),
+    checkArgument(
+        headerEpoch.equals(beaconStateAccessors.getPreviousEpoch(state))
+            || headerEpoch.equals(beaconStateAccessors.getCurrentEpoch(state)),
         "process_shard_header: Verify that the header is within the processing time window");
     //    # Verify that the shard is active
     //    assert header.shard < get_active_shard_count(state, header_epoch)
-    checkArgument(header.getShard()
-        .isGreaterThan(beaconStateAccessorsRayonism.getActiveShardCount(state, headerEpoch)),
+    checkArgument(
+        header
+            .getShard()
+            .isGreaterThan(beaconStateAccessorsRayonism.getActiveShardCount(state, headerEpoch)),
         "process_shard_header: Verify that the shard is active");
     //    # Verify that the block root matches,
     //    # to ensure the header will only be included in this specific Beacon Chain sub-tree.
     // TODO question: body_summary instead of header ?
     //    assert header.beacon_block_root == get_block_root_at_slot(state, header.slot - 1)
-    checkArgument(bodySummary.getBeaconBlockRoot()
-        .equals(beaconStateUtil.getBlockRootAtSlot(state, header.getSlot().minus(1))),
+    checkArgument(
+        bodySummary
+            .getBeaconBlockRoot()
+            .equals(beaconStateUtil.getBlockRootAtSlot(state, header.getSlot().minus(1))),
         "process_shard_header: Verify that the block root matches");
     //    # Verify proposer
     //    assert header.proposer_index == get_shard_proposer_index(state, header.slot, header.shard)
-    checkArgument(header.getProposerIndex().intValue() == committeeUtilRayonism
-        .getShardProposerIndex(state, header.getSlot(), header.getShard()));
+    checkArgument(
+        header.getProposerIndex().intValue()
+            == committeeUtilRayonism.getShardProposerIndex(
+                state, header.getSlot(), header.getShard()));
 
     // TODO
     //    # Verify signature
     //    signing_root = compute_signing_root(header, get_domain(state, DOMAIN_SHARD_HEADER))
-    //    assert bls.Verify(state.validators[header.proposer_index].pubkey, signing_root, signed_header.signature)
+    //    assert bls.Verify(state.validators[header.proposer_index].pubkey, signing_root,
+    // signed_header.signature)
     //    # Verify the length by verifying the degree.
     //        body_summary = header.body_summary
     //    if body_summary.commitment.length == 0:
     //    assert body_summary.degree_proof == G1_SETUP[0]
     //    assert (
     //        bls.Pairing(body_summary.degree_proof, G2_SETUP[0])
-    //            == bls.Pairing(body_summary.commitment.point, G2_SETUP[-body_summary.commitment.length])
+    //            == bls.Pairing(body_summary.commitment.point,
+    // G2_SETUP[-body_summary.commitment.length])
     //    )
 
     //    # Get the correct pending header list
@@ -400,13 +423,16 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
     Bytes32 headerRoot = header.hashTreeRoot();
     //    # Check that this header is not yet in the pending list
     //    assert header_root not in [pending_header.root for pending_header in pending_headers]
-    checkArgument(pendingHeaders.stream().map(PendingShardHeader::getRoot)
+    checkArgument(
+        pendingHeaders.stream()
+            .map(PendingShardHeader::getRoot)
             .noneMatch(r -> r.equals(headerRoot)),
         "process_shard_header: Check that this header is not yet in the pending list");
     //    # Include it in the pending list
     //    index = compute_committee_index_from_shard(state, header.slot, header.shard)
-    UInt64 index = committeeUtilRayonism
-        .computeCommitteeIndexFromShard(state, header.getSlot(), header.getShard());
+    UInt64 index =
+        committeeUtilRayonism.computeCommitteeIndexFromShard(
+            state, header.getSlot(), header.getShard());
     //    committee_length = len(get_beacon_committee(state, header.slot, index))
     int committeeLength = beaconStateUtil.getBeaconCommittee(state, header.getSlot(), index).size();
     //    pending_headers.append(PendingShardHeader(
@@ -417,10 +443,14 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
     //        votes=Bitlist[MAX_VALIDATORS_PER_COMMITTEE]([0] * committee_length),
     //    confirmed=False,
     //    ))
-    PendingShardHeader newPendingHeader = new PendingShardHeader(header.getSlot(),
-        header.getShard(), bodySummary.getCommitment(),
-        headerRoot,
-        PendingShardHeader.SSZ_SCHEMA.getVotesSchema().ofBits(committeeLength), false);
+    PendingShardHeader newPendingHeader =
+        new PendingShardHeader(
+            header.getSlot(),
+            header.getShard(),
+            bodySummary.getCommitment(),
+            headerRoot,
+            PendingShardHeader.SSZ_SCHEMA.getVotesSchema().ofBits(committeeLength),
+            false);
     pendingHeaders.append(newPendingHeader);
   }
 }

@@ -78,8 +78,10 @@ public class BeaconStateSchemaRayonism
             () -> ExecutionPayloadHeader.SSZ_SCHEMA);
 
     SpecConfigRayonism specConfigRayonism = specConfig.toVersionRayonism().orElseThrow();
-    int maxPendingShardHeaders = specConfigRayonism.getMaxShards() *
-        specConfigRayonism.getMaxShardHeadersPerShard() * specConfig.getSlotsPerEpoch();
+    int maxPendingShardHeaders =
+        specConfigRayonism.getMaxShards()
+            * specConfigRayonism.getMaxShardHeadersPerShard()
+            * specConfig.getSlotsPerEpoch();
 
     final SszField previousEpochPendingShardHeadersField =
         new SszField(
@@ -141,15 +143,17 @@ public class BeaconStateSchemaRayonism
   }
 
   @SuppressWarnings("unchecked")
-  public SszVectorSchema<SszVector<DataCommitment>, ?> getGrandparentEpochConfirmedCommitmentsSchema() {
-    return (SszVectorSchema<SszVector<DataCommitment>, ?>) getChildSchema(
-        getFieldIndex(BeaconStateFields.GRANDPARENT_EPOCH_CONFIRMED_COMMITMENTS.name()));
+  public SszVectorSchema<SszVector<DataCommitment>, ?>
+      getGrandparentEpochConfirmedCommitmentsSchema() {
+    return (SszVectorSchema<SszVector<DataCommitment>, ?>)
+        getChildSchema(
+            getFieldIndex(BeaconStateFields.GRANDPARENT_EPOCH_CONFIRMED_COMMITMENTS.name()));
   }
 
   @SuppressWarnings("unchecked")
   public SszVectorSchema<DataCommitment, ?> getGrandparentEpochConfirmedCommitmentsElementSchema() {
-    return (SszVectorSchema<DataCommitment, ?>) getGrandparentEpochConfirmedCommitmentsSchema()
-        .getElementSchema();
+    return (SszVectorSchema<DataCommitment, ?>)
+        getGrandparentEpochConfirmedCommitmentsSchema().getElementSchema();
   }
 
   @Override

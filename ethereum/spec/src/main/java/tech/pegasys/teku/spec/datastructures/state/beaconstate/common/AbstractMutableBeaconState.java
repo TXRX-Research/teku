@@ -13,7 +13,6 @@
 
 package tech.pegasys.teku.spec.datastructures.state.beaconstate.common;
 
-import com.google.common.base.MoreObjects.ToStringHelper;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateCache;

@@ -31,27 +31,24 @@ import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.type.SszSignature;
 import tech.pegasys.teku.ssz.SszList;
 import tech.pegasys.teku.ssz.containers.Container11;
-import tech.pegasys.teku.ssz.containers.Container9;
 import tech.pegasys.teku.ssz.primitive.SszBytes32;
 import tech.pegasys.teku.ssz.tree.TreeNode;
 
-/**
- * A Beacon block body
- */
+/** A Beacon block body */
 public class BeaconBlockBodyRayonism
     extends Container11<
-    BeaconBlockBodyRayonism,
-    SszSignature,
-    Eth1Data,
-    SszBytes32,
-    SszList<ProposerSlashing>,
-    SszList<AttesterSlashing>,
-    SszList<Attestation>,
-    SszList<Deposit>,
-    SszList<SignedVoluntaryExit>,
-    ExecutionPayload,
-    SszList<ShardProposerSlashing>,
-    SszList<SignedShardBlobHeader>>
+        BeaconBlockBodyRayonism,
+        SszSignature,
+        Eth1Data,
+        SszBytes32,
+        SszList<ProposerSlashing>,
+        SszList<AttesterSlashing>,
+        SszList<Attestation>,
+        SszList<Deposit>,
+        SszList<SignedVoluntaryExit>,
+        ExecutionPayload,
+        SszList<ShardProposerSlashing>,
+        SszList<SignedShardBlobHeader>>
     implements BeaconBlockBody {
 
   BeaconBlockBodyRayonism(BeaconBlockBodySchemaRayonism type) {
