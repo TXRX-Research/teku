@@ -34,6 +34,8 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.TestSpecFactory;
 import tech.pegasys.teku.spec.config.SpecConfig;
+import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
+import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockAndState;
 import tech.pegasys.teku.spec.datastructures.sharding.DataCommitment;
 import tech.pegasys.teku.spec.datastructures.sharding.ShardBlobHeader;
@@ -44,6 +46,7 @@ import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.rayonism
 import tech.pegasys.teku.spec.logic.common.block.AbstractBlockProcessor;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult.FailureReason;
+import tech.pegasys.teku.spec.logic.versions.rayonism.util.CommitteeUtilRayonism;
 import tech.pegasys.teku.statetransition.block.BlockImporter;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoice;
 import tech.pegasys.teku.storage.client.ChainUpdater;
@@ -51,9 +54,13 @@ import tech.pegasys.teku.storage.storageSystem.InMemoryStorageSystemBuilder;
 import tech.pegasys.teku.storage.storageSystem.StorageSystem;
 import tech.pegasys.teku.weaksubjectivity.WeakSubjectivityValidator;
 
-public class BlockImporterTest {
+public class ShardingBlockImporterTest {
   private final Spec spec = TestSpecFactory.createMinimalRayonism();
-  final StorageSystem storageSystem = InMemoryStorageSystemBuilder.create().specProvider(spec).build();
+
+  final StorageSystem storageSystem = InMemoryStorageSystemBuilder.create()
+      .specProvider(spec)
+      .numberOfValidators(128)
+      .build();
   private final ChainBuilder chainBuilder = storageSystem.chainBuilder();
   private final ChainUpdater chainUpdater = storageSystem.chainUpdater();
   final SignedBlockAndState genesis = storageSystem.chainUpdater().initializeGenesis();
@@ -100,14 +107,26 @@ public class BlockImporterTest {
     final BlockImportResult result1 = blockImporter.importBlock(block1.getBlock()).get();
     assertSuccessfulResult(result1);
 
-    BeaconState state1 = storageSystem.recentChainData().getChainHead().orElseThrow().getState();
-    int blobProposedIndex = 1;
+    BeaconStateRayonism state1 = storageSystem.recentChainData().getChainHead().orElseThrow()
+        .getState().toVersionRayonism().orElseThrow();
+
+    CommitteeUtilRayonism committeeUtilRayonism = (CommitteeUtilRayonism) spec
+        .atSlot(state1.getSlot()).getCommitteeUtil();
+
+    UInt64 shardBlobSlot = state1.getSlot().increment();
+    UInt64 shardBlobShard = UInt64.ZERO;
+    int shardBlobProposedIndex = committeeUtilRayonism
+        .getShardProposerIndex(state1, shardBlobSlot, shardBlobShard);
+
     DataCommitment dataCommitment = new DataCommitment(BLSPublicKey.empty(), UInt64.ZERO);
+
+    BeaconBlock beaconBlock1 = block1.getBlock().getMessage();
+    Bytes32 blockRoot1 = beaconBlock1.hashTreeRoot();
     ShardBlobSummary shardBlobSummary = new ShardBlobSummary(dataCommitment, BLSPublicKey.empty(),
-        Bytes32.ZERO, state1.getLatest_block_header().hashTreeRoot());
-    ShardBlobHeader shardBlobHeader = new ShardBlobHeader(state1.getSlot(), UInt64.ZERO,
-        shardBlobSummary, UInt64.valueOf(blobProposedIndex));
-    BLSSecretKey blobProposerKey = chainBuilder.getValidatorKeys().get(blobProposedIndex)
+        Bytes32.ZERO, blockRoot1);
+    ShardBlobHeader shardBlobHeader = new ShardBlobHeader(shardBlobSlot, UInt64.ZERO,
+        shardBlobSummary, UInt64.valueOf(shardBlobProposedIndex));
+    BLSSecretKey blobProposerKey = chainBuilder.getValidatorKeys().get(shardBlobProposedIndex)
         .getSecretKey();
     BLSSignature blobSignature = BLS.sign(blobProposerKey, shardBlobHeader.hashTreeRoot());
     SignedShardBlobHeader signedShardBlobHeader = new SignedShardBlobHeader(shardBlobHeader,
