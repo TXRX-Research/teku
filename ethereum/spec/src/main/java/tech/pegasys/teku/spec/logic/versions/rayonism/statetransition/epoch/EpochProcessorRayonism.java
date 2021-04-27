@@ -50,7 +50,7 @@ import tech.pegasys.teku.ssz.SszVector;
 public class EpochProcessorRayonism extends AbstractEpochProcessor {
 
   private final CommitteeUtilRayonism committeeUtil;
-  private final BeaconStateAccessorsRayonism beaconStateAccessors;
+  private final BeaconStateAccessorsRayonism beaconStateAccessorsRayonism;
   private final SpecConfigRayonism specConfigRayonism;
   private final SchemaDefinitionsRayonism schemaDefinitions;
 
@@ -73,11 +73,12 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
         beaconStateUtil,
         validatorStatusFactory);
     this.committeeUtil = committeeUtil;
-    this.beaconStateAccessors = beaconStateAccessors;
+    this.beaconStateAccessorsRayonism = beaconStateAccessors;
     specConfigRayonism = SpecConfigRayonism.required(specConfig);
     this.schemaDefinitions = schemaDefinitions;
   }
 
+  @Override
   protected void processEpoch(final BeaconState preState, final MutableBeaconState state)
       throws EpochProcessingException {
     final ValidatorStatuses validatorStatuses =
@@ -112,15 +113,15 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
     // # Skip if `GENESIS_EPOCH` because no prior epoch to process.
     // if get_current_epoch(state) == GENESIS_EPOCH:
     //     return
-    if (beaconStateAccessors.getCurrentEpoch(state).equals(SpecConfig.GENESIS_EPOCH)) {
+    if (beaconStateAccessorsRayonism.getCurrentEpoch(state).equals(SpecConfig.GENESIS_EPOCH)) {
       return;
     }
     // previous_epoch_start_slot = compute_start_slot_at_epoch(get_previous_epoch(state))
-    UInt64 previousEpoch = beaconStateAccessors.getPreviousEpoch(state);
+    UInt64 previousEpoch = beaconStateAccessorsRayonism.getPreviousEpoch(state);
     UInt64 previousEpochStartSlot = miscHelpers.computeStartSlotAtEpoch(previousEpoch);
     // for slot in range(previous_epoch_start_slot, previous_epoch_start_slot + SLOTS_PER_EPOCH):
     UInt64 currentEpochStartSlot = previousEpochStartSlot.plus(specConfig.getSlotsPerEpoch());
-    int activeShardCount = beaconStateAccessors.getActiveShardCount(state, previousEpoch);
+    int activeShardCount = beaconStateAccessorsRayonism.getActiveShardCount(state, previousEpoch);
     SszMutableList<PendingShardHeader> previousEpochPendingShardHeaders =
         state.getPrevious_epoch_pending_shard_headers();
     for (UInt64 slot_ = previousEpochStartSlot;
@@ -171,7 +172,7 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
                         fullCommittee.stream()
                             .filter(i -> shardHeader.getVotes().getBit(i))
                             .collect(Collectors.toList()))
-                .map(votingSet -> beaconStateAccessors.getTotalBalance(state, votingSet))
+                .map(votingSet -> beaconStateAccessorsRayonism.getTotalBalance(state, votingSet))
                 .collect(Collectors.toList());
         //         # Get the index with the most total balance voting for them.
         //         # NOTE: if two choices get exactly the same voting balance,
@@ -253,17 +254,17 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
     //        * SLOTS_PER_EPOCH * GASPRICE_ADJUSTMENT_COEFFICIENT
     //    )
     int activeShardCountCur =
-        beaconStateAccessors.getActiveShardCount(
-            state, beaconStateAccessors.getCurrentEpoch(state));
+        beaconStateAccessorsRayonism.getActiveShardCount(
+            state, beaconStateAccessorsRayonism.getCurrentEpoch(state));
     int adjustmentQuotient =
         activeShardCountCur
             * specConfig.getSlotsPerEpoch()
             * specConfigRayonism.getGaspriceAdjustmentCoefficient();
     //    previous_epoch_start_slot = compute_start_slot_at_epoch(get_previous_epoch(state))
-    UInt64 previousEpoch = beaconStateAccessors.getPreviousEpoch(state);
+    UInt64 previousEpoch = beaconStateAccessorsRayonism.getPreviousEpoch(state);
     UInt64 previousEpochStartSlot = miscHelpers.computeStartSlotAtEpoch(previousEpoch);
     UInt64 currentEpochStartSlot = previousEpochStartSlot.plus(specConfig.getSlotsPerEpoch());
-    int activeShardCount = beaconStateAccessors.getActiveShardCount(state, previousEpoch);
+    int activeShardCount = beaconStateAccessorsRayonism.getActiveShardCount(state, previousEpoch);
     SszList<PendingShardHeader> previousEpochPendingShardHeaders =
         state.getPrevious_epoch_pending_shard_headers();
     //    for slot in range(previous_epoch_start_slot, previous_epoch_start_slot + SLOTS_PER_EPOCH):
@@ -364,7 +365,7 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
     state.getCurrent_epoch_pending_shard_headers().clear();
     //  # Add dummy "empty" PendingShardHeader (default vote for if no shard header available)
     //  next_epoch = get_current_epoch(state) + 1
-    UInt64 nextEpoch = beaconStateAccessors.getCurrentEpoch(state).increment();
+    UInt64 nextEpoch = beaconStateAccessorsRayonism.getCurrentEpoch(state).increment();
     //  next_epoch_start_slot = compute_start_slot_at_epoch(next_epoch)
     UInt64 nextEpochStartSlot = miscHelpers.computeStartSlotAtEpoch(nextEpoch);
     //  for slot in range(next_epoch_start_slot, next_epoch_start_slot + SLOTS_IN_EPOCH):
@@ -414,7 +415,7 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
       BeaconState state, ValidatorStatuses validatorStatuses) {
     final RewardsAndPenaltiesCalculatorPhase0 calculator =
         new RewardsAndPenaltiesCalculatorPhase0(
-            specConfig, state, validatorStatuses, miscHelpers, beaconStateAccessors);
+            specConfig, state, validatorStatuses, miscHelpers, beaconStateAccessorsRayonism);
 
     return calculator.getDeltas();
   }

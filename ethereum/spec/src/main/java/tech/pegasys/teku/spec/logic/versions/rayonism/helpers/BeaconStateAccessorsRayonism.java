@@ -24,7 +24,6 @@ import tech.pegasys.teku.spec.logic.common.helpers.Predicates;
 
 public class BeaconStateAccessorsRayonism extends BeaconStateAccessors {
   private final SpecConfigRayonism configRayonism;
-  private final MiscHelpers miscHelpers;
 
   public BeaconStateAccessorsRayonism(
       final SpecConfig config, final Predicates predicates, final MiscHelpers miscHelpers) {
@@ -33,7 +32,6 @@ public class BeaconStateAccessorsRayonism extends BeaconStateAccessors {
         config
             .toVersionRayonism()
             .orElseThrow(() -> new IllegalArgumentException("Expected Rayonism spec version"));
-    this.miscHelpers = miscHelpers;
   }
 
   // Custom accessors

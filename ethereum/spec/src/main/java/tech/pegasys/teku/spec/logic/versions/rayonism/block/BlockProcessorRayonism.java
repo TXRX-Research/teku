@@ -336,6 +336,7 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
     }
   }
 
+  @SuppressWarnings("UnusedVariable")
   private void processShardProposerSlashing(
       MutableBeaconState state, SszList<ShardProposerSlashing> shard_proposer_slashings) {
     // TODO to implement

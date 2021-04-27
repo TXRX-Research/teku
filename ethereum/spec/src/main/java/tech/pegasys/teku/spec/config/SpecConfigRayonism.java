@@ -174,7 +174,7 @@ public class SpecConfigRayonism extends DelegatingSpecConfig {
         && getMaxShardHeadersPerShard() == that.getMaxShardHeadersPerShard()
         && initialActiveShards == that.initialActiveShards
         && gaspriceAdjustmentCoefficient == that.gaspriceAdjustmentCoefficient
-        && getShardCommitteePeriod() == that.getShardCommitteePeriod()
+        && Objects.equal(getShardCommitteePeriod(), that.getShardCommitteePeriod())
         && Objects.equal(getMergeForkVersion(), that.getMergeForkVersion())
         && Objects.equal(getMergeForkSlot(), that.getMergeForkSlot())
         && Objects.equal(maxGasprice, that.maxGasprice)

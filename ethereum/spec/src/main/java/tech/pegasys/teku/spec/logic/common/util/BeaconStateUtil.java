@@ -110,6 +110,7 @@ public class BeaconStateUtil {
   }
 
   /** @deprecated Use {@link MiscHelpers#computeStartSlotAtEpoch(UInt64)} */
+  @Deprecated
   public UInt64 computeStartSlotAtEpoch(UInt64 epoch) {
     return epoch.times(specConfig.getSlotsPerEpoch());
   }
@@ -186,6 +187,7 @@ public class BeaconStateUtil {
   }
 
   /** @deprecated Use {@link CommitteeUtil#getCommitteeCountPerSlot(BeaconState, UInt64)} */
+  @Deprecated
   public UInt64 getCommitteeCountPerSlot(BeaconState state, UInt64 epoch) {
     List<Integer> active_validator_indices =
         beaconStateAccessors.getActiveValidatorIndices(state, epoch);
@@ -200,6 +202,7 @@ public class BeaconStateUtil {
   }
 
   /** @deprecated Use {@link CommitteeUtil#getCommitteeCountPerSlot(int)} */
+  @Deprecated
   public UInt64 getCommitteeCountPerSlot(final int activeValidatorCount) {
     return UInt64.valueOf(
         Math.max(
