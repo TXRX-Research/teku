@@ -30,7 +30,7 @@ public class Constants {
 
   public static final ImmutableList<String> NETWORK_DEFINITIONS =
       ImmutableList.of(
-          "mainnet", "minimal", "swift", "pyrmont", "prater", "less-swift", "mergenet-minimal");
+          "mainnet", "minimal", "swift", "pyrmont", "prater", "less-swift", "rayonism-minimal");
 
   @Deprecated public static String CONFIG_NAME;
 

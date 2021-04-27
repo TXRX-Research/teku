@@ -25,7 +25,8 @@ public enum Eth2Network {
   MINIMAL,
   SWIFT,
   LESS_SWIFT,
-  MERGENET_MINIMAL;
+  MERGENET_MINIMAL,
+  RAYONISM_MINIMAL;
 
   public String configName() {
     // TODO(#3356) - Store config with filename matching enum so we don't have to convert

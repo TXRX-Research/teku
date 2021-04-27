@@ -68,6 +68,12 @@ public class SpecConfigLoader {
       if (mergeInput.isPresent()) {
         processor.process(mergeInput.get());
       }
+      // Rayonism is optional
+      final Optional<InputStream> rayonismInput =
+          loader.load(source + "/rayonism.yaml", source + "/rayonism.yml");
+      if (rayonismInput.isPresent()) {
+        processor.process(rayonismInput.get());
+      }
     } catch (IOException e) {
       throw new IllegalArgumentException("Failed to load spec config", e);
     }
@@ -76,7 +82,7 @@ public class SpecConfigLoader {
   private static List<String> enumerateAvailableResources() {
     return Arrays.stream(Eth2Network.values())
         .map(Eth2Network::configName)
-        .map(s -> List.of(s + ".yaml", s + "/phase0.yaml", s + "/altair.yaml"))
+        .map(s -> List.of(s + ".yaml", s + "/phase0.yaml", s + "/altair.yaml", s + "/rayonism.yaml"))
         .flatMap(List::stream)
         .collect(Collectors.toList());
   }

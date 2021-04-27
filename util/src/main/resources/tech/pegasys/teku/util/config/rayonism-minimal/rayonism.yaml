@@ -1,0 +1,51 @@
+# Minimal preset - Rayonism
+
+CONFIG_NAME: "rayonism-minimal"
+
+# TODO
+# Primitive root of unity of the BLS12_381 (inner) modulus
+# PRIMITIVE_ROOT_OF_UNITY: 5
+# 2**1 (= 2) 	Factor by which samples are extended for data availability encoding
+# DATA_AVAILABILITY_INVERSE_CODING_RATE: 2
+# uint64(2**3) (= 8) 	31 * 8 = 248 bytes
+# POINTS_PER_SAMPLE: 8
+# (curve order of BLS12_381)
+# MODULUS: 0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001
+
+# uint64(2**10) (= 1,024) 	Theoretical max shard count (used to determine data structure sizes)
+MAX_SHARDS: 16
+# uint64(2**6) (= 64) 	Initial shard count
+INITIAL_ACTIVE_SHARDS: 8
+# uint64(2**3) (= 8) 	Gasprice may decrease/increase by at most exp(1 / this value) per epoch
+GASPRICE_ADJUSTMENT_COEFFICIENT: 8
+
+MAX_SHARD_HEADERS_PER_SHARD: 4
+#  	2**4 (= 16) 	Maximum amount of shard proposer slashing operations per block
+MAX_SHARD_PROPOSER_SLASHINGS: 16
+#  	uint64(2**11) (= 2,048) 	248 * 2,048 = 507,904 bytes
+MAX_SAMPLES_PER_BLOCK: 2048
+#  	uint64(2**10) (= 1,024) 	248 * 1,024 = 253,952 bytes
+TARGET_SAMPLES_PER_BLOCK: 1024
+
+# TODO
+#  G1_SETUP 	Type List[G1]. The G1-side trusted setup [G, G*s, G*s**2....]; note that the first point is the generator.
+#  G2_SETUP 	Type List[G2]. The G2-side trusted setup [G, G*s, G*s**2....]
+#  ROOT_OF_UNITY 	pow(PRIMITIVE_ROOT_OF_UNITY, (MODULUS - 1) // int(MAX_SAMPLES_PER_BLOCK * POINTS_PER_SAMPLE), MODULUS)
+
+#  	Gwei(2**33) (= 8,589,934,592) 	Gwei 	Max gasprice charged for a TARGET-sized shard block
+MAX_GASPRICE: 8589934592
+#  	Gwei(2**3) (= 8) 	Gwei 	Min gasprice charged for a TARGET-sized shard block
+MIN_GASPRICE: 8
+
+#  	Epoch(2**8) (= 256) 	epochs 	~27 hours
+SHARD_COMMITTEE_PERIOD: 64
+
+DOMAIN_SHARD_PROPOSER: 0x80000000
+DOMAIN_SHARD_COMMITTEE: 0x81000000
+
+# Fork
+# ---------------------------------------------------------------
+# [customized] Highest byte set to 0x01 to avoid collisions with mainnet versioning
+MERGE_FORK_VERSION: 0x02000001
+# [customized]
+MERGE_FORK_SLOT: 0

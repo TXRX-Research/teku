@@ -921,12 +921,12 @@ public class SpecConfigBuilder {
       return this;
     }
 
-    public RayonismBuilder setMaxSamplesPerBlock(UInt64 maxSamplesPerBlock) {
+    public RayonismBuilder maxSamplesPerBlock(UInt64 maxSamplesPerBlock) {
       this.maxSamplesPerBlock = maxSamplesPerBlock;
       return this;
     }
 
-    public RayonismBuilder setTargetSamplesPerBlock(UInt64 targetSamplesPerBlock) {
+    public RayonismBuilder targetSamplesPerBlock(UInt64 targetSamplesPerBlock) {
       this.targetSamplesPerBlock = targetSamplesPerBlock;
       return this;
     }
