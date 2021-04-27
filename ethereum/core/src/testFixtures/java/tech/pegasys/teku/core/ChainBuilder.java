@@ -44,7 +44,7 @@ import tech.pegasys.teku.spec.datastructures.interop.MockStartDepositGenerator;
 import tech.pegasys.teku.spec.datastructures.interop.MockStartValidatorKeyPairFactory;
 import tech.pegasys.teku.spec.datastructures.operations.Attestation;
 import tech.pegasys.teku.spec.datastructures.operations.DepositData;
-import tech.pegasys.teku.spec.datastructures.sharding.ShardBlobHeader;
+import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.util.BeaconBlockBodyLists;
@@ -391,7 +391,8 @@ public class ChainBuilder {
               Optional.of(attestations),
               Optional.empty(),
               Optional.empty(),
-              options.getEth1Data());
+              options.getEth1Data(),
+              Optional.of(options.getShardBlobHeaders()));
       trackBlock(nextBlockAndState);
       return nextBlockAndState;
     } catch (StateTransitionException | EpochProcessingException | SlotProcessingException e) {
@@ -413,9 +414,9 @@ public class ChainBuilder {
 
   public static final class BlockOptions {
 
-    private final List<ShardBlobHeader> shardBlobHeaders = new ArrayList<>();
     private final List<Attestation> attestations = new ArrayList<>();
     private Optional<Eth1Data> eth1Data = Optional.empty();
+    private final List<SignedShardBlobHeader> shardBlobHeaders = new ArrayList<>();
 
     private BlockOptions() {}
 
@@ -428,13 +429,13 @@ public class ChainBuilder {
       return this;
     }
 
-    public BlockOptions addShardBlobHeader(ShardBlobHeader header) {
-      shardBlobHeaders.add(header);
+    public BlockOptions setEth1Data(final Eth1Data eth1Data) {
+      this.eth1Data = Optional.ofNullable(eth1Data);
       return this;
     }
 
-    public BlockOptions setEth1Data(final Eth1Data eth1Data) {
-      this.eth1Data = Optional.ofNullable(eth1Data);
+    public BlockOptions addShardBlobHeader(SignedShardBlobHeader header) {
+      shardBlobHeaders.add(header);
       return this;
     }
 
@@ -444,6 +445,10 @@ public class ChainBuilder {
 
     public Optional<Eth1Data> getEth1Data() {
       return eth1Data;
+    }
+
+    public List<SignedShardBlobHeader> getShardBlobHeaders() {
+      return shardBlobHeaders;
     }
   }
 }

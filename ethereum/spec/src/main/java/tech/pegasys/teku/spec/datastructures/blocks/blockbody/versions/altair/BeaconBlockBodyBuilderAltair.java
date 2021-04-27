@@ -15,6 +15,7 @@ package tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.altair;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.List;
 import java.util.function.Supplier;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBodyBuilder;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.common.AbstractBeaconBlockBodyBuilder;
@@ -22,7 +23,6 @@ import tech.pegasys.teku.spec.datastructures.execution.ExecutionPayload;
 import tech.pegasys.teku.spec.datastructures.sharding.ShardProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.type.SszSignature;
-import tech.pegasys.teku.ssz.SszList;
 import tech.pegasys.teku.ssz.primitive.SszBytes32;
 
 public class BeaconBlockBodyBuilderAltair extends AbstractBeaconBlockBodyBuilder {
@@ -50,13 +50,13 @@ public class BeaconBlockBodyBuilderAltair extends AbstractBeaconBlockBodyBuilder
 
   @Override
   public BeaconBlockBodyBuilder shardProposerSlashings(
-      SszList<ShardProposerSlashing> shardProposerSlashings) {
+      List<ShardProposerSlashing> shardProposerSlashings) {
     // absent in phase 0
     return this;
   }
 
   @Override
-  public BeaconBlockBodyBuilder shardHeaders(SszList<SignedShardBlobHeader> shardHeaders) {
+  public BeaconBlockBodyBuilder shardHeaders(List<SignedShardBlobHeader> shardHeaders) {
     // absent in phase 0
     return this;
   }

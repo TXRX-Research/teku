@@ -18,17 +18,29 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import org.apache.tuweni.bytes.Bytes32;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import tech.pegasys.teku.bls.BLS;
+import tech.pegasys.teku.bls.BLSPublicKey;
+import tech.pegasys.teku.bls.BLSSecretKey;
+import tech.pegasys.teku.bls.BLSSignature;
 import tech.pegasys.teku.core.ChainBuilder;
+import tech.pegasys.teku.core.ChainBuilder.BlockOptions;
 import tech.pegasys.teku.infrastructure.async.eventthread.InlineEventThread;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.TestSpecFactory;
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockAndState;
+import tech.pegasys.teku.spec.datastructures.sharding.DataCommitment;
+import tech.pegasys.teku.spec.datastructures.sharding.ShardBlobHeader;
+import tech.pegasys.teku.spec.datastructures.sharding.ShardBlobSummary;
+import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
+import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
+import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.rayonism.BeaconStateRayonism;
 import tech.pegasys.teku.spec.logic.common.block.AbstractBlockProcessor;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult.FailureReason;
@@ -73,12 +85,44 @@ public class BlockImporterTest {
   }
 
   @Test
-  public void importBlock_success() throws Exception {
-
+  public void importBlock_emptyBlockSuccess() throws Exception {
     SignedBlockAndState block1 = chainBuilder.generateBlockAtSlot(1);
     chainUpdater.setCurrentSlot(UInt64.valueOf(1));
     final BlockImportResult result = blockImporter.importBlock(block1.getBlock()).get();
     assertSuccessfulResult(result);
+  }
+
+  @Test
+  public void importBlock_blockWithShardHeaderSuccess() throws Exception {
+
+    SignedBlockAndState block1 = chainBuilder.generateBlockAtSlot(1);
+    chainUpdater.setCurrentSlot(UInt64.valueOf(1));
+    final BlockImportResult result1 = blockImporter.importBlock(block1.getBlock()).get();
+    assertSuccessfulResult(result1);
+
+    BeaconState state1 = storageSystem.recentChainData().getChainHead().orElseThrow().getState();
+    int blobProposedIndex = 1;
+    DataCommitment dataCommitment = new DataCommitment(BLSPublicKey.empty(), UInt64.ZERO);
+    ShardBlobSummary shardBlobSummary = new ShardBlobSummary(dataCommitment, BLSPublicKey.empty(),
+        Bytes32.ZERO, state1.getLatest_block_header().hashTreeRoot());
+    ShardBlobHeader shardBlobHeader = new ShardBlobHeader(state1.getSlot(), UInt64.ZERO,
+        shardBlobSummary, UInt64.valueOf(blobProposedIndex));
+    BLSSecretKey blobProposerKey = chainBuilder.getValidatorKeys().get(blobProposedIndex)
+        .getSecretKey();
+    BLSSignature blobSignature = BLS.sign(blobProposerKey, shardBlobHeader.hashTreeRoot());
+    SignedShardBlobHeader signedShardBlobHeader = new SignedShardBlobHeader(shardBlobHeader,
+        blobSignature);
+
+    BlockOptions blockOptions = BlockOptions.create().addShardBlobHeader(signedShardBlobHeader);
+    SignedBlockAndState block2 = chainBuilder.generateBlockAtSlot(2, blockOptions);
+    chainUpdater.setCurrentSlot(UInt64.valueOf(2));
+    final BlockImportResult result2 = blockImporter.importBlock(block2.getBlock()).get();
+    assertSuccessfulResult(result2);
+
+    BeaconStateRayonism state2 = storageSystem
+        .recentChainData().getChainHead().orElseThrow().getState()
+        .toVersionRayonism().orElseThrow();
+    assertThat(state2.getCurrent_epoch_pending_shard_headers()).hasSize(1);
   }
 
   private void assertSuccessfulResult(final BlockImportResult result) {

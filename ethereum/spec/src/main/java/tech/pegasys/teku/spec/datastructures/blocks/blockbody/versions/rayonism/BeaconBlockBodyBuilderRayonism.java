@@ -15,6 +15,7 @@ package tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.rayonism
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import java.util.List;
 import java.util.function.Supplier;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBodyBuilder;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.common.AbstractBeaconBlockBodyBuilder;
@@ -56,14 +57,15 @@ public class BeaconBlockBodyBuilderRayonism extends AbstractBeaconBlockBodyBuild
 
   @Override
   public BeaconBlockBodyBuilderRayonism shardProposerSlashings(
-      SszList<ShardProposerSlashing> shardProposerSlashings) {
-    this.shardProposerSlashings = shardProposerSlashings;
+      List<ShardProposerSlashing> shardProposerSlashings) {
+    this.shardProposerSlashings = schema.getShardProposerSlashingsSchema()
+        .createFromElements(shardProposerSlashings);
     return this;
   }
 
   @Override
-  public BeaconBlockBodyBuilderRayonism shardHeaders(SszList<SignedShardBlobHeader> shardHeaders) {
-    this.shardHeaders = shardHeaders;
+  public BeaconBlockBodyBuilderRayonism shardHeaders(List<SignedShardBlobHeader> shardHeaders) {
+    this.shardHeaders = schema.getShardBlobHeadersSchema().createFromElements(shardHeaders);
     return this;
   }
 

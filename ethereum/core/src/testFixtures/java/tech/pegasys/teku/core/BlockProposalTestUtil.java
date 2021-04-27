@@ -17,6 +17,8 @@ import static tech.pegasys.teku.spec.datastructures.util.BeaconStateUtil.compute
 import static tech.pegasys.teku.spec.datastructures.util.BeaconStateUtil.get_beacon_proposer_index;
 import static tech.pegasys.teku.util.config.Constants.EPOCHS_PER_ETH1_VOTING_PERIOD;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.crypto.Hash;
@@ -35,6 +37,7 @@ import tech.pegasys.teku.spec.datastructures.operations.Attestation;
 import tech.pegasys.teku.spec.datastructures.operations.Deposit;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.SignedVoluntaryExit;
+import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.rayonism.BeaconStateRayonism;
 import tech.pegasys.teku.spec.datastructures.util.BeaconBlockBodyLists;
@@ -62,7 +65,8 @@ public class BlockProposalTestUtil {
       final SszList<Attestation> attestations,
       final SszList<ProposerSlashing> slashings,
       final SszList<Deposit> deposits,
-      final SszList<SignedVoluntaryExit> exits)
+      final SszList<SignedVoluntaryExit> exits,
+      final List<SignedShardBlobHeader> shardBlobHeaders)
       throws StateTransitionException, EpochProcessingException, SlotProcessingException {
 
     final UInt64 newEpoch = compute_epoch_at_slot(newSlot);
@@ -86,7 +90,9 @@ public class BlockProposalTestUtil {
                     .attesterSlashings(blockBodyLists.createAttesterSlashings())
                     .deposits(deposits)
                     .voluntaryExits(exits)
-                    .executionPayload(() -> createExecutionPayload(spec, blockSlotState)));
+                    .executionPayload(() -> createDummyExecutionPayload(spec, blockSlotState))
+                    .shardHeaders(shardBlobHeaders)
+        );
 
     // Sign block and set block signature
     final BeaconBlock block = newBlockAndState.getBlock();
@@ -104,7 +110,8 @@ public class BlockProposalTestUtil {
       final Optional<SszList<Attestation>> attestations,
       final Optional<SszList<Deposit>> deposits,
       final Optional<SszList<SignedVoluntaryExit>> exits,
-      final Optional<Eth1Data> eth1Data)
+      final Optional<Eth1Data> eth1Data,
+      final Optional<List<SignedShardBlobHeader>> blobHeaders)
       throws StateTransitionException, EpochProcessingException, SlotProcessingException {
     final UInt64 newEpoch = compute_epoch_at_slot(newSlot);
     return createNewBlock(
@@ -116,7 +123,8 @@ public class BlockProposalTestUtil {
         attestations.orElse(blockBodyLists.createAttestations()),
         blockBodyLists.createProposerSlashings(),
         deposits.orElse(blockBodyLists.createDeposits()),
-        exits.orElse(blockBodyLists.createVoluntaryExits()));
+        exits.orElse(blockBodyLists.createVoluntaryExits()),
+        blobHeaders.orElse(Collections.emptyList()));
   }
 
   private static Eth1Data get_eth1_data_stub(BeaconState state, UInt64 current_epoch) {
@@ -128,7 +136,7 @@ public class BlockProposalTestUtil {
         Hash.sha2_256(Hash.sha2_256(SSZ.encodeUInt64(voting_period.longValue()))));
   }
 
-  private static ExecutionPayload createExecutionPayload(Spec spec, BeaconState genericState) {
+  private static ExecutionPayload createDummyExecutionPayload(Spec spec, BeaconState genericState) {
     final BeaconStateRayonism state = BeaconStateRayonism.required(genericState);
     final Bytes32 executionParentHash = state.getLatest_execution_payload_header().getBlock_hash();
     final UInt64 timestamp = spec.computeTimeAtSlot(state, state.getSlot());

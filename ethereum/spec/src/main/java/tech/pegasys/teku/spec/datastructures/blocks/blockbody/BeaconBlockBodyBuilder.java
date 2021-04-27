@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.spec.datastructures.blocks.blockbody;
 
+import java.util.List;
 import java.util.function.Supplier;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.bls.BLSSignature;
@@ -53,7 +54,7 @@ public interface BeaconBlockBodyBuilder {
   BeaconBlockBodyBuilder executionPayload(Supplier<ExecutionPayload> executionPayloadSupplier);
 
   BeaconBlockBodyBuilder shardProposerSlashings(
-      SszList<ShardProposerSlashing> shardProposerSlashings);
+      List<ShardProposerSlashing> shardProposerSlashings);
 
-  BeaconBlockBodyBuilder shardHeaders(SszList<SignedShardBlobHeader> shardHeaders);
+  BeaconBlockBodyBuilder shardHeaders(List<SignedShardBlobHeader> shardHeaders);
 }
