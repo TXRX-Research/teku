@@ -178,6 +178,16 @@ public class BeaconBlockBodySchemaRayonism
     return (SszListSchema<SignedVoluntaryExit, ?>) getFieldSchema7();
   }
 
+  @SuppressWarnings("unchecked")
+  public SszListSchema<ShardProposerSlashing, ?> getShardProposerSlashingsSchema() {
+    return (SszListSchema<ShardProposerSlashing, ?>) getFieldSchema9();
+  }
+
+  @SuppressWarnings("unchecked")
+  public SszListSchema<SignedShardBlobHeader, ?> getShardBlobHeadersSchema() {
+    return (SszListSchema<SignedShardBlobHeader, ?>) getFieldSchema10();
+  }
+
   @Override
   public BeaconBlockBodyRayonism createFromBackingNode(TreeNode node) {
     return new BeaconBlockBodyRayonism(this, node);

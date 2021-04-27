@@ -36,6 +36,8 @@ public class BeaconBlockBodyBuilderRayonism extends AbstractBeaconBlockBodyBuild
 
   public BeaconBlockBodyBuilderRayonism schema(final BeaconBlockBodySchemaRayonism schema) {
     this.schema = schema;
+    shardProposerSlashings = schema.getShardProposerSlashingsSchema().getDefault();
+    shardHeaders = schema.getShardBlobHeadersSchema().getDefault();
     return this;
   }
 

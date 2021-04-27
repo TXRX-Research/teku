@@ -44,6 +44,7 @@ import tech.pegasys.teku.spec.datastructures.interop.MockStartDepositGenerator;
 import tech.pegasys.teku.spec.datastructures.interop.MockStartValidatorKeyPairFactory;
 import tech.pegasys.teku.spec.datastructures.operations.Attestation;
 import tech.pegasys.teku.spec.datastructures.operations.DepositData;
+import tech.pegasys.teku.spec.datastructures.sharding.ShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.util.BeaconBlockBodyLists;
@@ -412,6 +413,7 @@ public class ChainBuilder {
 
   public static final class BlockOptions {
 
+    private final List<ShardBlobHeader> shardBlobHeaders = new ArrayList<>();
     private final List<Attestation> attestations = new ArrayList<>();
     private Optional<Eth1Data> eth1Data = Optional.empty();
 
@@ -423,6 +425,11 @@ public class ChainBuilder {
 
     public BlockOptions addAttestation(final Attestation attestation) {
       attestations.add(attestation);
+      return this;
+    }
+
+    public BlockOptions addShardBlobHeader(ShardBlobHeader header) {
+      shardBlobHeaders.add(header);
       return this;
     }
 
