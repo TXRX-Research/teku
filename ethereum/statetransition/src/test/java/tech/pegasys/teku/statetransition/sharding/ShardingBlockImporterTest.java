@@ -56,6 +56,8 @@ import tech.pegasys.teku.weaksubjectivity.WeakSubjectivityValidator;
 
 public class ShardingBlockImporterTest {
   private final Spec spec = TestSpecFactory.createMinimalRayonism();
+  private final CommitteeUtilRayonism committeeUtilRayonism = (CommitteeUtilRayonism) spec
+      .atSlot(UInt64.ZERO).getCommitteeUtil();
 
   final StorageSystem storageSystem = InMemoryStorageSystemBuilder.create()
       .specProvider(spec)
@@ -109,32 +111,13 @@ public class ShardingBlockImporterTest {
 
     BeaconStateRayonism state1 = storageSystem.recentChainData().getChainHead().orElseThrow()
         .getState().toVersionRayonism().orElseThrow();
+    chainUpdater.setCurrentSlot(UInt64.valueOf(2));
 
-    CommitteeUtilRayonism committeeUtilRayonism = (CommitteeUtilRayonism) spec
-        .atSlot(state1.getSlot()).getCommitteeUtil();
-
-    UInt64 shardBlobSlot = state1.getSlot().increment();
-    UInt64 shardBlobShard = UInt64.ZERO;
-    int shardBlobProposedIndex = committeeUtilRayonism
-        .getShardProposerIndex(state1, shardBlobSlot, shardBlobShard);
-
-    DataCommitment dataCommitment = new DataCommitment(BLSPublicKey.empty(), UInt64.ZERO);
-
-    BeaconBlock beaconBlock1 = block1.getBlock().getMessage();
-    Bytes32 blockRoot1 = beaconBlock1.hashTreeRoot();
-    ShardBlobSummary shardBlobSummary = new ShardBlobSummary(dataCommitment, BLSPublicKey.empty(),
-        Bytes32.ZERO, blockRoot1);
-    ShardBlobHeader shardBlobHeader = new ShardBlobHeader(shardBlobSlot, UInt64.ZERO,
-        shardBlobSummary, UInt64.valueOf(shardBlobProposedIndex));
-    BLSSecretKey blobProposerKey = chainBuilder.getValidatorKeys().get(shardBlobProposedIndex)
-        .getSecretKey();
-    BLSSignature blobSignature = BLS.sign(blobProposerKey, shardBlobHeader.hashTreeRoot());
-    SignedShardBlobHeader signedShardBlobHeader = new SignedShardBlobHeader(shardBlobHeader,
-        blobSignature);
+    SignedShardBlobHeader signedShardBlobHeader =
+        createDummyShardHeader(state1, UInt64.valueOf(2), UInt64.ZERO);
 
     BlockOptions blockOptions = BlockOptions.create().addShardBlobHeader(signedShardBlobHeader);
     SignedBlockAndState block2 = chainBuilder.generateBlockAtSlot(2, blockOptions);
-    chainUpdater.setCurrentSlot(UInt64.valueOf(2));
     final BlockImportResult result2 = blockImporter.importBlock(block2.getBlock()).get();
     assertSuccessfulResult(result2);
 
@@ -142,6 +125,26 @@ public class ShardingBlockImporterTest {
         .recentChainData().getChainHead().orElseThrow().getState()
         .toVersionRayonism().orElseThrow();
     assertThat(state2.getCurrent_epoch_pending_shard_headers()).hasSize(1);
+  }
+
+  private SignedShardBlobHeader createDummyShardHeader(BeaconStateRayonism state, UInt64 shardBlobSlot,
+      UInt64 shardBlobShard) {
+    int shardBlobProposedIndex = committeeUtilRayonism
+        .getShardProposerIndex(state, shardBlobSlot, shardBlobShard);
+
+    DataCommitment dataCommitment = new DataCommitment(BLSPublicKey.empty(), UInt64.ZERO);
+
+    Bytes32 blockRoot = spec.getBlockRootAtSlot(state, shardBlobSlot.decrement());
+    ShardBlobSummary shardBlobSummary = new ShardBlobSummary(dataCommitment, BLSPublicKey.empty(),
+        Bytes32.ZERO, blockRoot);
+    ShardBlobHeader shardBlobHeader = new ShardBlobHeader(shardBlobSlot, shardBlobShard,
+        shardBlobSummary, UInt64.valueOf(shardBlobProposedIndex));
+    BLSSecretKey blobProposerKey = chainBuilder.getValidatorKeys().get(shardBlobProposedIndex)
+        .getSecretKey();
+    BLSSignature blobSignature = BLS.sign(blobProposerKey, shardBlobHeader.hashTreeRoot());
+    SignedShardBlobHeader signedShardBlobHeader = new SignedShardBlobHeader(shardBlobHeader,
+        blobSignature);
+    return signedShardBlobHeader;
   }
 
   private void assertSuccessfulResult(final BlockImportResult result) {
