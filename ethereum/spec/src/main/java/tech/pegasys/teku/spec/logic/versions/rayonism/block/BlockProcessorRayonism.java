@@ -378,7 +378,7 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
     checkArgument(
         header
             .getShard()
-            .isGreaterThan(beaconStateAccessorsRayonism.getActiveShardCount(state, headerEpoch)),
+            .isLessThan(beaconStateAccessorsRayonism.getActiveShardCount(state, headerEpoch)),
         "process_shard_header: Verify that the shard is active");
     //    # Verify that the block root matches,
     //    # to ensure the header will only be included in this specific Beacon Chain sub-tree.
