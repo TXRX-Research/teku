@@ -90,13 +90,11 @@ public class CommitteeUtilRayonism extends CommitteeUtil {
     UInt64 epoch = miscHelpers.computeEpochAtSlot(slot);
     //  committee = get_shard_committee(beacon_state, epoch, shard)
     List<Integer> committee = getShardCommittee(state, epoch, shard);
-    // TODO question: beacon_state.slot or slot ?
-    //  seed = hash(get_seed(beacon_state, epoch, DOMAIN_BEACON_PROPOSER) +
     // uint_to_bytes(beacon_state.slot))
     Bytes32 epochSeed =
         beaconStateAccessors.getSeed(state, epoch, specConfig.getDomainShardProposer());
     Bytes32 seed =
-        Hash.sha2_256(Bytes.concatenate(epochSeed, MathHelpers.uintToBytes(state.getSlot())));
+        Hash.sha2_256(Bytes.concatenate(epochSeed, MathHelpers.uintToBytes(slot)));
     //      # Proposer must have sufficient balance to pay for worst case fee burn
     // TODO question: typo?
     //  EFFECTIVE_BALANCE_MAX_DOWNWARD_DEVIATION = (
