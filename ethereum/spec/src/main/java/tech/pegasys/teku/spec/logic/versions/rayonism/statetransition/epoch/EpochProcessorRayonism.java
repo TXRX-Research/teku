@@ -167,11 +167,11 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
         List<UInt64> votingBalances =
             candidates.stream()
                 .map(Pair::getValue)
-                .map(
-                    shardHeader ->
-                        fullCommittee.stream()
-                            .filter(i -> shardHeader.getVotes().getBit(i))
-                            .collect(Collectors.toList()))
+                .map(shardHeader ->
+                    IntStream.range(0, fullCommittee.size())
+                        .filter(i -> shardHeader.getVotes().getBit(i))
+                        .mapToObj(fullCommittee::get)
+                        .collect(Collectors.toList()))
                 .map(votingSet -> beaconStateAccessorsRayonism.getTotalBalance(state, votingSet))
                 .collect(Collectors.toList());
         //         # Get the index with the most total balance voting for them.
@@ -184,7 +184,12 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
         // no need for 'else'
         //             # If no votes, zero wins
         //             winning_index = [c.root for c in candidates].index(Root())
-        UInt64 max = votingBalances.stream().max(Comparator.naturalOrder()).orElseThrow();
+        // TODO: temp workaround for the first epoch with no empty pending headers
+        Optional<UInt64> maybeMax = votingBalances.stream().max(Comparator.naturalOrder());
+        if (maybeMax.isEmpty()) {
+          continue;
+        }
+        UInt64 max = maybeMax.get();
         int winningIndex;
         if (max.isGreaterThan(0)) {
           winningIndex = votingBalances.indexOf(max);
@@ -226,12 +231,12 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
                     PendingShardHeader::getCommitment));
 
     SszVector<SszVector<DataCommitment>> confirmedCommitments =
-        IntStream.range(0, specConfig.getSlotsPerEpoch())
+        IntStream.range(0, specConfigRayonism.getMaxShards())
             .mapToObj(
-                slot_index ->
-                    IntStream.range(0, specConfigRayonism.getMaxShards())
+                 shard ->
+                    IntStream.range(0, specConfig.getSlotsPerEpoch())
                         .mapToObj(
-                            shard ->
+                            slot_index ->
                                 confirmedHeaders.getOrDefault(
                                     Pair.of(slot_index, shard), new DataCommitment()))
                         .collect(
