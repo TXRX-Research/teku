@@ -14,6 +14,7 @@
 package tech.pegasys.teku.spec.logic.versions.rayonism.util;
 
 import java.util.List;
+import java.util.Optional;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.apache.tuweni.crypto.Hash;
@@ -212,5 +213,10 @@ public class CommitteeUtilRayonism extends CommitteeUtil {
     }
     //  return Shard(shard)
     return shard;
+  }
+
+  @Override
+  public Optional<CommitteeUtilRayonism> toVersionRayonism() {
+    return Optional.of(this);
   }
 }

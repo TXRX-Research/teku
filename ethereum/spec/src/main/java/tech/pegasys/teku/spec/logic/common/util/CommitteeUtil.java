@@ -19,6 +19,7 @@ import static tech.pegasys.teku.spec.logic.common.helpers.MathHelpers.uintToByte
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
@@ -29,6 +30,7 @@ import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateCache;
 import tech.pegasys.teku.spec.logic.common.helpers.BeaconStateAccessors;
+import tech.pegasys.teku.spec.logic.versions.rayonism.util.CommitteeUtilRayonism;
 
 public class CommitteeUtil {
   private final SpecConfig specConfig;
@@ -139,5 +141,9 @@ public class CommitteeUtil {
         .getCommitteeShuffle()
         .get(seed, s -> shuffleList(indices, s))
         .subList(fromIndex, toIndex);
+  }
+
+  public Optional<CommitteeUtilRayonism> toVersionRayonism() {
+    return Optional.empty();
   }
 }
