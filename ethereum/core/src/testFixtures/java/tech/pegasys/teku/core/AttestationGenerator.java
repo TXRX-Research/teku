@@ -39,15 +39,19 @@ import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockSummary;
 import tech.pegasys.teku.spec.datastructures.blocks.StateAndBlockSummary;
 import tech.pegasys.teku.spec.datastructures.operations.Attestation;
 import tech.pegasys.teku.spec.datastructures.operations.AttestationData;
+import tech.pegasys.teku.spec.datastructures.sharding.PendingShardHeader;
 import tech.pegasys.teku.spec.datastructures.state.Committee;
 import tech.pegasys.teku.spec.datastructures.state.CommitteeAssignment;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.util.AttestationUtil;
 import tech.pegasys.teku.spec.logic.common.statetransition.exceptions.EpochProcessingException;
 import tech.pegasys.teku.spec.logic.common.statetransition.exceptions.SlotProcessingException;
+import tech.pegasys.teku.spec.logic.common.util.BeaconStateUtil;
+import tech.pegasys.teku.spec.logic.versions.rayonism.util.CommitteeUtilRayonism;
 import tech.pegasys.teku.ssz.collections.SszBitlist;
 
 public class AttestationGenerator {
+
   private final Spec spec;
   private final List<BLSKeyPair> validatorKeys;
   private final BLSKeyPair randomKeyPair = BLSTestUtil.randomKeyPair(12345);
@@ -67,12 +71,11 @@ public class AttestationGenerator {
   }
 
   /**
-   * Groups passed attestations by their {@link
-   * tech.pegasys.teku.spec.datastructures.operations.AttestationData} and aggregates attestations
-   * in every group to a single {@link Attestation}
+   * Groups passed attestations by their {@link tech.pegasys.teku.spec.datastructures.operations.AttestationData}
+   * and aggregates attestations in every group to a single {@link Attestation}
    *
    * @return a list of aggregated {@link Attestation}s with distinct {@link
-   *     tech.pegasys.teku.spec.datastructures.operations.AttestationData}
+   * tech.pegasys.teku.spec.datastructures.operations.AttestationData}
    */
   public static List<Attestation> groupAndAggregateAttestations(List<Attestation> srcAttestations) {
     Collection<List<Attestation>> groupedAtt =
@@ -154,7 +157,7 @@ public class AttestationGenerator {
    * {@code headBlockAndState} as the calculated chain head.
    *
    * @param headBlockAndState The chain head to attest to
-   * @param assignedSlot The assigned slot for which to produce attestations
+   * @param assignedSlot      The assigned slot for which to produce attestations
    * @return A stream of valid attestations to produce at the assigned slot
    */
   public Stream<Attestation> streamAttestations(
@@ -168,13 +171,13 @@ public class AttestationGenerator {
    * the given {@code headBlockAndState} as the calculated chain head.
    *
    * @param headBlockAndState The chain head to attest to
-   * @param assignedSlot The assigned slot for which to produce attestations
+   * @param assignedSlot      The assigned slot for which to produce attestations
    * @return A stream of invalid attestations produced at the assigned slot
    */
   private Stream<Attestation> streamInvalidAttestations(
       final StateAndBlockSummary headBlockAndState, final UInt64 assignedSlot) {
     return AttestationIterator.createWithInvalidSignatures(
-            spec, headBlockAndState, assignedSlot, validatorKeys, randomKeyPair)
+        spec, headBlockAndState, assignedSlot, validatorKeys, randomKeyPair)
         .toStream();
   }
 
@@ -183,6 +186,7 @@ public class AttestationGenerator {
    * assigned slot.
    */
   private static class AttestationIterator implements Iterator<Attestation> {
+
     private final Spec spec;
     // The latest block being attested to
     private final BeaconBlockSummary headBlock;
@@ -195,6 +199,8 @@ public class AttestationGenerator {
     // Validator keys
     private final List<BLSKeyPair> validatorKeys;
     private final Function<Integer, BLSKeyPair> validatorKeySupplier;
+    private final Optional<CommitteeUtilRayonism> committeeUtilRayonism;
+    private final BeaconStateUtil beaconStateUtil;
 
     private Optional<Attestation> nextAttestation = Optional.empty();
     private int currentValidatorIndex = 0;
@@ -212,6 +218,9 @@ public class AttestationGenerator {
       this.assignedSlot = assignedSlot;
       this.assignedSlotEpoch = compute_epoch_at_slot(assignedSlot);
       this.validatorKeySupplier = validatorKeySupplier;
+      committeeUtilRayonism = spec.atSlot(assignedSlot)
+          .getCommitteeUtil().toVersionRayonism();
+      beaconStateUtil = spec.atSlot(assignedSlot).getBeaconStateUtil();
       generateNextAttestation();
     }
 
@@ -278,7 +287,7 @@ public class AttestationGenerator {
           validatorIndex++) {
         lastProcessedValidatorIndex = validatorIndex;
         final Optional<CommitteeAssignment> maybeAssignment =
-            CommitteeAssignmentUtil.get_committee_assignment(
+            beaconStateUtil.getCommitteeAssignment(
                 headState, assignedSlotEpoch, validatorIndex);
 
         if (maybeAssignment.isEmpty()) {
@@ -297,6 +306,34 @@ public class AttestationGenerator {
         AttestationData genericAttestationData =
             AttestationUtil.getGenericAttestationData(
                 assignedSlot, headState, headBlock, committeeIndex);
+
+        Optional<PendingShardHeader> maybeShardHeader = headState.toVersionRayonism()
+            .flatMap(stateR -> {
+                  CommitteeUtilRayonism committeeUtilRayonism = this.committeeUtilRayonism
+                      .orElseThrow();
+                  UInt64 shard = committeeUtilRayonism
+                      .computeShardFromCommitteeIndex(stateR, assignedSlot, committeeIndex);
+                  List<PendingShardHeader> headerCandidates = stateR
+                      .getCurrent_epoch_pending_shard_headers()
+                      .stream()
+                      .filter(shardHeader -> shardHeader.getSlot().equals(assignedSlot) && shardHeader
+                          .getShard().equals(shard))
+                      .collect(Collectors.toList());
+
+                  return headerCandidates.stream().reduce((a, b) -> b);
+                }
+            );
+        AttestationData shardedAttData = maybeShardHeader
+            .map(shardHeader -> new AttestationData(
+                genericAttestationData.getSlot(),
+                genericAttestationData.getIndex(),
+                genericAttestationData.getBeacon_block_root(),
+                genericAttestationData.getSource(),
+                genericAttestationData.getTarget(),
+                shardHeader.getRoot()
+            ))
+            .orElse(genericAttestationData);
+
         final BLSKeyPair validatorKeyPair = validatorKeySupplier.apply(validatorIndex);
         nextAttestation =
             Optional.of(
@@ -305,7 +342,7 @@ public class AttestationGenerator {
                     validatorKeyPair,
                     indexIntoCommittee,
                     committee,
-                    genericAttestationData));
+                    shardedAttData));
         break;
       }
 
