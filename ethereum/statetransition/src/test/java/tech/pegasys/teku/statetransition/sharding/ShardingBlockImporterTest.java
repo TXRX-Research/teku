@@ -18,6 +18,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.concurrent.ExecutionException;
 import org.apache.tuweni.bytes.Bytes32;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,10 +35,12 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.TestSpecFactory;
 import tech.pegasys.teku.spec.config.SpecConfig;
+import tech.pegasys.teku.spec.config.SpecConfigRayonism;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBlockAndState;
 import tech.pegasys.teku.spec.datastructures.sharding.DataCommitment;
+import tech.pegasys.teku.spec.datastructures.sharding.PendingShardHeader;
 import tech.pegasys.teku.spec.datastructures.sharding.ShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.sharding.ShardBlobSummary;
 import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
@@ -47,6 +50,8 @@ import tech.pegasys.teku.spec.logic.common.block.AbstractBlockProcessor;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult;
 import tech.pegasys.teku.spec.logic.common.statetransition.results.BlockImportResult.FailureReason;
 import tech.pegasys.teku.spec.logic.versions.rayonism.util.CommitteeUtilRayonism;
+import tech.pegasys.teku.ssz.SszCollection;
+import tech.pegasys.teku.ssz.SszList;
 import tech.pegasys.teku.statetransition.block.BlockImporter;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoice;
 import tech.pegasys.teku.storage.client.ChainUpdater;
@@ -56,12 +61,20 @@ import tech.pegasys.teku.weaksubjectivity.WeakSubjectivityValidator;
 
 public class ShardingBlockImporterTest {
   private final Spec spec = TestSpecFactory.createMinimalRayonism();
+  SpecConfigRayonism specConfigRayonism = spec.getSpecConfig(UInt64.ZERO).toVersionRayonism()
+      .orElseThrow();
+  private final int slotsPerEpoch = specConfigRayonism.getSlotsPerEpoch();
+  private final int shardHeadersPerEpochCount =
+      slotsPerEpoch * specConfigRayonism.getInitialActiveShards();
+  private final int shardHeadersPerEpochMaxCount =
+      slotsPerEpoch * specConfigRayonism.getMaxShards();
+
   private final CommitteeUtilRayonism committeeUtilRayonism = (CommitteeUtilRayonism) spec
       .atSlot(UInt64.ZERO).getCommitteeUtil();
 
   final StorageSystem storageSystem = InMemoryStorageSystemBuilder.create()
       .specProvider(spec)
-      .numberOfValidators(128)
+      .numberOfValidators(256)
       .build();
   private final ChainBuilder chainBuilder = storageSystem.chainBuilder();
   private final ChainUpdater chainUpdater = storageSystem.chainUpdater();
@@ -76,7 +89,6 @@ public class ShardingBlockImporterTest {
           forkChoice,
           weakSubjectivityValidator,
           storageSystem.eventBus());
-  private final SpecConfig genesisConfig = spec.getGenesisSpecConfig();
 
   @BeforeAll
   public static void init() {
@@ -91,6 +103,10 @@ public class ShardingBlockImporterTest {
   @BeforeEach
   public void setup() {
     when(weakSubjectivityValidator.isBlockValid(any(), any())).thenReturn(true);
+    // workaround: process 2 epochs to fill the
+    // current_epoch_pending_shard_headers and previous_epoch_pending_shard_headers
+    // with correct values
+    advanceChain(slotsPerEpoch * 2);
   }
 
   @Test
@@ -101,30 +117,58 @@ public class ShardingBlockImporterTest {
     assertSuccessfulResult(result);
   }
 
+
+
   @Test
   public void importBlock_blockWithShardHeaderSuccess() throws Exception {
 
-    SignedBlockAndState block1 = chainBuilder.generateBlockAtSlot(1);
-    chainUpdater.setCurrentSlot(UInt64.valueOf(1));
-    final BlockImportResult result1 = blockImporter.importBlock(block1.getBlock()).get();
-    assertSuccessfulResult(result1);
+    BeaconStateRayonism state1 = advanceChain(1);
 
-    BeaconStateRayonism state1 = storageSystem.recentChainData().getChainHead().orElseThrow()
-        .getState().toVersionRayonism().orElseThrow();
-    chainUpdater.setCurrentSlot(UInt64.valueOf(2));
+    assertThat(state1.getCurrent_epoch_pending_shard_headers()).hasSize(shardHeadersPerEpochCount);
+    assertThat(state1.getPrevious_epoch_pending_shard_headers()).hasSize(shardHeadersPerEpochCount);
 
-    SignedShardBlobHeader signedShardBlobHeader =
-        createDummyShardHeader(state1, UInt64.valueOf(2), UInt64.ZERO);
-
+    SignedShardBlobHeader signedShardBlobHeader = createDummyShardHeader(state1,
+        chainUpdater.getHeadSlot(), UInt64.ZERO);
     BlockOptions blockOptions = BlockOptions.create().addShardBlobHeader(signedShardBlobHeader);
-    SignedBlockAndState block2 = chainBuilder.generateBlockAtSlot(2, blockOptions);
-    final BlockImportResult result2 = blockImporter.importBlock(block2.getBlock()).get();
-    assertSuccessfulResult(result2);
+    BeaconStateRayonism state2 = advanceChain(2, blockOptions);
 
-    BeaconStateRayonism state2 = storageSystem
-        .recentChainData().getChainHead().orElseThrow().getState()
+    assertThat(state2.getCurrent_epoch_pending_shard_headers()).hasSize(shardHeadersPerEpochCount + 1);
+    assertThat(state2.getPrevious_epoch_pending_shard_headers()).hasSize(shardHeadersPerEpochCount);
+
+    BeaconStateRayonism state10 = advanceChain(slotsPerEpoch);
+
+    assertThat(state10.getCurrent_epoch_pending_shard_headers()).hasSize(shardHeadersPerEpochCount);
+    assertThat(state10.getPrevious_epoch_pending_shard_headers()).hasSize(shardHeadersPerEpochCount + 1);
+
+    BeaconStateRayonism state20 = advanceChain(slotsPerEpoch);
+
+    assertThat(state20.getPrevious_epoch_pending_shard_headers()).hasSize(shardHeadersPerEpochCount);
+    assertThat(state20.getCurrent_epoch_pending_shard_headers()).hasSize(shardHeadersPerEpochCount);
+    assertThat(state20.getGrandparent_epoch_confirmed_commitments().stream().flatMap(
+        SszCollection::stream).filter(dc -> !dc.equals(new DataCommitment()))).isEmpty();
+  }
+
+  private BeaconStateRayonism getLastState() {
+    return storageSystem
+        .recentChainData().getBestState().orElseThrow()
         .toVersionRayonism().orElseThrow();
-    assertThat(state2.getCurrent_epoch_pending_shard_headers()).hasSize(1);
+  }
+
+  private BeaconStateRayonism advanceChain(long slotIncrement) {
+    return advanceChain(slotIncrement, BlockOptions.create());
+  }
+
+  private BeaconStateRayonism advanceChain(long slotIncrement, BlockOptions blockOptions) {
+    try {
+      UInt64 newSlot = chainUpdater.getHeadSlot().plus(slotIncrement);
+      chainUpdater.setCurrentSlot(newSlot);
+      SignedBlockAndState block = chainBuilder.generateBlockAtSlot(newSlot, blockOptions);
+      final BlockImportResult result = blockImporter.importBlock(block.getBlock()).get();
+      assertSuccessfulResult(result);
+      return getLastState();
+    } catch (InterruptedException | ExecutionException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private SignedShardBlobHeader createDummyShardHeader(BeaconStateRayonism state, UInt64 shardBlobSlot,
@@ -132,7 +176,8 @@ public class ShardingBlockImporterTest {
     int shardBlobProposedIndex = committeeUtilRayonism
         .getShardProposerIndex(state, shardBlobSlot, shardBlobShard);
 
-    DataCommitment dataCommitment = new DataCommitment(BLSPublicKey.empty(), UInt64.ZERO);
+    DataCommitment dataCommitment = new DataCommitment(BLSPublicKey.empty(),
+        UInt64.valueOf(shardBlobSlot.longValue() << 16 | shardBlobShard.longValue()));
 
     Bytes32 blockRoot = spec.getBlockRootAtSlot(state, shardBlobSlot.decrement());
     ShardBlobSummary shardBlobSummary = new ShardBlobSummary(dataCommitment, BLSPublicKey.empty(),
