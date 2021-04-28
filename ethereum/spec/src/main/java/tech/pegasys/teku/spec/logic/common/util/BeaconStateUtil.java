@@ -189,29 +189,13 @@ public class BeaconStateUtil {
   /** @deprecated Use {@link CommitteeUtil#getCommitteeCountPerSlot(BeaconState, UInt64)} */
   @Deprecated
   public UInt64 getCommitteeCountPerSlot(BeaconState state, UInt64 epoch) {
-    List<Integer> active_validator_indices =
-        beaconStateAccessors.getActiveValidatorIndices(state, epoch);
-    return UInt64.valueOf(
-        Math.max(
-            1,
-            Math.min(
-                specConfig.getMaxCommitteesPerSlot(),
-                Math.floorDiv(
-                    Math.floorDiv(active_validator_indices.size(), specConfig.getSlotsPerEpoch()),
-                    specConfig.getTargetCommitteeSize()))));
+    return committeeUtil.getCommitteeCountPerSlot(state, epoch);
   }
 
   /** @deprecated Use {@link CommitteeUtil#getCommitteeCountPerSlot(int)} */
   @Deprecated
   public UInt64 getCommitteeCountPerSlot(final int activeValidatorCount) {
-    return UInt64.valueOf(
-        Math.max(
-            1,
-            Math.min(
-                specConfig.getMaxCommitteesPerSlot(),
-                Math.floorDiv(
-                    Math.floorDiv(activeValidatorCount, specConfig.getSlotsPerEpoch()),
-                    specConfig.getTargetCommitteeSize()))));
+    return committeeUtil.getCommitteeCountPerSlot(activeValidatorCount);
   }
 
   public UInt64 getAttestersTotalEffectiveBalance(final BeaconState state, final UInt64 slot) {

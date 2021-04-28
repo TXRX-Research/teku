@@ -32,7 +32,7 @@ import tech.pegasys.teku.spec.logic.common.helpers.BeaconStateAccessors;
 
 public class CommitteeUtil {
   private final SpecConfig specConfig;
-  private final BeaconStateAccessors stateAccessors;
+  protected final BeaconStateAccessors stateAccessors;
 
   public CommitteeUtil(final SpecConfig specConfig, BeaconStateAccessors stateAccessors) {
     this.specConfig = specConfig;
@@ -101,14 +101,7 @@ public class CommitteeUtil {
 
   public UInt64 getCommitteeCountPerSlot(BeaconState state, UInt64 epoch) {
     List<Integer> active_validator_indices = stateAccessors.getActiveValidatorIndices(state, epoch);
-    return UInt64.valueOf(
-        Math.max(
-            1,
-            Math.min(
-                specConfig.getMaxCommitteesPerSlot(),
-                Math.floorDiv(
-                    Math.floorDiv(active_validator_indices.size(), specConfig.getSlotsPerEpoch()),
-                    specConfig.getTargetCommitteeSize()))));
+    return getCommitteeCountPerSlot(active_validator_indices.size());
   }
 
   public UInt64 getCommitteeCountPerSlot(final int activeValidatorCount) {
