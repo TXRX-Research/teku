@@ -38,7 +38,9 @@ public class CommitteeAssignmentUtil {
    * @param epoch either on or between previous or current epoch.
    * @param validator_index the validator that is calling this function.
    * @return Optional.of(CommitteeAssignment).
+   * @deprecated Use {@link tech.pegasys.teku.spec.logic.common.util.BeaconStateUtil#getCommitteeAssignment(BeaconState, UInt64, int)}
    */
+  @Deprecated
   public static Optional<CommitteeAssignment> get_committee_assignment(
       BeaconState state, UInt64 epoch, int validator_index) {
     return get_committee_assignment(
@@ -56,7 +58,9 @@ public class CommitteeAssignmentUtil {
    * @param validator_index the validator that is calling this function.
    * @param committeeCountPerSlot the number of committees for the target epoch
    * @return Optional.of(CommitteeAssignment).
+   * @deprecated Use {@link tech.pegasys.teku.spec.logic.common.util.BeaconStateUtil#getCommitteeAssignment(BeaconState, UInt64, int)}
    */
+  @Deprecated
   public static Optional<CommitteeAssignment> get_committee_assignment(
       BeaconState state, UInt64 epoch, int validator_index, final UInt64 committeeCountPerSlot) {
     UInt64 next_epoch = get_current_epoch(state).plus(UInt64.ONE);

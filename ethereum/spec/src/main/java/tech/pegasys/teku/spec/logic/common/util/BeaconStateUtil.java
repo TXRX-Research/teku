@@ -18,6 +18,7 @@ import static java.util.stream.Collectors.toUnmodifiableList;
 import static tech.pegasys.teku.util.config.Constants.ATTESTATION_SUBNET_COUNT;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,6 +29,7 @@ import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.operations.Attestation;
+import tech.pegasys.teku.spec.datastructures.state.CommitteeAssignment;
 import tech.pegasys.teku.spec.datastructures.state.Fork;
 import tech.pegasys.teku.spec.datastructures.state.ForkData;
 import tech.pegasys.teku.spec.datastructures.state.SigningData;
@@ -112,7 +114,7 @@ public class BeaconStateUtil {
   /** @deprecated Use {@link MiscHelpers#computeStartSlotAtEpoch(UInt64)} */
   @Deprecated
   public UInt64 computeStartSlotAtEpoch(UInt64 epoch) {
-    return epoch.times(specConfig.getSlotsPerEpoch());
+    return miscHelpers.computeStartSlotAtEpoch(epoch);
   }
 
   public Bytes32 computeDomain(Bytes4 domainType) {
@@ -244,6 +246,59 @@ public class BeaconStateUtil {
                   committeeIndex,
                   count);
             });
+  }
+
+  /**
+   * Return the committee assignment in the ``epoch`` for ``validator_index``. ``assignment``
+   * returned is a tuple of the following form: ``assignment[0]`` is the list of validators in the
+   * committee ``assignment[1]`` is the index to which the committee is assigned ``assignment[2]``
+   * is the slot at which the committee is assigned Return None if no assignment.
+   *
+   * @param state the BeaconState.
+   * @param epoch either on or between previous or current epoch.
+   * @param validator_index the validator that is calling this function.
+   * @return Optional.of(CommitteeAssignment).
+   */
+  public Optional<CommitteeAssignment> getCommitteeAssignment(
+      BeaconState state, UInt64 epoch, int validator_index) {
+    return getCommitteeAssignment(
+        state, epoch, validator_index, committeeUtil.getCommitteeCountPerSlot(state, epoch));
+  }
+
+
+  /**
+   * Return the committee assignment in the ``epoch`` for ``validator_index``. ``assignment``
+   * returned is a tuple of the following form: ``assignment[0]`` is the list of validators in the
+   * committee ``assignment[1]`` is the index to which the committee is assigned ``assignment[2]``
+   * is the slot at which the committee is assigned Return None if no assignment.
+   *
+   * @param state the BeaconState.
+   * @param epoch either on or between previous or current epoch.
+   * @param validator_index the validator that is calling this function.
+   * @param committeeCountPerSlot the number of committees for the target epoch
+   * @return Optional.of(CommitteeAssignment).
+   */
+  public Optional<CommitteeAssignment> getCommitteeAssignment(
+      BeaconState state, UInt64 epoch, int validator_index, final UInt64 committeeCountPerSlot) {
+    UInt64 next_epoch = beaconStateAccessors.getCurrentEpoch(state).plus(UInt64.ONE);
+    checkArgument(
+        epoch.compareTo(next_epoch) <= 0, "get_committee_assignment: Epoch number too high");
+
+    UInt64 start_slot = miscHelpers.computeStartSlotAtEpoch(epoch);
+    for (UInt64 slot = start_slot;
+        slot.isLessThan(start_slot.plus(specConfig.getSlotsPerEpoch()));
+        slot = slot.plus(UInt64.ONE)) {
+
+      for (UInt64 index = UInt64.ZERO;
+          index.compareTo(committeeCountPerSlot) < 0;
+          index = index.plus(UInt64.ONE)) {
+        final List<Integer> committee = getBeaconCommittee(state, slot, index);
+        if (committee.contains(validator_index)) {
+          return Optional.of(new CommitteeAssignment(committee, index, slot));
+        }
+      }
+    }
+    return Optional.empty();
   }
 
   public UInt64 getEarliestQueryableSlotForTargetEpoch(final UInt64 epoch) {
