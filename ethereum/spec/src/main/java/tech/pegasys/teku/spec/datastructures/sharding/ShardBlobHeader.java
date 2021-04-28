@@ -47,6 +47,9 @@ public class ShardBlobHeader
     super(type, backingNode);
   }
 
+  public ShardBlobHeader(UInt64 slot, UInt64 shard) {
+    this(slot, shard, new ShardBlobSummary(), UInt64.ZERO);
+  }
   public ShardBlobHeader(
       UInt64 slot, UInt64 shard, ShardBlobSummary body_summary, UInt64 proposer_index) {
     super(

@@ -51,6 +51,9 @@ public class ShardBlobSummary
     super(type, backingNode);
   }
 
+  public ShardBlobSummary() {
+    this(new DataCommitment(), BLSPublicKey.empty(), Bytes32.ZERO, Bytes32.ZERO);
+  }
   public ShardBlobSummary(
       DataCommitment commitment,
       BLSPublicKey degree_proof,

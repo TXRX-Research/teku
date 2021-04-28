@@ -26,6 +26,7 @@ import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.config.SpecConfigRayonism;
 import tech.pegasys.teku.spec.datastructures.sharding.DataCommitment;
 import tech.pegasys.teku.spec.datastructures.sharding.PendingShardHeader;
+import tech.pegasys.teku.spec.datastructures.sharding.ShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.MutableBeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.rayonism.BeaconStateSchemaRayonism;
@@ -391,19 +392,22 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
         //     slot=slot,
         //     shard=shard,
         //     commitment=DataCommitment(),
+        //  TODO question: should be ShardBlobHeader(slot, shard).hashTreeRott() ?
         //     root=Root(),
+        //
         //     votes=Bitlist[MAX_VALIDATORS_PER_COMMITTEE]([0] * committee_length),
         //     confirmed=False,
         // ))
-        PendingShardHeader emptyShardHeader =
+        ShardBlobHeader shardHeader = new ShardBlobHeader(slot, shard);
+        PendingShardHeader emptyPendingShardHeader =
             new PendingShardHeader(
                 slot,
                 shard,
                 new DataCommitment(),
-                Bytes32.ZERO,
+                shardHeader.hashTreeRoot(),
                 PendingShardHeader.SSZ_SCHEMA.getVotesSchema().ofBits(committeeLength),
                 false);
-        state.getCurrent_epoch_pending_shard_headers().append(emptyShardHeader);
+        state.getCurrent_epoch_pending_shard_headers().append(emptyPendingShardHeader);
       }
     }
   }
