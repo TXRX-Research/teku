@@ -44,6 +44,7 @@ import tech.pegasys.teku.spec.datastructures.state.Committee;
 import tech.pegasys.teku.spec.datastructures.state.CommitteeAssignment;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.util.AttestationUtil;
+import tech.pegasys.teku.spec.logic.common.helpers.MiscHelpers;
 import tech.pegasys.teku.spec.logic.common.statetransition.exceptions.EpochProcessingException;
 import tech.pegasys.teku.spec.logic.common.statetransition.exceptions.SlotProcessingException;
 import tech.pegasys.teku.spec.logic.common.util.BeaconStateUtil;
@@ -216,11 +217,12 @@ public class AttestationGenerator {
       this.headState = generateHeadState(headBlockAndState.getState(), assignedSlot);
       this.validatorKeys = validatorKeys;
       this.assignedSlot = assignedSlot;
-      this.assignedSlotEpoch = compute_epoch_at_slot(assignedSlot);
       this.validatorKeySupplier = validatorKeySupplier;
       committeeUtilRayonism = spec.atSlot(assignedSlot)
           .getCommitteeUtil().toVersionRayonism();
       beaconStateUtil = spec.atSlot(assignedSlot).getBeaconStateUtil();
+      MiscHelpers miscHelpers = spec.atSlot(assignedSlot).miscHelpers();
+      this.assignedSlotEpoch = miscHelpers.computeEpochAtSlot(assignedSlot);
       generateNextAttestation();
     }
 
