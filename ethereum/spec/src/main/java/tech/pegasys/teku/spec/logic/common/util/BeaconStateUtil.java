@@ -28,6 +28,7 @@ import tech.pegasys.teku.infrastructure.collections.TekuPair;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
+import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlockHeader;
 import tech.pegasys.teku.spec.datastructures.operations.Attestation;
 import tech.pegasys.teku.spec.datastructures.state.CommitteeAssignment;
 import tech.pegasys.teku.spec.datastructures.state.Fork;
@@ -94,6 +95,23 @@ public class BeaconStateUtil {
   public UInt64 computeNextEpochBoundary(final UInt64 slot) {
     final UInt64 currentEpoch = miscHelpers.computeEpochAtSlot(slot);
     return computeStartSlotAtEpoch(currentEpoch).equals(slot) ? currentEpoch : currentEpoch.plus(1);
+  }
+
+  /**
+   * Same as getBlockRootAtSlot() but can get obtain the block root which was just
+   * included to state
+   */
+  public Bytes32 getBlockRootAtSlotEx(BeaconState state, UInt64 slot)
+      throws IllegalArgumentException {
+    if (state.getSlot().equals(slot)) {
+      BeaconBlockHeader header = state.getLatest_block_header();
+      BeaconBlockHeader header1 = new BeaconBlockHeader(header.getSlot(),
+          header.getProposerIndex(), header.getParentRoot(),
+          state.hashTreeRoot(), header.getBodyRoot());
+      return header1.hashTreeRoot();
+    } else {
+      return getBlockRootAtSlot(state, slot);
+    }
   }
 
   public Bytes32 getBlockRootAtSlot(BeaconState state, UInt64 slot)
