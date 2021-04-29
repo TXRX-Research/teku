@@ -20,7 +20,10 @@ import java.util.List;
 import java.util.Optional;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
+import tech.pegasys.teku.bls.BLSPublicKey;
+import tech.pegasys.teku.bls.BLSSignatureVerifier;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.cache.IndexedAttestationCache;
 import tech.pegasys.teku.spec.config.SpecConfigRayonism;
@@ -38,6 +41,7 @@ import tech.pegasys.teku.spec.datastructures.sharding.ShardProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.state.PendingAttestation;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.MutableBeaconState;
+import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.rayonism.BeaconStateRayonism;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.rayonism.MutableBeaconStateRayonism;
 import tech.pegasys.teku.spec.logic.common.block.AbstractBlockProcessor;
 import tech.pegasys.teku.spec.logic.common.helpers.BeaconStateMutators;
@@ -396,11 +400,10 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
             == committeeUtilRayonism.getShardProposerIndex(
                 state, header.getSlot(), header.getShard()));
 
+    // Signature verification is performed by the BlockValidator separately
+    // see BlockProcessorRayonism.verifyShardHeadersSignatures()
+
     // TODO
-    //    # Verify signature
-    //    signing_root = compute_signing_root(header, get_domain(state, DOMAIN_SHARD_HEADER))
-    //    assert bls.Verify(state.validators[header.proposer_index].pubkey, signing_root,
-    // signed_header.signature)
     //    # Verify the length by verifying the degree.
     //        body_summary = header.body_summary
     //    if body_summary.commitment.length == 0:
@@ -408,7 +411,7 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
     //    assert (
     //        bls.Pairing(body_summary.degree_proof, G2_SETUP[0])
     //            == bls.Pairing(body_summary.commitment.point,
-    // G2_SETUP[-body_summary.commitment.length])
+    //              G2_SETUP[-body_summary.commitment.length])
     //    )
 
     //    # Get the correct pending header list
@@ -453,5 +456,28 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
             PendingShardHeader.SSZ_SCHEMA.getVotesSchema().ofBits(committeeLength),
             false);
     pendingHeaders.append(newPendingHeader);
+  }
+
+  @Override
+  public boolean verifyShardHeadersSignatures(BeaconStateRayonism state,
+      BeaconBlockBodyRayonism blockBodyRayonism, BLSSignatureVerifier signatureVerifier) {
+    return blockBodyRayonism.getShard_headers().stream()
+        .map(header -> verifyShardHeadersSignature(state, header, signatureVerifier))
+        .reduce((a, b) -> a & b).orElse(true);
+  }
+
+  private boolean verifyShardHeadersSignature(BeaconStateRayonism state,
+      SignedShardBlobHeader header, BLSSignatureVerifier signatureVerifier) {
+    //    # Verify signature
+    // TODO question: DOMAIN_SHARD_PROPOSER instead of DOMAIN_SHARD_HEADER ?
+    //    signing_root = compute_signing_root(header, get_domain(state, DOMAIN_SHARD_HEADER))
+    //    assert bls.Verify(state.validators[header.proposer_index].pubkey, signing_root,
+    // signed_header.signature)
+
+    final Bytes32 domain = beaconStateUtil.computeDomain(specConfigRayonism.getDomainShardProposer());
+    Bytes root = beaconStateUtil.computeSigningRoot(header.getMessage(), domain);
+    BLSPublicKey proposerPubKey = beaconStateAccessors
+        .getValidatorPubKey(state, header.getMessage().getProposerIndex()).orElseThrow();
+    return signatureVerifier.verify(proposerPubKey, root, header.getSignature());
   }
 }

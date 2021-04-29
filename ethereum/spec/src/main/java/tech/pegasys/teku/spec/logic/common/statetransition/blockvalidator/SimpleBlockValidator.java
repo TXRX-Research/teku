@@ -24,6 +24,7 @@ import tech.pegasys.teku.spec.datastructures.blocks.BeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBody;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
+import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.rayonism.BeaconStateRayonism;
 import tech.pegasys.teku.spec.logic.common.block.BlockProcessor;
 import tech.pegasys.teku.spec.logic.common.helpers.BeaconStateAccessors;
 import tech.pegasys.teku.spec.logic.common.statetransition.exceptions.BlockProcessingException;
@@ -94,6 +95,14 @@ class SimpleBlockValidator implements BlockValidator {
       if (!blockProcessor.verifyVoluntaryExits(
           preState, blockBody.getVoluntary_exits(), signatureVerifier)) {
         return BlockValidationResult.FAILED;
+      }
+      boolean verifyShardHeadersSignaturesResult =
+          blockBody.toVersionRayonism().map(blockBodyRayonism ->
+              blockProcessor.verifyShardHeadersSignatures(
+                  BeaconStateRayonism.required(preState), blockBodyRayonism, signatureVerifier)
+          ).orElse(true);
+      if (!verifyShardHeadersSignaturesResult) {
+        throw new BlockProcessingException("Failed to validate ShardHeader signature");
       }
       return BlockValidationResult.SUCCESSFUL;
     } catch (BlockProcessingException | InvalidSignatureException e) {

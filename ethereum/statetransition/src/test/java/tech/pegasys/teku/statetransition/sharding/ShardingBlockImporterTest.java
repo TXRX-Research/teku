@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.stream.Stream;
+import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -221,10 +222,10 @@ public class ShardingBlockImporterTest {
         shardBlobSummary, UInt64.valueOf(shardBlobProposedIndex));
     BLSSecretKey blobProposerKey = chainBuilder.getValidatorKeys().get(shardBlobProposedIndex)
         .getSecretKey();
-    BLSSignature blobSignature = BLS.sign(blobProposerKey, shardBlobHeader.hashTreeRoot());
-    SignedShardBlobHeader signedShardBlobHeader = new SignedShardBlobHeader(shardBlobHeader,
-        blobSignature);
-    return signedShardBlobHeader;
+    final Bytes32 domain = beaconStateUtil.computeDomain(specConfigRayonism.getDomainShardProposer());
+    Bytes signingRoot = beaconStateUtil.computeSigningRoot(shardBlobHeader, domain);
+    BLSSignature blobSignature = BLS.sign(blobProposerKey, signingRoot);
+    return new SignedShardBlobHeader(shardBlobHeader, blobSignature);
   }
 
   private void assertSuccessfulResult(final BlockImportResult result) {
