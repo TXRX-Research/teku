@@ -87,10 +87,6 @@ public class SpecLogicRayonism extends AbstractSpecLogic {
     final BeaconStateMutators beaconStateMutators =
         new BeaconStateMutators(config, miscHelpers, beaconStateAccessors);
 
-    // Operation validaton
-    final AttestationDataStateTransitionValidator attestationValidator =
-        new AttestationDataStateTransitionValidator();
-
     // Util
     final CommitteeUtilRayonism committeeUtil =
         new CommitteeUtilRayonism(config, beaconStateAccessors, miscHelpers);
@@ -109,6 +105,12 @@ public class SpecLogicRayonism extends AbstractSpecLogic {
     final ValidatorStatusFactoryRayonism validatorStatusFactory =
         new ValidatorStatusFactoryRayonism(
             config, beaconStateUtil, attestationUtil, beaconStateAccessors, predicates);
+
+    // Operation validaton
+    final AttestationDataStateTransitionValidator attestationValidator =
+        new AttestationDataStateTransitionValidator(config, committeeUtil, miscHelpers,
+            beaconStateAccessors);
+
     final EpochProcessorRayonism epochProcessor =
         new EpochProcessorRayonism(
             config,

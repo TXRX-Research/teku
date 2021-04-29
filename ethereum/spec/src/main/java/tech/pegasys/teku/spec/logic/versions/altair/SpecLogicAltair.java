@@ -84,10 +84,6 @@ public class SpecLogicAltair extends AbstractSpecLogic {
     final BeaconStateMutatorsAltair beaconStateMutators =
         new BeaconStateMutatorsAltair(config, miscHelpers, beaconStateAccessors);
 
-    // Operation validaton
-    final AttestationDataStateTransitionValidator attestationValidator =
-        new AttestationDataStateTransitionValidator();
-
     // Util
     final CommitteeUtil committeeUtil = new CommitteeUtil(config, beaconStateAccessors);
     final ValidatorsUtil validatorsUtil = new ValidatorsUtil();
@@ -110,6 +106,12 @@ public class SpecLogicAltair extends AbstractSpecLogic {
             predicates,
             miscHelpers,
             beaconStateAccessors);
+
+    // Operation validaton
+    final AttestationDataStateTransitionValidator attestationValidator =
+        new AttestationDataStateTransitionValidator(config, committeeUtil, miscHelpers,
+            beaconStateAccessors);
+
     final EpochProcessorAltair epochProcessor =
         new EpochProcessorAltair(
             config,

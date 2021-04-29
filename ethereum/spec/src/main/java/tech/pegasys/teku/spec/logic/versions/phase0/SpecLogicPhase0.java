@@ -80,10 +80,6 @@ public class SpecLogicPhase0 extends AbstractSpecLogic {
     final BeaconStateMutators beaconStateMutators =
         new BeaconStateMutators(config, miscHelpers, beaconStateAccessors);
 
-    // Operation validaton
-    final AttestationDataStateTransitionValidator attestationValidator =
-        new AttestationDataStateTransitionValidator();
-
     // Util
     final CommitteeUtil committeeUtil = new CommitteeUtil(config, beaconStateAccessors);
     final ValidatorsUtil validatorsUtil = new ValidatorsUtil();
@@ -101,6 +97,13 @@ public class SpecLogicPhase0 extends AbstractSpecLogic {
     final ValidatorStatusFactoryPhase0 validatorStatusFactory =
         new ValidatorStatusFactoryPhase0(
             config, beaconStateUtil, attestationUtil, beaconStateAccessors, predicates);
+
+    // Operation validaton
+    final AttestationDataStateTransitionValidator attestationValidator =
+        new AttestationDataStateTransitionValidator(config, committeeUtil, miscHelpers,
+            beaconStateAccessors);
+
+
     final EpochProcessorPhase0 epochProcessor =
         new EpochProcessorPhase0(
             config,
