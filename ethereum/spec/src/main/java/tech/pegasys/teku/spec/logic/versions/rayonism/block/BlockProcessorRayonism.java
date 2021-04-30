@@ -386,8 +386,7 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
         "process_shard_header: Verify that the shard is active");
     //    # Verify that the block root matches,
     //    # to ensure the header will only be included in this specific Beacon Chain sub-tree.
-    // TODO question: body_summary instead of header ?
-    //    assert header.beacon_block_root == get_block_root_at_slot(state, header.slot - 1)
+    //    assert header.body_summary.beacon_block_root == get_block_root_at_slot(state, header.slot - 1)
     checkArgument(
         bodySummary
             .getBeaconBlockRoot()

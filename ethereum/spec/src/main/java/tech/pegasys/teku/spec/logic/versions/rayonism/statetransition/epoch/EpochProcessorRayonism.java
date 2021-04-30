@@ -154,8 +154,10 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
           continue;
         }
         //         # The entire committee (and its balance)
-        //         full_committee = get_beacon_committee(state, slot, shard)
-        List<Integer> fullCommittee = beaconStateUtil.getBeaconCommittee(state, slot, shard);
+        //        index = compute_committee_index_from_shard(state, slot, shard)
+        //        full_committee = get_beacon_committee(state, slot, index)
+        UInt64 committeeIndex = committeeUtil.computeCommitteeIndexFromShard(state, slot, shard);
+        List<Integer> fullCommittee = beaconStateUtil.getBeaconCommittee(state, slot, committeeIndex);
         //         # The set of voters who voted for each header (and their total balances)
         //         voting_sets = [
         //             [v for i, v in enumerate(full_committee) if c.votes[i]]
@@ -211,6 +213,7 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
     }
     // for slot_index in range(SLOTS_PER_EPOCH):
     // TODO question: maybe MAX_SHARDS in place of SHARD_COUNT ?
+    // https://github.com/ethereum/eth2.0-specs/pull/2367
     //     for shard in range(SHARD_COUNT):
     //         state.grandparent_epoch_confirmed_commitments[shard][slot_index] = DataCommitment()
     // confirmed_headers = [candidate for candidate in state.previous_epoch_pending_shard_headers if
@@ -279,6 +282,7 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
         slot_ = slot_.increment()) {
       final UInt64 slot = slot_;
       // TODO question: either MAX_SHARDS or activeShards ?
+      // https://github.com/ethereum/eth2.0-specs/pull/2367
       // for shard in range(SHARD_COUNT):
       for (UInt64 shard_ = UInt64.ZERO;
           shard_.isLessThan(activeShardCount);
@@ -302,8 +306,7 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
         PendingShardHeader candidate = maybeCandidate.get();
 
         // # Charge EIP 1559 fee
-        // TODO question: get_shard_proposer_index ?
-        // proposer = get_shard_proposer(state, slot, shard)
+        // proposer = get_shard_proposer_index(state, slot, shard)
         int proposer = committeeUtil.getShardProposerIndex(state, slot, shard);
         // fee = (
         //     (state.shard_gasprice * candidate.commitment.length)
@@ -378,7 +381,6 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
     for (UInt64 slot = nextEpochStartSlot;
         slot.isLessThan(nextEpochStartSlot.plus(specConfig.getSlotsPerEpoch()));
         slot = slot.increment()) {
-      // TODO question: missing state argument
       //      for index in range(get_committee_count_per_slot(next_epoch)):
       UInt64 committeeCountPerSlot = committeeUtil.getCommitteeCountPerSlot(state, nextEpoch);
       for (UInt64 index = UInt64.ZERO;
@@ -387,12 +389,13 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
         // shard = compute_shard_from_committee_index(state, slot, index)
         UInt64 shard = committeeUtil.computeShardFromCommitteeIndex(state, slot, index);
         // committee_length = len(get_beacon_committee(state, slot, shard))
-        int committeeLength = beaconStateUtil.getBeaconCommittee(state, slot, shard).size();
+        int committeeLength = beaconStateUtil.getBeaconCommittee(state, slot, index).size();
         // state.current_epoch_pending_shard_headers.append(PendingShardHeader(
         //     slot=slot,
         //     shard=shard,
         //     commitment=DataCommitment(),
         //  TODO question: should be ShardBlobHeader(slot, shard).hashTreeRott() ?
+        // https://github.com/ethereum/eth2.0-specs/pull/2368
         //     root=Root(),
         //
         //     votes=Bitlist[MAX_VALIDATORS_PER_COMMITTEE]([0] * committee_length),
