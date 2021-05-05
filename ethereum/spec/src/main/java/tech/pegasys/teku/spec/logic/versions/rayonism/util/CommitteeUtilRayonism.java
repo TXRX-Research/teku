@@ -113,7 +113,7 @@ public class CommitteeUtilRayonism extends CommitteeUtil {
     Bytes32 seed =
         Hash.sha2_256(Bytes.concatenate(epochSeed, MathHelpers.uintToBytes(slot)));
     //      # Proposer must have sufficient balance to pay for worst case fee burn
-    // TODO question: typo?
+    // TODO question: https://github.com/ethereum/eth2.0-specs/pull/2386
     //  EFFECTIVE_BALANCE_MAX_DOWNWARD_DEVIATION = (
     //      (EFFECTIVE_BALANCE_INCREMENT - EFFECTIVE_BALANCE_INCREMENT)
     //      * HYSTERESIS_DOWNWARD_MULTIPLIER // HYSTERESIS_QUOTIENT
@@ -130,7 +130,6 @@ public class CommitteeUtilRayonism extends CommitteeUtil {
     //  beacon_state.shard_gasprice * MAX_SAMPLES_PER_BLOCK // TARGET_SAMPLES_PER_BLOCK
     //        + EFFECTIVE_BALANCE_MAX_DOWNWARD_DEVIATION
     //    )
-    // TODO question: do we really need this?  minEffectiveBalance <<< active validator balance
     UInt64 minEffectiveBalance =
         state
             .getShard_gasprice()
@@ -183,7 +182,6 @@ public class CommitteeUtilRayonism extends CommitteeUtil {
       for (UInt64 iSlot = currentEpochStartSlot;
           iSlot.isLessThan(slot);
           iSlot = iSlot.increment()) {
-        // TODO question: compute_epoch_at_slot(Slot(_slot)) is invariant for this loop
         UInt64 epoch = miscHelpers.computeEpochAtSlot(iSlot);
         // committee_count = get_committee_count_per_slot(state, compute_epoch_at_slot(Slot(_slot)))
         UInt64 committeeCount = getCommitteeCountPerSlot(state, epoch);
@@ -199,7 +197,6 @@ public class CommitteeUtilRayonism extends CommitteeUtil {
       for (UInt64 iSlot = slot;
           iSlot.isLessThan(currentEpochStartSlot);
           iSlot = iSlot.increment()) {
-        // TODO question: compute_epoch_at_slot(Slot(_slot)) is invariant for this loop
         UInt64 epoch = miscHelpers.computeEpochAtSlot(iSlot);
         //   committee_count = get_committee_count_per_slot(state,
         // compute_epoch_at_slot(Slot(_slot)))
