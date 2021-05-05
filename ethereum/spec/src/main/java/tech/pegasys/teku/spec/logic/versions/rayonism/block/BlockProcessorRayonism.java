@@ -468,8 +468,7 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
   private boolean verifyShardHeadersSignature(BeaconStateRayonism state,
       SignedShardBlobHeader header, BLSSignatureVerifier signatureVerifier) {
     //    # Verify signature
-    // TODO question: DOMAIN_SHARD_PROPOSER instead of DOMAIN_SHARD_HEADER ?
-    //    signing_root = compute_signing_root(header, get_domain(state, DOMAIN_SHARD_HEADER))
+    //    signing_root = compute_signing_root(header, get_domain(state, DOMAIN_SHARD_PROPOSER))
     //    assert bls.Verify(state.validators[header.proposer_index].pubkey, signing_root,
     // signed_header.signature)
 

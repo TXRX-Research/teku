@@ -212,9 +212,7 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
       }
     }
     // for slot_index in range(SLOTS_PER_EPOCH):
-    // TODO question: maybe MAX_SHARDS in place of SHARD_COUNT ?
-    // https://github.com/ethereum/eth2.0-specs/pull/2367
-    //     for shard in range(SHARD_COUNT):
+    //     for shard in range(MAX_SHARDS):
     //         state.grandparent_epoch_confirmed_commitments[shard][slot_index] = DataCommitment()
     // confirmed_headers = [candidate for candidate in state.previous_epoch_pending_shard_headers if
     // candidate.confirmed]
@@ -269,7 +267,8 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
         activeShardCountCur
             * specConfig.getSlotsPerEpoch()
             * specConfigRayonism.getGaspriceAdjustmentCoefficient();
-    //    previous_epoch_start_slot = compute_start_slot_at_epoch(get_previous_epoch(state))
+    //    previous_epoch = get_previous_epoch(state)
+    //    previous_epoch_start_slot = compute_start_slot_at_epoch(previous_epoch)
     UInt64 previousEpoch = beaconStateAccessorsRayonism.getPreviousEpoch(state);
     UInt64 previousEpochStartSlot = miscHelpers.computeStartSlotAtEpoch(previousEpoch);
     UInt64 currentEpochStartSlot = previousEpochStartSlot.plus(specConfig.getSlotsPerEpoch());
@@ -281,9 +280,7 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
         slot_.isLessThan(currentEpochStartSlot);
         slot_ = slot_.increment()) {
       final UInt64 slot = slot_;
-      // TODO question: either MAX_SHARDS or activeShards ?
-      // https://github.com/ethereum/eth2.0-specs/pull/2367
-      // for shard in range(SHARD_COUNT):
+      // for shard in range(get_active_shard_count(state, previous_epoch)):
       for (UInt64 shard_ = UInt64.ZERO;
           shard_.isLessThan(activeShardCount);
           shard_ = shard_.increment()) {
