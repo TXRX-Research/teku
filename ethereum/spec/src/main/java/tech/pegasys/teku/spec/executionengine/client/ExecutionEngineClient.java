@@ -35,44 +35,45 @@ public interface ExecutionEngineClient {
 
   SafeFuture<Response<GenericResponse>> consensusFinalizeBlock(Bytes32 blockHash);
 
-  ExecutionEngineClient Stub =
-      new ExecutionEngineClient() {
-        private final Bytes ZERO_LOGS_BLOOM = Bytes.wrap(new byte[256]);
-        private UInt64 number = UInt64.ZERO;
+  static ExecutionEngineClient createStub() {
+    return new ExecutionEngineClient() {
+      private final Bytes ZERO_LOGS_BLOOM = Bytes.wrap(new byte[256]);
+      private UInt64 number = UInt64.ZERO;
 
-        @Override
-        public SafeFuture<Response<ExecutionPayload>> consensusAssembleBlock(
-            AssembleBlockRequest request) {
-          number = number.increment();
-          return SafeFuture.completedFuture(
-              new Response<>(
-                  new ExecutionPayload(
-                      Bytes32.random(),
-                      request.parentHash,
-                      Bytes20.ZERO,
-                      Bytes32.ZERO,
-                      number,
-                      UInt64.ZERO,
-                      UInt64.ZERO,
-                      request.timestamp,
-                      Bytes32.ZERO,
-                      ZERO_LOGS_BLOOM,
-                      Arrays.asList(Bytes.random(128), Bytes.random(256), Bytes.random(512)))));
-        }
+      @Override
+      public SafeFuture<Response<ExecutionPayload>> consensusAssembleBlock(
+          AssembleBlockRequest request) {
+        number = number.increment();
+        return SafeFuture.completedFuture(
+            new Response<>(
+                new ExecutionPayload(
+                    Bytes32.random(),
+                    request.parentHash,
+                    Bytes20.ZERO,
+                    Bytes32.ZERO,
+                    number,
+                    UInt64.ZERO,
+                    UInt64.ZERO,
+                    request.timestamp,
+                    Bytes32.ZERO,
+                    ZERO_LOGS_BLOOM,
+                    Arrays.asList(Bytes.random(128), Bytes.random(256), Bytes.random(512)))));
+      }
 
-        @Override
-        public SafeFuture<Response<NewBlockResponse>> consensusNewBlock(ExecutionPayload request) {
-          return SafeFuture.completedFuture(new Response<>(new NewBlockResponse(true)));
-        }
+      @Override
+      public SafeFuture<Response<NewBlockResponse>> consensusNewBlock(ExecutionPayload request) {
+        return SafeFuture.completedFuture(new Response<>(new NewBlockResponse(true)));
+      }
 
-        @Override
-        public SafeFuture<Response<GenericResponse>> consensusSetHead(Bytes32 blockHash) {
-          return SafeFuture.completedFuture(new Response<>(new GenericResponse(true)));
-        }
+      @Override
+      public SafeFuture<Response<GenericResponse>> consensusSetHead(Bytes32 blockHash) {
+        return SafeFuture.completedFuture(new Response<>(new GenericResponse(true)));
+      }
 
-        @Override
-        public SafeFuture<Response<GenericResponse>> consensusFinalizeBlock(Bytes32 blockHash) {
-          return SafeFuture.completedFuture(new Response<>(new GenericResponse(true)));
-        }
-      };
+      @Override
+      public SafeFuture<Response<GenericResponse>> consensusFinalizeBlock(Bytes32 blockHash) {
+        return SafeFuture.completedFuture(new Response<>(new GenericResponse(true)));
+      }
+    };
+  }
 }

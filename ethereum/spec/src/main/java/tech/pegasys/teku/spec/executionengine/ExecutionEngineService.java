@@ -44,7 +44,7 @@ public class ExecutionEngineService {
   }
 
   public static ExecutionEngineService createStub() {
-    return new ExecutionEngineService(ExecutionEngineClient.Stub);
+    return new ExecutionEngineService(ExecutionEngineClient.createStub());
   }
 
   public ExecutionEngineService(ExecutionEngineClient executionEngineClient) {
