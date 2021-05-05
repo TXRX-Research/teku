@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.spec.logic.versions.rayonism.helpers;
 
+import java.util.Optional;
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.BeaconBlockBody;
 import tech.pegasys.teku.spec.datastructures.blocks.blockbody.versions.rayonism.BeaconBlockBodyRayonism;
@@ -39,5 +40,10 @@ public class MiscHelpersRayonism extends MiscHelpers {
     final BeaconBlockBodyRayonism blockBody = BeaconBlockBodyRayonism.required(genericBlockBody);
     return !isTransitionCompleted(state)
         && !blockBody.getExecution_payload().equals(new ExecutionPayload());
+  }
+
+  @Override
+  public Optional<MiscHelpersRayonism> toVersionMerge() {
+    return Optional.of(this);
   }
 }
