@@ -398,13 +398,12 @@ public class EpochProcessorRayonism extends AbstractEpochProcessor {
         //     votes=Bitlist[MAX_VALIDATORS_PER_COMMITTEE]([0] * committee_length),
         //     confirmed=False,
         // ))
-        ShardBlobHeader shardHeader = new ShardBlobHeader(slot, shard);
         PendingShardHeader emptyPendingShardHeader =
             new PendingShardHeader(
                 slot,
                 shard,
                 new DataCommitment(),
-                shardHeader.hashTreeRoot(),
+                Bytes32.ZERO,
                 PendingShardHeader.SSZ_SCHEMA.getVotesSchema().ofBits(committeeLength),
                 false);
         state.getCurrent_epoch_pending_shard_headers().append(emptyPendingShardHeader);

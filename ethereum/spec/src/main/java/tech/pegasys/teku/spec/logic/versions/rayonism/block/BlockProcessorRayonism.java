@@ -208,6 +208,9 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
     } else {
       pendingHeaders = state.getPrevious_epoch_pending_shard_headers();
     }
+    UInt64 shard =
+        committeeUtilRayonism.computeShardFromCommitteeIndex(
+            state, attestation.getData().getSlot(), attestation.getData().getIndex());
     //  pending_header = None
     //  for header in pending_headers:
     //      if header.root == attestation.data.shard_header_root:
@@ -216,7 +219,9 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
     Optional<PendingShardHeader> maybePendingHeader = Optional.empty();
     for (int i = 0; i < pendingHeaders.size(); i++) {
       PendingShardHeader pendingHeader = pendingHeaders.get(i);
-      if (pendingHeader.getRoot().equals(attestation.getData().getShard_header_root())) {
+      if (pendingHeader.getRoot().equals(attestation.getData().getShard_header_root())
+          && pendingHeader.getSlot().equals(attestation.getData().getSlot())
+          && pendingHeader.getShard().equals(shard)) {
         maybePendingHeader = Optional.of(pendingHeader);
         pendingHeaderIndex = i;
         break;
@@ -237,9 +242,6 @@ public class BlockProcessorRayonism extends AbstractBlockProcessor {
     //      attestation.data.slot,
     //      attestation.data.index,
     //      )
-    UInt64 shard =
-        committeeUtilRayonism.computeShardFromCommitteeIndex(
-            state, attestation.getData().getSlot(), attestation.getData().getIndex());
     checkArgument(
         pendingHeader.getShard().equals(shard),
         "updatePendingVotes: attestation index should match header shard");
