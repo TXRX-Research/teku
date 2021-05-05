@@ -116,8 +116,8 @@ public class ShardingBlockImporterTest {
 
   @Test
   public void importBlock_emptyBlockSuccess() throws Exception {
-    SignedBlockAndState block1 = chainBuilder.generateBlockAtSlot(1);
-    chainUpdater.setCurrentSlot(UInt64.valueOf(1));
+    SignedBlockAndState block1 = chainBuilder.generateBlockAtSlot(17);
+    chainUpdater.setCurrentSlot(UInt64.valueOf(17));
     final BlockImportResult result = blockImporter.importBlock(block1.getBlock()).get();
     assertSuccessfulResult(result);
   }
