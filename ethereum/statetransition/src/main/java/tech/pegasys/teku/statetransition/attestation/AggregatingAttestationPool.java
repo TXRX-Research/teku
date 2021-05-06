@@ -17,8 +17,10 @@ import static tech.pegasys.teku.util.config.Constants.ATTESTATION_RETENTION_EPOC
 import static tech.pegasys.teku.util.config.Constants.SLOTS_PER_EPOCH;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Objects;
@@ -27,6 +29,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.apache.tuweni.bytes.Bytes;
 import org.apache.tuweni.bytes.Bytes32;
@@ -38,7 +41,10 @@ import tech.pegasys.teku.spec.Spec;
 import tech.pegasys.teku.spec.datastructures.attestation.ValidateableAttestation;
 import tech.pegasys.teku.spec.datastructures.operations.Attestation;
 import tech.pegasys.teku.spec.datastructures.operations.AttestationData;
+import tech.pegasys.teku.spec.datastructures.sharding.PendingShardHeader;
+import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
+import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.rayonism.BeaconStateRayonism;
 import tech.pegasys.teku.ssz.SszList;
 import tech.pegasys.teku.ssz.schema.SszListSchema;
 import tech.pegasys.teku.util.config.Constants;
@@ -156,10 +162,36 @@ public class AggregatingAttestationPool implements SlotEventsChannel {
     return size.get();
   }
 
+  public SszList<Attestation> getAttestationsForBlock(
+      final BeaconState stateAtBlockSlot,
+      final AttestationForkChecker forkChecker) {
+    return getAttestationsForBlock(stateAtBlockSlot, forkChecker, Collections.emptyList());
+  }
+
   public synchronized SszList<Attestation> getAttestationsForBlock(
-      final BeaconState stateAtBlockSlot, final AttestationForkChecker forkChecker) {
+      final BeaconState stateAtBlockSlot,
+      final AttestationForkChecker forkChecker,
+      List<SignedShardBlobHeader> blockShardHeaders) {
+
     final UInt64 currentEpoch = spec.getCurrentEpoch(stateAtBlockSlot);
     final int previousEpochLimit = spec.getPreviousEpochAttestationCapacity(stateAtBlockSlot);
+
+    final Predicate<Attestation> shardHeaderVoteFilter;
+    Optional<BeaconStateRayonism> maybeStateRayonism = stateAtBlockSlot.toVersionRayonism();
+    if (maybeStateRayonism.isEmpty()) {
+      shardHeaderVoteFilter = __ -> true;
+    } else {
+      BeaconStateRayonism stateRayonism = maybeStateRayonism.get();
+      Set<Bytes32> existingShardHeaderRoots = Stream.concat(
+          Stream.concat(
+              stateRayonism.getCurrent_epoch_pending_shard_headers().stream(),
+              stateRayonism.getPrevious_epoch_pending_shard_headers().stream())
+              .map(PendingShardHeader::getRoot),
+          blockShardHeaders.stream().map(h -> h.getMessage().hashTreeRoot()))
+          .collect(Collectors.toSet());
+      shardHeaderVoteFilter = att -> existingShardHeaderRoots
+          .contains(att.getData().getShard_header_root());
+    }
 
     final AtomicInteger prevEpochCount = new AtomicInteger(0);
     return dataHashBySlot.descendingMap().values().stream()
@@ -171,6 +203,7 @@ public class AggregatingAttestationPool implements SlotEventsChannel {
         .flatMap(MatchingDataAttestationGroup::stream)
         .limit(ATTESTATIONS_SCHEMA.getMaxLength())
         .map(ValidateableAttestation::getAttestation)
+        .filter(shardHeaderVoteFilter)
         .filter(
             att -> {
               if (spec.computeEpochAtSlot(att.getData().getSlot()).isLessThan(currentEpoch)) {

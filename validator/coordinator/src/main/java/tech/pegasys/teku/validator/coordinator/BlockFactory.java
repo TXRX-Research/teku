@@ -15,6 +15,7 @@ package tech.pegasys.teku.validator.coordinator;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.util.List;
 import java.util.Optional;
 import org.apache.tuweni.bytes.Bytes32;
 import tech.pegasys.teku.bls.BLSSignature;
@@ -101,9 +102,12 @@ public class BlockFactory {
     } else {
       blockSlotState = spec.processSlots(blockPreState, newSlot);
     }
+    final List<SignedShardBlobHeader> shardHeaders =
+        shardHeaderPool.getItemsForBlock(blockSlotState).asList();
+
     SszList<Attestation> attestations =
         attestationPool.getAttestationsForBlock(
-            blockSlotState, new AttestationForkChecker(blockSlotState));
+            blockSlotState, new AttestationForkChecker(blockSlotState), shardHeaders);
 
     // Collect slashings to include
     final SszList<ProposerSlashing> proposerSlashings =
@@ -114,9 +118,6 @@ public class BlockFactory {
     // Collect exits to include
     final SszList<SignedVoluntaryExit> voluntaryExits =
         voluntaryExitPool.getItemsForBlock(blockSlotState);
-
-    final SszList<SignedShardBlobHeader> shardHeaders =
-        shardHeaderPool.getItemsForBlock(blockSlotState);
 
     // Collect deposits
     Eth1Data eth1Data = eth1DataCache.getEth1Vote(blockPreState);
@@ -141,7 +142,7 @@ public class BlockFactory {
                     .deposits(deposits)
                     .voluntaryExits(voluntaryExits)
                     .executionPayload(() -> getExecutionPayload(blockSlotState))
-                    .shardHeaders(shardHeaders.asList()))
+                    .shardHeaders(shardHeaders))
         .getBlock();
   }
 
