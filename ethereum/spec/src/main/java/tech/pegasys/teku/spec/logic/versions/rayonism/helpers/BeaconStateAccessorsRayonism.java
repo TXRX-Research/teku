@@ -13,6 +13,7 @@
 
 package tech.pegasys.teku.spec.logic.versions.rayonism.helpers;
 
+import java.util.Optional;
 import tech.pegasys.teku.infrastructure.unsigned.UInt64;
 import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.config.SpecConfigRayonism;
@@ -46,5 +47,10 @@ public class BeaconStateAccessorsRayonism extends BeaconStateAccessors {
 
   public int getActiveShardCount(final BeaconState state, final UInt64 epoch) {
     return configRayonism.getInitialActiveShards();
+  }
+
+  @Override
+  public Optional<BeaconStateAccessorsRayonism> toVersionRayonism() {
+    return Optional.of(this);
   }
 }

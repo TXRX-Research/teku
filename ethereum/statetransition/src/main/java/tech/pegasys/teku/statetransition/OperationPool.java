@@ -52,9 +52,15 @@ public class OperationPool<T extends SszData> {
     // Note that iterating through all items does not affect their access time so we are effectively
     // evicting the oldest entries when the size is exceeded as we only ever access via iteration.
     return operations.stream()
-        .limit(schema.getMaxLength())
+        .limit(itemsLimit(stateAtBlockSlot))
         .filter(item -> operationValidator.validateForStateTransition(stateAtBlockSlot, item))
         .collect(schema.collector());
+  }
+
+  protected int itemsLimit(BeaconState stateAtBlockSlot) {
+    SszListSchema<T, ?> schema = slotToSszListSchemaSupplier.apply(stateAtBlockSlot.getSlot());
+    long maxLength = schema.getMaxLength();
+    return maxLength < Integer.MAX_VALUE ? (int) maxLength : Integer.MAX_VALUE;
   }
 
   public SafeFuture<InternalValidationResult> add(T item) {

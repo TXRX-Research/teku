@@ -555,7 +555,7 @@ public class BeaconChainController extends Service implements TimeTickChannel {
         beaconBlockSchemaSupplier.andThen(
             blockSchema -> blockSchema.toVersionRayonism().orElseThrow()
                 .getShardBlobHeadersSchema()),
-        validator);
+        validator, spec);
   }
 
   public void initP2PNetwork() {

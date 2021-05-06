@@ -31,6 +31,7 @@ import tech.pegasys.teku.spec.config.SpecConfig;
 import tech.pegasys.teku.spec.datastructures.state.Validator;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconStateCache;
+import tech.pegasys.teku.spec.logic.versions.rayonism.helpers.BeaconStateAccessorsRayonism;
 import tech.pegasys.teku.ssz.SszList;
 import tech.pegasys.teku.ssz.type.Bytes4;
 
@@ -214,5 +215,9 @@ public abstract class BeaconStateAccessors {
   public int getPreviousEpochAttestationCapacity(final BeaconState state) {
     // No strict limit in general
     return Integer.MAX_VALUE;
+  }
+
+  public Optional<BeaconStateAccessorsRayonism> toVersionRayonism() {
+    return Optional.empty();
   }
 }
