@@ -96,6 +96,7 @@ import tech.pegasys.teku.statetransition.validation.AttestationValidator;
 import tech.pegasys.teku.statetransition.validation.AttesterSlashingValidator;
 import tech.pegasys.teku.statetransition.validation.BlockValidator;
 import tech.pegasys.teku.statetransition.validation.ProposerSlashingValidator;
+import tech.pegasys.teku.statetransition.validation.ShardBlobHeaderValidator;
 import tech.pegasys.teku.statetransition.validation.ValidationResultCode;
 import tech.pegasys.teku.statetransition.validation.VoluntaryExitValidator;
 import tech.pegasys.teku.storage.api.ChainHeadChannel;
@@ -470,6 +471,7 @@ public class BeaconChainController extends Service implements TimeTickChannel {
             attesterSlashingPool,
             proposerSlashingPool,
             voluntaryExitPool,
+            shardHeaderPool,
             depositProvider,
             eth1DataCache,
             VersionProvider.getDefaultGraffiti(),
@@ -547,7 +549,13 @@ public class BeaconChainController extends Service implements TimeTickChannel {
   }
 
   private void initShardingPools() {
-    shardHeaderPool = new ShardHeaderPool();
+    ShardBlobHeaderValidator validator = new ShardBlobHeaderValidator();
+
+    shardHeaderPool = new ShardHeaderPool(
+        beaconBlockSchemaSupplier.andThen(
+            blockSchema -> blockSchema.toVersionRayonism().orElseThrow()
+                .getShardBlobHeadersSchema()),
+        validator);
   }
 
   public void initP2PNetwork() {

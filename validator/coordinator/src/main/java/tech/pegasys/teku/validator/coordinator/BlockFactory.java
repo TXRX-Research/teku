@@ -28,6 +28,7 @@ import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.Deposit;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.SignedVoluntaryExit;
+import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.versions.rayonism.BeaconStateRayonism;
 import tech.pegasys.teku.spec.logic.common.statetransition.exceptions.EpochProcessingException;
@@ -43,6 +44,8 @@ public class BlockFactory {
   private final OperationPool<AttesterSlashing> attesterSlashingPool;
   private final OperationPool<ProposerSlashing> proposerSlashingPool;
   private final OperationPool<SignedVoluntaryExit> voluntaryExitPool;
+  private final OperationPool<SignedShardBlobHeader> shardHeaderPool;
+
   private final DepositProvider depositProvider;
   private final Eth1DataCache eth1DataCache;
   private final Bytes32 graffiti;
@@ -53,6 +56,7 @@ public class BlockFactory {
       final OperationPool<AttesterSlashing> attesterSlashingPool,
       final OperationPool<ProposerSlashing> proposerSlashingPool,
       final OperationPool<SignedVoluntaryExit> voluntaryExitPool,
+      final OperationPool<SignedShardBlobHeader> shardHeaderPool,
       final DepositProvider depositProvider,
       final Eth1DataCache eth1DataCache,
       final Bytes32 graffiti,
@@ -61,6 +65,7 @@ public class BlockFactory {
     this.attesterSlashingPool = attesterSlashingPool;
     this.proposerSlashingPool = proposerSlashingPool;
     this.voluntaryExitPool = voluntaryExitPool;
+    this.shardHeaderPool = shardHeaderPool;
     this.depositProvider = depositProvider;
     this.eth1DataCache = eth1DataCache;
     this.graffiti = graffiti;
@@ -110,6 +115,9 @@ public class BlockFactory {
     final SszList<SignedVoluntaryExit> voluntaryExits =
         voluntaryExitPool.getItemsForBlock(blockSlotState);
 
+    final SszList<SignedShardBlobHeader> shardHeaders =
+        shardHeaderPool.getItemsForBlock(blockSlotState);
+
     // Collect deposits
     Eth1Data eth1Data = eth1DataCache.getEth1Vote(blockPreState);
     final SszList<Deposit> deposits = depositProvider.getDeposits(blockPreState, eth1Data);
@@ -132,7 +140,8 @@ public class BlockFactory {
                     .attesterSlashings(attesterSlashings)
                     .deposits(deposits)
                     .voluntaryExits(voluntaryExits)
-                    .executionPayload(() -> getExecutionPayload(blockSlotState)))
+                    .executionPayload(() -> getExecutionPayload(blockSlotState))
+                    .shardHeaders(shardHeaders.asList()))
         .getBlock();
   }
 

@@ -36,6 +36,7 @@ import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.Deposit;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.SignedVoluntaryExit;
+import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.datastructures.util.BeaconBlockBodyLists;
 import tech.pegasys.teku.spec.logic.common.statetransition.exceptions.EpochProcessingException;
@@ -46,6 +47,7 @@ import tech.pegasys.teku.ssz.SszList;
 import tech.pegasys.teku.statetransition.BeaconChainUtil;
 import tech.pegasys.teku.statetransition.OperationPool;
 import tech.pegasys.teku.statetransition.attestation.AggregatingAttestationPool;
+import tech.pegasys.teku.statetransition.sharding.ShardHeaderPool;
 import tech.pegasys.teku.storage.client.MemoryOnlyRecentChainData;
 import tech.pegasys.teku.storage.client.RecentChainData;
 
@@ -64,6 +66,7 @@ class BlockFactoryTest {
   private final OperationPool<AttesterSlashing> attesterSlashingPool = mock(OperationPool.class);
   private final OperationPool<ProposerSlashing> proposerSlashingPool = mock(OperationPool.class);
   private final OperationPool<SignedVoluntaryExit> voluntaryExitPool = mock(OperationPool.class);
+  private final OperationPool<SignedShardBlobHeader> shardHeaderPool = mock(OperationPool.class);
   private final DepositProvider depositProvider = mock(DepositProvider.class);
   private final Eth1DataCache eth1DataCache = mock(Eth1DataCache.class);
   private final SszList<Deposit> deposits = blockBodyLists.createDeposits();
@@ -81,6 +84,7 @@ class BlockFactoryTest {
           attesterSlashingPool,
           proposerSlashingPool,
           voluntaryExitPool,
+          shardHeaderPool,
           depositProvider,
           eth1DataCache,
           graffiti,

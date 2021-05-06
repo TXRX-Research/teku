@@ -13,17 +13,18 @@
 
 package tech.pegasys.teku.statetransition.sharding;
 
-import tech.pegasys.teku.infrastructure.async.SafeFuture;
-import tech.pegasys.teku.spec.datastructures.sharding.ShardBlobHeader;
-import tech.pegasys.teku.statetransition.OperationPool.OperationAddedSubscriber;
-import tech.pegasys.teku.statetransition.validation.InternalValidationResult;
+import java.util.function.Function;
+import tech.pegasys.teku.infrastructure.unsigned.UInt64;
+import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
+import tech.pegasys.teku.ssz.schema.SszListSchema;
+import tech.pegasys.teku.statetransition.OperationPool;
+import tech.pegasys.teku.statetransition.validation.OperationValidator;
 
-public class ShardHeaderPool {
+public class ShardHeaderPool extends OperationPool<SignedShardBlobHeader> {
 
-  public void subscribeOperationAdded(
-      OperationAddedSubscriber<ShardBlobHeader> subscriber) {}
-
-  public SafeFuture<InternalValidationResult> add(ShardBlobHeader header) {
-    return SafeFuture.completedFuture(InternalValidationResult.IGNORE);
+  public ShardHeaderPool(
+      Function<UInt64, SszListSchema<SignedShardBlobHeader, ?>> slotToSszListSchemaSupplier,
+      OperationValidator<SignedShardBlobHeader> operationValidator) {
+    super(slotToSszListSchemaSupplier, operationValidator);
   }
 }
