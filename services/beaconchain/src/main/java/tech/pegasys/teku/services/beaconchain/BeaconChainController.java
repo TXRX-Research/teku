@@ -66,6 +66,7 @@ import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.SignedVoluntaryExit;
 import tech.pegasys.teku.spec.datastructures.operations.versions.altair.SignedContributionAndProof;
+import tech.pegasys.teku.spec.datastructures.sharding.ShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.state.AnchorPoint;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.executionengine.ExecutionEngineService;
@@ -86,6 +87,7 @@ import tech.pegasys.teku.statetransition.block.BlockManager;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoice;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoiceTrigger;
 import tech.pegasys.teku.statetransition.genesis.GenesisHandler;
+import tech.pegasys.teku.statetransition.sharding.ShardHeaderPool;
 import tech.pegasys.teku.statetransition.synccommittee.SignedContributionAndProofPool;
 import tech.pegasys.teku.statetransition.util.FutureItems;
 import tech.pegasys.teku.statetransition.util.PendingPool;
@@ -167,6 +169,7 @@ public class BeaconChainController extends Service implements TimeTickChannel {
   private volatile OperationPool<ProposerSlashing> proposerSlashingPool;
   private volatile OperationPool<SignedVoluntaryExit> voluntaryExitPool;
   private volatile SignedContributionAndProofPool signedContributionAndProofPool;
+  private volatile ShardHeaderPool shardHeaderPool;
   private volatile OperationsReOrgManager operationsReOrgManager;
   private volatile WeakSubjectivityValidator weakSubjectivityValidator;
   private volatile PerformanceTracker performanceTracker;
@@ -315,6 +318,7 @@ public class BeaconChainController extends Service implements TimeTickChannel {
     initPendingBlocks();
     initBlockManager();
     initSyncCommitteePools();
+    initShardingPools();
     initP2PNetwork();
     initSyncService();
     initSlotProcessor();
@@ -542,6 +546,10 @@ public class BeaconChainController extends Service implements TimeTickChannel {
     signedContributionAndProofPool = new SignedContributionAndProofPool();
   }
 
+  private void initShardingPools() {
+    shardHeaderPool = new ShardHeaderPool();
+  }
+
   public void initP2PNetwork() {
     LOG.debug("BeaconChainController.initP2PNetwork()");
     if (!beaconConfig.p2pConfig().getNetworkConfig().isEnabled()) {
@@ -558,6 +566,8 @@ public class BeaconChainController extends Service implements TimeTickChannel {
     final GossipPublisher<SignedVoluntaryExit> voluntaryExitGossipPublisher =
         new GossipPublisher<>();
     final GossipPublisher<SignedContributionAndProof> signedContributionAndProofGossipPublisher =
+        new GossipPublisher<>();
+    final GossipPublisher<ShardBlobHeader> shardHeaderGossipPublisher =
         new GossipPublisher<>();
 
     // Set up gossip for voluntary exits
@@ -587,6 +597,12 @@ public class BeaconChainController extends Service implements TimeTickChannel {
             signedContributionAndProofGossipPublisher.publish(item);
           }
         });
+    shardHeaderPool.subscribeOperationAdded(
+        (item, result) -> {
+          if (result.code().equals(ValidationResultCode.ACCEPT)) {
+            shardHeaderGossipPublisher.publish(item);
+          }
+        });
 
     final KeyValueStore<String, Bytes> keyValueStore =
         new FileKeyValueStore(beaconDataDirectory.resolve(KEY_VALUE_STORE_SUBDIRECTORY));
@@ -607,6 +623,8 @@ public class BeaconChainController extends Service implements TimeTickChannel {
             .voluntaryExitGossipPublisher(voluntaryExitGossipPublisher)
             .signedContributionAndProofGossipPublisher(signedContributionAndProofGossipPublisher)
             .gossipedSignedContributionAndProofProcessor(signedContributionAndProofPool::add)
+            .shardHeaderGossipPublisher(shardHeaderGossipPublisher)
+            .shardHeaderOperationProcessor(shardHeaderPool::add)
             .processedAttestationSubscriptionProvider(
                 attestationManager::subscribeToAttestationsToSend)
             .historicalChainData(

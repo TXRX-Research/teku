@@ -33,7 +33,16 @@ public class TopicNames {
     return getTopic(forkDigest, getAttestationSubnetTopicName(subnetId), gossipEncoding);
   }
 
+  public static String getShardBlobTopic(
+      final Bytes4 forkDigest, final int shard, final GossipEncoding gossipEncoding) {
+    return getTopic(forkDigest, getShardBlobTopicName(shard), gossipEncoding);
+  }
+
   public static String getAttestationSubnetTopicName(final int subnetId) {
     return "beacon_attestation_" + subnetId;
+  }
+
+  public static String getShardBlobTopicName(final int shard) {
+    return "shard_blob_" + shard;
   }
 }

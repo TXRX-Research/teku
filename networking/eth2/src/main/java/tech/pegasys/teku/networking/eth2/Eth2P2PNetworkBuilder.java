@@ -34,6 +34,7 @@ import tech.pegasys.teku.networking.eth2.gossip.forks.GossipForkManager;
 import tech.pegasys.teku.networking.eth2.gossip.forks.GossipForkSubscriptions;
 import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsAltair;
 import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsPhase0;
+import tech.pegasys.teku.networking.eth2.gossip.forks.versions.GossipForkSubscriptionsRayonism;
 import tech.pegasys.teku.networking.eth2.gossip.subnets.AttestationSubnetTopicProvider;
 import tech.pegasys.teku.networking.eth2.gossip.subnets.PeerSubnetSubscriptions;
 import tech.pegasys.teku.networking.eth2.gossip.topics.Eth2GossipTopicFilter;
@@ -60,6 +61,7 @@ import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.SignedVoluntaryExit;
 import tech.pegasys.teku.spec.datastructures.operations.versions.altair.SignedContributionAndProof;
+import tech.pegasys.teku.spec.datastructures.sharding.ShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.util.ForkAndSpecMilestone;
 import tech.pegasys.teku.storage.api.StorageQueryChannel;
@@ -84,6 +86,9 @@ public class Eth2P2PNetworkBuilder {
   private GossipPublisher<ProposerSlashing> proposerSlashingGossipPublisher;
   private OperationProcessor<SignedVoluntaryExit> gossipedVoluntaryExitConsumer;
   private GossipPublisher<SignedVoluntaryExit> voluntaryExitGossipPublisher;
+  private OperationProcessor<ShardBlobHeader> shardHeaderOperationProcessor;
+  private GossipPublisher<ShardBlobHeader> shardHeaderGossipPublisher;
+
   private ProcessedAttestationSubscriptionProvider processedAttestationSubscriptionProvider;
   private StorageQueryChannel historicalChainData;
   private MetricsSystem metricsSystem;
@@ -171,7 +176,6 @@ public class Eth2P2PNetworkBuilder {
       final GossipEncoding gossipEncoding) {
     switch (forkAndSpecMilestone.getSpecMilestone()) {
       case PHASE0:
-      case MERGE:
         return new GossipForkSubscriptionsPhase0(
             forkAndSpecMilestone.getFork(),
             spec,
@@ -189,6 +193,26 @@ public class Eth2P2PNetworkBuilder {
             proposerSlashingGossipPublisher,
             gossipedVoluntaryExitConsumer,
             voluntaryExitGossipPublisher);
+      case MERGE:
+        return new GossipForkSubscriptionsRayonism(
+            forkAndSpecMilestone.getFork(),
+            spec,
+            asyncRunner,
+            metricsSystem,
+            network,
+            recentChainData,
+            gossipEncoding,
+            gossipedBlockProcessor,
+            gossipedAttestationConsumer,
+            gossipedAggregateProcessor,
+            gossipedAttesterSlashingConsumer,
+            attesterSlashingGossipPublisher,
+            gossipedProposerSlashingConsumer,
+            proposerSlashingGossipPublisher,
+            gossipedVoluntaryExitConsumer,
+            voluntaryExitGossipPublisher,
+            shardHeaderOperationProcessor,
+            shardHeaderGossipPublisher);
       case ALTAIR:
         return new GossipForkSubscriptionsAltair(
             forkAndSpecMilestone.getFork(),
@@ -325,6 +349,18 @@ public class Eth2P2PNetworkBuilder {
       final GossipPublisher<SignedVoluntaryExit> voluntaryExitGossipPublisher) {
     checkNotNull(voluntaryExitGossipPublisher);
     this.voluntaryExitGossipPublisher = voluntaryExitGossipPublisher;
+    return this;
+  }
+
+  public Eth2P2PNetworkBuilder shardHeaderGossipPublisher(
+      GossipPublisher<ShardBlobHeader> shardHeaderGossipPublisher) {
+    this.shardHeaderGossipPublisher = shardHeaderGossipPublisher;
+    return this;
+  }
+
+  public Eth2P2PNetworkBuilder shardHeaderOperationProcessor(
+      OperationProcessor<ShardBlobHeader> shardHeaderOperationProcessor) {
+    this.shardHeaderOperationProcessor = shardHeaderOperationProcessor;
     return this;
   }
 
