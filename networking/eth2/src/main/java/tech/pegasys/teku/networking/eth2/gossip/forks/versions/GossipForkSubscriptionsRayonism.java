@@ -26,14 +26,14 @@ import tech.pegasys.teku.spec.datastructures.blocks.SignedBeaconBlock;
 import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.SignedVoluntaryExit;
-import tech.pegasys.teku.spec.datastructures.sharding.ShardBlobHeader;
+import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.state.Fork;
 import tech.pegasys.teku.spec.datastructures.state.ForkInfo;
 import tech.pegasys.teku.storage.client.RecentChainData;
 
 public class GossipForkSubscriptionsRayonism extends GossipForkSubscriptionsPhase0 {
-  private final OperationProcessor<ShardBlobHeader> shardHeaderOperationProcessor;
-  private final GossipPublisher<ShardBlobHeader> shardHeaderGossipPublisher;
+  private final OperationProcessor<SignedShardBlobHeader> shardHeaderOperationProcessor;
+  private final GossipPublisher<SignedShardBlobHeader> shardHeaderGossipPublisher;
 
 
   public GossipForkSubscriptionsRayonism(
@@ -53,9 +53,9 @@ public class GossipForkSubscriptionsRayonism extends GossipForkSubscriptionsPhas
       final GossipPublisher<ProposerSlashing> proposerSlashingGossipPublisher,
       final OperationProcessor<SignedVoluntaryExit> voluntaryExitProcessor,
       final GossipPublisher<SignedVoluntaryExit> voluntaryExitGossipPublisher,
-      final OperationProcessor<ShardBlobHeader>
+      final OperationProcessor<SignedShardBlobHeader>
           shardHeaderOperationProcessor,
-      GossipPublisher<ShardBlobHeader> shardHeaderGossipPublisher) {
+      GossipPublisher<SignedShardBlobHeader> shardHeaderGossipPublisher) {
     super(
         fork,
         spec,

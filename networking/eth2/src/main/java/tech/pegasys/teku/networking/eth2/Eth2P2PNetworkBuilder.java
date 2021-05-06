@@ -61,7 +61,7 @@ import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.SignedVoluntaryExit;
 import tech.pegasys.teku.spec.datastructures.operations.versions.altair.SignedContributionAndProof;
-import tech.pegasys.teku.spec.datastructures.sharding.ShardBlobHeader;
+import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.state.Checkpoint;
 import tech.pegasys.teku.spec.datastructures.util.ForkAndSpecMilestone;
 import tech.pegasys.teku.storage.api.StorageQueryChannel;
@@ -86,8 +86,8 @@ public class Eth2P2PNetworkBuilder {
   private GossipPublisher<ProposerSlashing> proposerSlashingGossipPublisher;
   private OperationProcessor<SignedVoluntaryExit> gossipedVoluntaryExitConsumer;
   private GossipPublisher<SignedVoluntaryExit> voluntaryExitGossipPublisher;
-  private OperationProcessor<ShardBlobHeader> shardHeaderOperationProcessor;
-  private GossipPublisher<ShardBlobHeader> shardHeaderGossipPublisher;
+  private OperationProcessor<SignedShardBlobHeader> shardHeaderOperationProcessor;
+  private GossipPublisher<SignedShardBlobHeader> shardHeaderGossipPublisher;
 
   private ProcessedAttestationSubscriptionProvider processedAttestationSubscriptionProvider;
   private StorageQueryChannel historicalChainData;
@@ -353,13 +353,13 @@ public class Eth2P2PNetworkBuilder {
   }
 
   public Eth2P2PNetworkBuilder shardHeaderGossipPublisher(
-      GossipPublisher<ShardBlobHeader> shardHeaderGossipPublisher) {
+      GossipPublisher<SignedShardBlobHeader> shardHeaderGossipPublisher) {
     this.shardHeaderGossipPublisher = shardHeaderGossipPublisher;
     return this;
   }
 
   public Eth2P2PNetworkBuilder shardHeaderOperationProcessor(
-      OperationProcessor<ShardBlobHeader> shardHeaderOperationProcessor) {
+      OperationProcessor<SignedShardBlobHeader> shardHeaderOperationProcessor) {
     this.shardHeaderOperationProcessor = shardHeaderOperationProcessor;
     return this;
   }

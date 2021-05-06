@@ -17,11 +17,11 @@ import tech.pegasys.teku.infrastructure.async.AsyncRunner;
 import tech.pegasys.teku.networking.eth2.gossip.encoding.GossipEncoding;
 import tech.pegasys.teku.networking.eth2.gossip.topics.OperationProcessor;
 import tech.pegasys.teku.networking.p2p.gossip.GossipNetwork;
-import tech.pegasys.teku.spec.datastructures.sharding.ShardBlobHeader;
+import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.state.ForkInfo;
 import tech.pegasys.teku.ssz.schema.SszSchema;
 
-public class ShardHeaderGossipManager extends AbstractGossipManager<ShardBlobHeader> {
+public class ShardHeaderGossipManager extends AbstractGossipManager<SignedShardBlobHeader> {
   public static String TOPIC_NAME = "shard_header";
 
   public ShardHeaderGossipManager(
@@ -29,13 +29,13 @@ public class ShardHeaderGossipManager extends AbstractGossipManager<ShardBlobHea
       final GossipNetwork gossipNetwork,
       final GossipEncoding gossipEncoding,
       final ForkInfo forkInfo,
-      final OperationProcessor<ShardBlobHeader> processor,
-      final GossipPublisher<ShardBlobHeader> publisher) {
+      final OperationProcessor<SignedShardBlobHeader> processor,
+      final GossipPublisher<SignedShardBlobHeader> publisher) {
     super(TOPIC_NAME, asyncRunner, gossipNetwork, gossipEncoding, forkInfo, processor, publisher);
   }
 
   @Override
-  protected SszSchema<ShardBlobHeader> getGossipType() {
-    return ShardBlobHeader.SSZ_SCHEMA;
+  protected SszSchema<SignedShardBlobHeader> getGossipType() {
+    return SignedShardBlobHeader.SSZ_SCHEMA;
   }
 }

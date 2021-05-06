@@ -66,7 +66,7 @@ import tech.pegasys.teku.spec.datastructures.operations.AttesterSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.ProposerSlashing;
 import tech.pegasys.teku.spec.datastructures.operations.SignedVoluntaryExit;
 import tech.pegasys.teku.spec.datastructures.operations.versions.altair.SignedContributionAndProof;
-import tech.pegasys.teku.spec.datastructures.sharding.ShardBlobHeader;
+import tech.pegasys.teku.spec.datastructures.sharding.SignedShardBlobHeader;
 import tech.pegasys.teku.spec.datastructures.state.AnchorPoint;
 import tech.pegasys.teku.spec.datastructures.state.beaconstate.BeaconState;
 import tech.pegasys.teku.spec.executionengine.ExecutionEngineService;
@@ -567,7 +567,7 @@ public class BeaconChainController extends Service implements TimeTickChannel {
         new GossipPublisher<>();
     final GossipPublisher<SignedContributionAndProof> signedContributionAndProofGossipPublisher =
         new GossipPublisher<>();
-    final GossipPublisher<ShardBlobHeader> shardHeaderGossipPublisher =
+    final GossipPublisher<SignedShardBlobHeader> shardHeaderGossipPublisher =
         new GossipPublisher<>();
 
     // Set up gossip for voluntary exits
