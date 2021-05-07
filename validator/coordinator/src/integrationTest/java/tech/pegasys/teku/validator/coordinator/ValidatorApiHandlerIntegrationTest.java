@@ -38,6 +38,7 @@ import tech.pegasys.teku.statetransition.attestation.AggregatingAttestationPool;
 import tech.pegasys.teku.statetransition.attestation.AttestationManager;
 import tech.pegasys.teku.statetransition.block.BlockImportChannel;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoiceTrigger;
+import tech.pegasys.teku.statetransition.sharding.ShardHeaderPool;
 import tech.pegasys.teku.storage.client.ChainUpdater;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.storage.server.StateStorageMode;
@@ -71,6 +72,7 @@ public class ValidatorApiHandlerIntegrationTest {
   private final BlockGossipChannel blockGossipChannel = Mockito.mock(BlockGossipChannel.class);
   private final ChainDataProvider chainDataProvider = mock(ChainDataProvider.class);
   private final ForkChoiceTrigger forkChoiceTrigger = mock(ForkChoiceTrigger.class);
+  private final ShardHeaderPool shardHeaderPool = mock(ShardHeaderPool.class);
 
   private final ChainUpdater chainUpdater = storageSystem.chainUpdater();
   private final ValidatorApiHandler handler =
@@ -88,7 +90,8 @@ public class ValidatorApiHandlerIntegrationTest {
           mock(DutyMetrics.class),
           performanceTracker,
           spec,
-          forkChoiceTrigger);
+          forkChoiceTrigger,
+          shardHeaderPool);
 
   @BeforeEach
   public void setup() {

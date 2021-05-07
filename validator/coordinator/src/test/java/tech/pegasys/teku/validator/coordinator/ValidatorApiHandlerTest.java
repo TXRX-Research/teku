@@ -67,6 +67,7 @@ import tech.pegasys.teku.statetransition.attestation.AggregatingAttestationPool;
 import tech.pegasys.teku.statetransition.attestation.AttestationManager;
 import tech.pegasys.teku.statetransition.block.BlockImportChannel;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoiceTrigger;
+import tech.pegasys.teku.statetransition.sharding.ShardHeaderPool;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.sync.events.SyncState;
 import tech.pegasys.teku.sync.events.SyncStateProvider;
@@ -103,6 +104,7 @@ class ValidatorApiHandlerTest {
   private final ChainDataProvider chainDataProvider = mock(ChainDataProvider.class);
   private final DutyMetrics dutyMetrics = mock(DutyMetrics.class);
   private final ForkChoiceTrigger forkChoiceTrigger = mock(ForkChoiceTrigger.class);
+  private final ShardHeaderPool shardHeaderPool = mock(ShardHeaderPool.class);
 
   private final ValidatorApiHandler validatorApiHandler =
       new ValidatorApiHandler(
@@ -119,7 +121,8 @@ class ValidatorApiHandlerTest {
           dutyMetrics,
           performanceTracker,
           spec,
-          forkChoiceTrigger);
+          forkChoiceTrigger,
+          shardHeaderPool);
 
   @BeforeEach
   public void setUp() {

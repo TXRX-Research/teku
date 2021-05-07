@@ -326,14 +326,7 @@ public class AttestationGenerator {
                 }
             );
         AttestationData shardedAttData = maybeShardHeader
-            .map(shardHeader -> new AttestationData(
-                genericAttestationData.getSlot(),
-                genericAttestationData.getIndex(),
-                genericAttestationData.getBeacon_block_root(),
-                genericAttestationData.getSource(),
-                genericAttestationData.getTarget(),
-                shardHeader.getRoot()
-            ))
+            .map(shardHeader -> genericAttestationData.withShardHeaderRoot(shardHeader.getRoot()))
             .orElse(genericAttestationData);
 
         final BLSKeyPair validatorKeyPair = validatorKeySupplier.apply(validatorIndex);

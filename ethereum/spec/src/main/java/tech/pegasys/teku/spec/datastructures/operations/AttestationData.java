@@ -88,6 +88,11 @@ public class AttestationData
         data.getShard_header_root());
   }
 
+  public AttestationData withShardHeaderRoot(Bytes32 shardHeaderRoot) {
+    return new AttestationData(getSlot(), getIndex(), getBeacon_block_root(), getSource(),
+        getTarget(), shardHeaderRoot);
+  }
+
   public UInt64 getEarliestSlotForForkChoice() {
     // Attestations can't be processed by fork choice until their slot is in the past and until we
     // are in the same epoch as their target.

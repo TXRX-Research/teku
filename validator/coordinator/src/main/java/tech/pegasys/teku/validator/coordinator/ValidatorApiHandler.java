@@ -63,6 +63,7 @@ import tech.pegasys.teku.statetransition.attestation.AggregatingAttestationPool;
 import tech.pegasys.teku.statetransition.attestation.AttestationManager;
 import tech.pegasys.teku.statetransition.block.BlockImportChannel;
 import tech.pegasys.teku.statetransition.forkchoice.ForkChoiceTrigger;
+import tech.pegasys.teku.statetransition.sharding.ShardHeaderPool;
 import tech.pegasys.teku.storage.client.CombinedChainDataClient;
 import tech.pegasys.teku.sync.events.SyncStateProvider;
 import tech.pegasys.teku.validator.api.AttesterDuties;
@@ -99,6 +100,7 @@ public class ValidatorApiHandler implements ValidatorApiChannel {
   private final PerformanceTracker performanceTracker;
   private final Spec spec;
   private final ForkChoiceTrigger forkChoiceTrigger;
+  private final ShardHeaderPool shardHeaderPool;
 
   public ValidatorApiHandler(
       final ChainDataProvider chainDataProvider,
@@ -114,7 +116,8 @@ public class ValidatorApiHandler implements ValidatorApiChannel {
       final DutyMetrics dutyMetrics,
       final PerformanceTracker performanceTracker,
       final Spec spec,
-      final ForkChoiceTrigger forkChoiceTrigger) {
+      final ForkChoiceTrigger forkChoiceTrigger,
+      final ShardHeaderPool shardHeaderPool) {
     this.chainDataProvider = chainDataProvider;
     this.combinedChainDataClient = combinedChainDataClient;
     this.syncStateProvider = syncStateProvider;
@@ -129,6 +132,7 @@ public class ValidatorApiHandler implements ValidatorApiChannel {
     this.performanceTracker = performanceTracker;
     this.spec = spec;
     this.forkChoiceTrigger = forkChoiceTrigger;
+    this.shardHeaderPool = shardHeaderPool;
   }
 
   @Override
@@ -332,6 +336,13 @@ public class ValidatorApiHandler implements ValidatorApiChannel {
     final UInt64 committeeIndexUnsigned = UInt64.valueOf(committeeIndex);
     final AttestationData attestationData =
         spec.getGenericAttestationData(slot, state, block, committeeIndexUnsigned);
+
+    Optional<Bytes32> shardHeaderRoot = shardHeaderPool
+        .getAttestedHeaderRoot(state, slot, committeeIndexUnsigned);
+    AttestationData shardedAttestationData = shardHeaderRoot
+        .map(attestationData::withShardHeaderRoot)
+        .orElse(attestationData);
+
     final List<Integer> committee =
         spec.atSlot(slot)
             .getBeaconStateUtil()
@@ -339,7 +350,7 @@ public class ValidatorApiHandler implements ValidatorApiChannel {
 
     SszBitlist aggregationBits =
         Attestation.SSZ_SCHEMA.getAggregationBitsSchema().ofBits(committee.size());
-    return new Attestation(aggregationBits, attestationData, BLSSignature.empty());
+    return new Attestation(aggregationBits, shardedAttestationData, BLSSignature.empty());
   }
 
   @Override
